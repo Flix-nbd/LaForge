@@ -1,0 +1,2736 @@
+{
+  "Haltères": {
+    "Épaules": [
+      {
+        "nom": "Arraché avec haltère",
+        "id": "arrache-avec-haltere",
+        "url": "https://www.docteur-fitness.com/arrache-avec-haltere"
+      },
+      {
+        "nom": "Développé épaules avec haltères",
+        "id": "developpe-epaules-avec-halteres",
+        "url": "https://www.docteur-fitness.com/developpe-epaules-avec-halteres"
+      },
+      {
+        "nom": "Élévations latérales inclinées avec haltère",
+        "id": "elevations-laterales-inclinees-avec-haltere",
+        "url": "https://www.docteur-fitness.com/elevations-laterales-inclinees-avec-haltere"
+      },
+      {
+        "nom": "Rotation externe de l'épaule couchée avec haltère",
+        "id": "rotation-externe-de-lepaule-couchee-avec-haltere",
+        "url": "https://www.docteur-fitness.com/rotation-externe-de-lepaule-couchee-avec-haltere"
+      },
+      {
+        "nom": "Croix de fer avec haltères",
+        "id": "croix-de-fer-avec-halteres",
+        "url": "https://www.docteur-fitness.com/croix-de-fer-avec-halteres"
+      }
+    ],
+    "Biceps": [
+      {
+        "nom": "Curl haltère debout sur banc incliné",
+        "id": "curl-haltere-debout-sur-banc-incline",
+        "url": "https://www.docteur-fitness.com/curl-haltere-debout-sur-banc-incline"
+      },
+      {
+        "nom": "Curl haltère incliné avec rotation",
+        "id": "curl-haltere-incline",
+        "url": "https://www.docteur-fitness.com/curl-haltere-incline"
+      },
+      {
+        "nom": "Drag curl avec haltères",
+        "id": "drag-curl-avec-halteres",
+        "url": "https://www.docteur-fitness.com/drag-curl-avec-halteres"
+      },
+      {
+        "nom": "Curl haltères prise neutre",
+        "id": "curl-haltere-prise-neutre",
+        "url": "https://www.docteur-fitness.com/curl-haltere-prise-neutre"
+      },
+      {
+        "nom": "Curl biceps alterné avec haltères",
+        "id": "curl-biceps-avec-halteres-alterne",
+        "url": "https://www.docteur-fitness.com/curl-biceps-avec-halteres-alterne"
+      },
+      {
+        "nom": "Curl haltère prise marteau au pupitre",
+        "id": "curl-haltere-prise-marteau-au-pupitre",
+        "url": "https://www.docteur-fitness.com/curl-haltere-prise-marteau-au-pupitre"
+      }
+    ],
+    "Triceps": [
+      {
+        "nom": "Extensions verticales d'un bras avec haltère",
+        "id": "extensions-verticales-dun-bras-avec-haltere",
+        "url": "https://www.docteur-fitness.com/extensions-verticales-dun-bras-avec-haltere"
+      },
+      {
+        "nom": "Extensions des triceps incliné avec haltères",
+        "id": "extensions-des-triceps-avec-halteres-incline",
+        "url": "https://www.docteur-fitness.com/extensions-des-triceps-avec-halteres-incline"
+      },
+      {
+        "nom": "Extensions des triceps décliné avec haltères",
+        "id": "extensions-des-triceps-decline-avec-halteres",
+        "url": "https://www.docteur-fitness.com/extensions-des-triceps-decline-avec-halteres"
+      },
+      {
+        "nom": "Kickback debout avec haltères",
+        "id": "kickback-debout-avec-halteres",
+        "url": "https://www.docteur-fitness.com/kickback-debout-avec-halteres"
+      },
+      {
+        "nom": "Extensions des triceps assis avec haltère",
+        "id": "extensions-des-triceps-assis-avec-haltere",
+        "url": "https://www.docteur-fitness.com/extensions-des-triceps-assis-avec-haltere"
+      },
+      {
+        "nom": "Extensions des triceps couché avec haltères",
+        "id": "extensions-des-triceps-couche-avec-halteres",
+        "url": "https://www.docteur-fitness.com/extensions-des-triceps-couche-avec-halteres"
+      },
+      {
+        "nom": "Extensions verticales à deux mains avec haltère",
+        "id": "extensions-verticales-a-deux-mains-avec-haltere",
+        "url": "https://www.docteur-fitness.com/extensions-verticales-a-deux-mains-avec-haltere"
+      },
+      {
+        "nom": "Tate press à un bras avec haltère",
+        "id": "tate-press-a-un-bras-avec-haltere",
+        "url": "https://www.docteur-fitness.com/tate-press-a-un-bras-avec-haltere"
+      }
+    ],
+    "Pectoraux": [
+      {
+        "nom": "Écartés couché avec haltères",
+        "id": "ecartes-couche-avec-halteres",
+        "url": "https://www.docteur-fitness.com/ecartes-couche-avec-halteres"
+      },
+      {
+        "nom": "Développé couché haltères",
+        "id": "developpe-couche-halteres",
+        "url": "https://www.docteur-fitness.com/developpe-couche-halteres"
+      },
+      {
+        "nom": "Écartés décliné avec haltères",
+        "id": "ecartes-decline-avec-halteres",
+        "url": "https://www.docteur-fitness.com/ecartes-decline-avec-halteres"
+      },
+      {
+        "nom": "Développé décliné avec haltère",
+        "id": "developpe-decline-avec-haltere",
+        "url": "https://www.docteur-fitness.com/developpe-decline-avec-haltere"
+      },
+      {
+        "nom": "Pullover avec haltère",
+        "id": "pullover-avec-haltere",
+        "url": "https://www.docteur-fitness.com/pullover-avec-haltere"
+      },
+      {
+        "nom": "Développé couché serré avec haltères",
+        "id": "developpe-couche-serre-avec-halteres",
+        "url": "https://www.docteur-fitness.com/developpe-couche-serre-avec-halteres"
+      },
+      {
+        "nom": "Écartés incliné avec haltères",
+        "id": "ecartes-incline-avec-halteres",
+        "url": "https://www.docteur-fitness.com/ecartes-incline-avec-halteres"
+      },
+      {
+        "nom": "Développé incliné avec haltères",
+        "id": "developpe-incline-avec-halteres",
+        "url": "https://www.docteur-fitness.com/developpe-incline-avec-halteres"
+      }
+    ],
+    "Dos": [
+      {
+        "nom": "Rowing haltère à un bras",
+        "id": "rowing-haltere-a-un-bras",
+        "url": "https://www.docteur-fitness.com/rowing-haltere-a-un-bras"
+      },
+      {
+        "nom": "Rowing avec haltères",
+        "id": "bent-over-row-avec-halteres",
+        "url": "https://www.docteur-fitness.com/bent-over-row-avec-halteres"
+      },
+      {
+        "nom": "Seal row avec haltères",
+        "id": "seal-row-avec-halteres",
+        "url": "https://www.docteur-fitness.com/seal-row-avec-halteres"
+      },
+      {
+        "nom": "Rowing haltères sur banc incliné",
+        "id": "rowing-halteres-sur-banc-incline",
+        "url": "https://www.docteur-fitness.com/rowing-halteres-sur-banc-incline"
+      },
+      {
+        "nom": "Pullover avec haltère",
+        "id": "pullover-avec-haltere",
+        "url": "https://www.docteur-fitness.com/pullover-avec-haltere"
+      },
+      {
+        "nom": "Shrugs avec haltères",
+        "id": "shrugs-avec-halteres",
+        "url": "https://www.docteur-fitness.com/shrugs-avec-halteres"
+      },
+      {
+        "nom": "Pullover avec deux haltères",
+        "id": "pullover-avec-deux-halteres",
+        "url": "https://www.docteur-fitness.com/pullover-avec-deux-halteres"
+      }
+    ],
+    "Abdominaux": [
+      {
+        "nom": "Flexions latérales avec haltère",
+        "id": "flexions-laterales-avec-haltere",
+        "url": "https://www.docteur-fitness.com/flexions-laterales-avec-haltere"
+      }
+    ],
+    "Fessiers": [
+      {
+        "nom": "Deadlift sumo aux haltères",
+        "id": "deadlift-sumo-aux-halteres",
+        "url": "https://www.docteur-fitness.com/deadlift-sumo-aux-halteres"
+      },
+      {
+        "nom": "Front squat avec haltères",
+        "id": "front-squat-avec-halteres",
+        "url": "https://www.docteur-fitness.com/front-squat-avec-halteres"
+      },
+      {
+        "nom": "Squat sumo avec haltère",
+        "id": "squat-sumo-avec-haltere",
+        "url": "https://www.docteur-fitness.com/squat-sumo-avec-haltere"
+      },
+      {
+        "nom": "Montées sur banc latérales avec haltères",
+        "id": "montees-sur-banc-lateral-avec-halteres",
+        "url": "https://www.docteur-fitness.com/montees-sur-banc-lateral-avec-halteres"
+      },
+      {
+        "nom": "Goblet squat avec haltère",
+        "id": "goblet-squat",
+        "url": "https://www.docteur-fitness.com/goblet-squat"
+      },
+      {
+        "nom": "Fentes avant avec haltères",
+        "id": "fentes-avant-avec-halteres",
+        "url": "https://www.docteur-fitness.com/fentes-avant-avec-halteres"
+      },
+      {
+        "nom": "Squat bulgare avec haltères",
+        "id": "squat-bulgare-avec-halteres",
+        "url": "https://www.docteur-fitness.com/squat-bulgare-avec-halteres"
+      }
+    ],
+    "Quadriceps": [
+      {
+        "nom": "Arraché avec haltère",
+        "id": "arrache-avec-haltere",
+        "url": "https://www.docteur-fitness.com/arrache-avec-haltere"
+      },
+      {
+        "nom": "Overhead squat avec haltères",
+        "id": "overhead-squat-avec-halteres",
+        "url": "https://www.docteur-fitness.com/overhead-squat-avec-halteres"
+      },
+      {
+        "nom": "Croix de fer avec haltères",
+        "id": "croix-de-fer-avec-halteres",
+        "url": "https://www.docteur-fitness.com/croix-de-fer-avec-halteres"
+      },
+      {
+        "nom": "Front squat avec haltères",
+        "id": "front-squat-avec-halteres",
+        "url": "https://www.docteur-fitness.com/front-squat-avec-halteres"
+      },
+      {
+        "nom": "Squat sumo avec haltère",
+        "id": "squat-sumo-avec-haltere",
+        "url": "https://www.docteur-fitness.com/squat-sumo-avec-haltere"
+      },
+      {
+        "nom": "Montées sur banc latérales avec haltères",
+        "id": "montees-sur-banc-lateral-avec-halteres",
+        "url": "https://www.docteur-fitness.com/montees-sur-banc-lateral-avec-halteres"
+      },
+      {
+        "nom": "Goblet squat avec haltère",
+        "id": "goblet-squat",
+        "url": "https://www.docteur-fitness.com/goblet-squat"
+      },
+      {
+        "nom": "Fentes avant avec haltères",
+        "id": "fentes-avant-avec-halteres",
+        "url": "https://www.docteur-fitness.com/fentes-avant-avec-halteres"
+      },
+      {
+        "nom": "Squat bulgare avec haltères",
+        "id": "squat-bulgare-avec-halteres",
+        "url": "https://www.docteur-fitness.com/squat-bulgare-avec-halteres"
+      }
+    ],
+    "Ischio-jambiers": [
+      {
+        "nom": "Deadlift sumo aux haltères",
+        "id": "deadlift-sumo-aux-halteres",
+        "url": "https://www.docteur-fitness.com/deadlift-sumo-aux-halteres"
+      },
+      {
+        "nom": "Leg curl décliné avec haltère",
+        "id": "leg-curl-decline-avec-haltere",
+        "url": "https://www.docteur-fitness.com/leg-curl-decline-avec-haltere"
+      },
+      {
+        "nom": "Front squat avec haltères",
+        "id": "front-squat-avec-halteres",
+        "url": "https://www.docteur-fitness.com/front-squat-avec-halteres"
+      },
+      {
+        "nom": "Squat sumo avec haltère",
+        "id": "squat-sumo-avec-haltere",
+        "url": "https://www.docteur-fitness.com/squat-sumo-avec-haltere"
+      }
+    ]
+  },
+  "Poids de corps / sans matériel": {
+    "Épaules": [
+      {
+        "nom": "Handstand push-up suspendu",
+        "id": "handstand-push-up-suspendu",
+        "url": "https://www.docteur-fitness.com/handstand-push-up-suspendu"
+      },
+      {
+        "nom": "Rotation externe de l'épaule en abduction",
+        "id": "rotation-externe-de-lepaule-en-abduction",
+        "url": "https://www.docteur-fitness.com/rotation-externe-de-lepaule-en-abduction"
+      },
+      {
+        "nom": "Développé militaire",
+        "id": "developpe-militaire",
+        "url": "https://www.docteur-fitness.com/developpe-militaire"
+      },
+      {
+        "nom": "Développé Arnold",
+        "id": "developpe-arnold",
+        "url": "https://www.docteur-fitness.com/developpe-arnold"
+      },
+      {
+        "nom": "Face pull",
+        "id": "face-pull",
+        "url": "https://www.docteur-fitness.com/face-pull"
+      },
+      {
+        "nom": "Élévations frontales",
+        "id": "elevations-frontales",
+        "url": "https://www.docteur-fitness.com/elevations-frontales"
+      },
+      {
+        "nom": "Élévations latérales",
+        "id": "elevations-laterales",
+        "url": "https://www.docteur-fitness.com/elevations-laterales"
+      },
+      {
+        "nom": "Oiseau assis sur un banc",
+        "id": "oiseau-assis-sur-un-banc",
+        "url": "https://www.docteur-fitness.com/oiseau-assis-sur-un-banc"
+      },
+      {
+        "nom": "Élévation frontale sur banc incliné",
+        "id": "elevation-frontale-sur-banc-incline",
+        "url": "https://www.docteur-fitness.com/elevation-frontale-sur-banc-incline"
+      },
+      {
+        "nom": "Développé épaules assis",
+        "id": "developpe-epaules-assis",
+        "url": "https://www.docteur-fitness.com/developpe-epaules-assis"
+      },
+      {
+        "nom": "Handstand push-up",
+        "id": "handstand-push-up",
+        "url": "https://www.docteur-fitness.com/handstand-push-up"
+      },
+      {
+        "nom": "Pompes piquées",
+        "id": "pompes-piquees",
+        "url": "https://www.docteur-fitness.com/pompes-piquees"
+      },
+      {
+        "nom": "Russian twist avec développé épaules",
+        "id": "russian-twist-avec-developpe-epaule",
+        "url": "https://www.docteur-fitness.com/russian-twist-avec-developpe-epaule"
+      },
+      {
+        "nom": "Rotations cubaines",
+        "id": "rotations-cubaines",
+        "url": "https://www.docteur-fitness.com/rotations-cubaines"
+      },
+      {
+        "nom": "Thruster",
+        "id": "thruster",
+        "url": "https://www.docteur-fitness.com/thruster"
+      }
+    ],
+    "Biceps": [
+      {
+        "nom": "Rocky Pull-Up",
+        "id": "rocky-pull-up",
+        "url": "https://www.docteur-fitness.com/rocky-pull-up"
+      },
+      {
+        "nom": "Curl concentré",
+        "id": "curl-concentre",
+        "url": "https://www.docteur-fitness.com/curl-concentre"
+      },
+      {
+        "nom": "Curl Spider",
+        "id": "curl-spider",
+        "url": "https://www.docteur-fitness.com/curl-spider"
+      },
+      {
+        "nom": "Traction supination",
+        "id": "traction-supination",
+        "url": "https://www.docteur-fitness.com/traction-supination"
+      },
+      {
+        "nom": "Curl Zottman",
+        "id": "curl-zottman",
+        "url": "https://www.docteur-fitness.com/curl-zottman"
+      },
+      {
+        "nom": "Sled pull",
+        "id": "sled-pull",
+        "url": "https://www.docteur-fitness.com/sled-pull"
+      },
+      {
+        "nom": "Drag curl",
+        "id": "drag-curl",
+        "url": "https://www.docteur-fitness.com/drag-curl"
+      },
+      {
+        "nom": "Waiter curl",
+        "id": "waiter-curl",
+        "url": "https://www.docteur-fitness.com/waiter-curl"
+      },
+      {
+        "nom": "Curl biceps alterné en supination sur banc incliné",
+        "id": "curl-biceps-alterne-sur-banc-incline",
+        "url": "https://www.docteur-fitness.com/curl-biceps-alterne-sur-banc-incline"
+      }
+    ],
+    "Triceps": [
+      {
+        "nom": "Dips sur une chaise",
+        "id": "dips-sur-une-chaise",
+        "url": "https://www.docteur-fitness.com/dips-sur-une-chaise"
+      },
+      {
+        "nom": "Pompes",
+        "id": "pourquoi-devrait-on-faire-des-pompes-plus-souvent",
+        "url": "https://www.docteur-fitness.com/pourquoi-devrait-on-faire-des-pompes-plus-souvent"
+      },
+      {
+        "nom": "Extension des triceps en planche",
+        "id": "extension-des-triceps-en-planche",
+        "url": "https://www.docteur-fitness.com/extension-des-triceps-en-planche"
+      },
+      {
+        "nom": "Kickback alterné assis",
+        "id": "kickback-alterne-assis",
+        "url": "https://www.docteur-fitness.com/kickback-alterne-assis"
+      },
+      {
+        "nom": "Dips sur banc",
+        "id": "dips-sur-banc",
+        "url": "https://www.docteur-fitness.com/dips-sur-banc"
+      },
+      {
+        "nom": "Kickback",
+        "id": "kickback",
+        "url": "https://www.docteur-fitness.com/kickback"
+      },
+      {
+        "nom": "Dips entre deux bancs",
+        "id": "dips-entre-deux-bancs",
+        "url": "https://www.docteur-fitness.com/dips-entre-deux-bancs"
+      }
+    ],
+    "Pectoraux": [
+      {
+        "nom": "Développé couché",
+        "id": "developpe-couche",
+        "url": "https://www.docteur-fitness.com/developpe-couche"
+      },
+      {
+        "nom": "Écartés Hyght",
+        "id": "ecartes-hyght",
+        "url": "https://www.docteur-fitness.com/ecartes-hyght"
+      },
+      {
+        "nom": "Développé couché prise inversée",
+        "id": "developpe-couche-prise-inversee",
+        "url": "https://www.docteur-fitness.com/developpe-couche-prise-inversee"
+      },
+      {
+        "nom": "Pompes",
+        "id": "pourquoi-devrait-on-faire-des-pompes-plus-souvent",
+        "url": "https://www.docteur-fitness.com/pourquoi-devrait-on-faire-des-pompes-plus-souvent"
+      },
+      {
+        "nom": "Développé couché avec chaînes",
+        "id": "developpe-couche-avec-chaines",
+        "url": "https://www.docteur-fitness.com/developpe-couche-avec-chaines"
+      },
+      {
+        "nom": "Svend press",
+        "id": "svend-press",
+        "url": "https://www.docteur-fitness.com/svend-press"
+      },
+      {
+        "nom": "Développé couché Larsen",
+        "id": "developpe-couche-larsen",
+        "url": "https://www.docteur-fitness.com/developpe-couche-larsen"
+      },
+      {
+        "nom": "Développé couché au sol",
+        "id": "developpe-couche-au-sol",
+        "url": "https://www.docteur-fitness.com/developpe-couche-au-sol"
+      }
+    ],
+    "Dos": [
+      {
+        "nom": "Rocky Pull-Up",
+        "id": "rocky-pull-up",
+        "url": "https://www.docteur-fitness.com/rocky-pull-up"
+      },
+      {
+        "nom": "Muscle-up",
+        "id": "muscle-up",
+        "url": "https://www.docteur-fitness.com/muscle-up"
+      },
+      {
+        "nom": "Traction",
+        "id": "traction",
+        "url": "https://www.docteur-fitness.com/traction"
+      },
+      {
+        "nom": "Traction supination",
+        "id": "traction-supination",
+        "url": "https://www.docteur-fitness.com/traction-supination"
+      },
+      {
+        "nom": "Rowing \"T-bar\"",
+        "id": "rowing-t-bar",
+        "url": "https://www.docteur-fitness.com/rowing-t-bar"
+      },
+      {
+        "nom": "Tirage vertical prise serrée",
+        "id": "tirage-vertical-prise-serree",
+        "url": "https://www.docteur-fitness.com/tirage-vertical-prise-serree"
+      },
+      {
+        "nom": "Soulevé de terre",
+        "id": "souleve-de-terre",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre"
+      },
+      {
+        "nom": "Tractions prise neutre",
+        "id": "tractions-prise-neutre",
+        "url": "https://www.docteur-fitness.com/tractions-prise-neutre"
+      },
+      {
+        "nom": "Renegade row",
+        "id": "renegade-row",
+        "url": "https://www.docteur-fitness.com/renegade-row"
+      },
+      {
+        "nom": "Tirage vertical poitrine",
+        "id": "tirage-vertical-poitrine",
+        "url": "https://www.docteur-fitness.com/tirage-vertical-poitrine"
+      },
+      {
+        "nom": "Superman",
+        "id": "superman",
+        "url": "https://www.docteur-fitness.com/superman"
+      },
+      {
+        "nom": "Tractions australiennes",
+        "id": "tractions-australiennes",
+        "url": "https://www.docteur-fitness.com/tractions-australiennes"
+      },
+      {
+        "nom": "Sled pull",
+        "id": "sled-pull",
+        "url": "https://www.docteur-fitness.com/sled-pull"
+      },
+      {
+        "nom": "Bird dog",
+        "id": "bird-dog",
+        "url": "https://www.docteur-fitness.com/bird-dog"
+      },
+      {
+        "nom": "Overhead shrug",
+        "id": "overhead-shrug",
+        "url": "https://www.docteur-fitness.com/overhead-shrug"
+      },
+      {
+        "nom": "Planche inversée",
+        "id": "planche-inversee",
+        "url": "https://www.docteur-fitness.com/planche-inversee"
+      },
+      {
+        "nom": "Extension lombaire au banc à 45°",
+        "id": "extension-lombaire-au-banc-a-45",
+        "url": "https://www.docteur-fitness.com/extension-lombaire-au-banc-a-45"
+      },
+      {
+        "nom": "Rowing inversé sous une table",
+        "id": "rowing-inverse-sous-une-table",
+        "url": "https://www.docteur-fitness.com/rowing-inverse-sous-une-table"
+      },
+      {
+        "nom": "Bent over row prise disque",
+        "id": "bent-over-row-prise-disque",
+        "url": "https://www.docteur-fitness.com/bent-over-row-prise-disque"
+      },
+      {
+        "nom": "Tirage horizontal prise large",
+        "id": "tirage-horizontal-prise-large",
+        "url": "https://www.docteur-fitness.com/tirage-horizontal-prise-large"
+      },
+      {
+        "nom": "Montée à la corde",
+        "id": "montee-de-corde",
+        "url": "https://www.docteur-fitness.com/montee-de-corde"
+      },
+      {
+        "nom": "Traction lestée",
+        "id": "traction-lestee",
+        "url": "https://www.docteur-fitness.com/traction-lestee"
+      },
+      {
+        "nom": "Traction assistée avec banc",
+        "id": "traction-assistee-avec-banc",
+        "url": "https://www.docteur-fitness.com/traction-assistee-avec-banc"
+      },
+      {
+        "nom": "Tirage vertical prise inversée",
+        "id": "tirage-vertical-prise-inversee",
+        "url": "https://www.docteur-fitness.com/tirage-vertical-prise-inversee"
+      }
+    ],
+    "Abdominaux": [
+      {
+        "nom": "Crunch latéral sur banc à lombaires",
+        "id": "crunch-lateral-sur-banc-a-lombaires",
+        "url": "https://www.docteur-fitness.com/crunch-lateral-sur-banc-a-lombaires"
+      },
+      {
+        "nom": "V-Ups",
+        "id": "v-ups",
+        "url": "https://www.docteur-fitness.com/v-ups"
+      },
+      {
+        "nom": "Planche chinoise",
+        "id": "planche-chinoise",
+        "url": "https://www.docteur-fitness.com/planche-chinoise"
+      },
+      {
+        "nom": "Sit-up avec médecine-ball",
+        "id": "sit-up-avec-medecine-ball",
+        "url": "https://www.docteur-fitness.com/sit-up-avec-medecine-ball"
+      },
+      {
+        "nom": "Planche",
+        "id": "planche",
+        "url": "https://www.docteur-fitness.com/planche"
+      },
+      {
+        "nom": "Crunch",
+        "id": "crunch-au-sol",
+        "url": "https://www.docteur-fitness.com/crunch-au-sol"
+      },
+      {
+        "nom": "Sit-up décliné",
+        "id": "crunch-decline",
+        "url": "https://www.docteur-fitness.com/crunch-decline"
+      },
+      {
+        "nom": "Relevé de genoux suspendu",
+        "id": "releve-de-genoux-suspendu",
+        "url": "https://www.docteur-fitness.com/releve-de-genoux-suspendu"
+      },
+      {
+        "nom": "Roulette à abdominaux",
+        "id": "roulette-a-abdominaux",
+        "url": "https://www.docteur-fitness.com/roulette-a-abdominaux"
+      },
+      {
+        "nom": "Relevé de jambes suspendu",
+        "id": "releve-de-jambes-suspendu",
+        "url": "https://www.docteur-fitness.com/releve-de-jambes-suspendu"
+      },
+      {
+        "nom": "Flexions des obliques au banc à lombaire à 45°",
+        "id": "flexions-des-obliques-au-banc-a-lombaire-a-45",
+        "url": "https://www.docteur-fitness.com/flexions-des-obliques-au-banc-a-lombaire-a-45"
+      },
+      {
+        "nom": "Planche latérale",
+        "id": "planche-laterale",
+        "url": "https://www.docteur-fitness.com/planche-laterale"
+      },
+      {
+        "nom": "Mountain climber",
+        "id": "mountain-climber",
+        "url": "https://www.docteur-fitness.com/mountain-climber"
+      },
+      {
+        "nom": "Rotations des abdominaux suspendu",
+        "id": "rotations-des-abdominaux-suspendu",
+        "url": "https://www.docteur-fitness.com/rotations-des-abdominaux-suspendu"
+      },
+      {
+        "nom": "Sit-up avec médecine ball contre un mur",
+        "id": "sit-up-avec-medecine-ball-contre-un-mur",
+        "url": "https://www.docteur-fitness.com/sit-up-avec-medecine-ball-contre-un-mur"
+      },
+      {
+        "nom": "Dragon flag",
+        "id": "dragon-flag",
+        "url": "https://www.docteur-fitness.com/dragon-flag"
+      },
+      {
+        "nom": "Crunch papillon",
+        "id": "crunch-papillon",
+        "url": "https://www.docteur-fitness.com/crunch-papillon"
+      },
+      {
+        "nom": "Crunch bicyclette",
+        "id": "crunch-bicyclette",
+        "url": "https://www.docteur-fitness.com/crunch-bicyclette"
+      },
+      {
+        "nom": "Rotations russes",
+        "id": "rotations-russes",
+        "url": "https://www.docteur-fitness.com/rotations-russes"
+      },
+      {
+        "nom": "Cocon",
+        "id": "cocon",
+        "url": "https://www.docteur-fitness.com/cocon"
+      },
+      {
+        "nom": "Hollow hold",
+        "id": "hollow-hold",
+        "url": "https://www.docteur-fitness.com/hollow-hold"
+      },
+      {
+        "nom": "Planche de l'ours",
+        "id": "planche-de-l-ours",
+        "url": "https://www.docteur-fitness.com/planche-de-l-ours"
+      },
+      {
+        "nom": "Windmill",
+        "id": "windmill",
+        "url": "https://www.docteur-fitness.com/windmill"
+      },
+      {
+        "nom": "Touche talon alternés",
+        "id": "touche-talon-alternes",
+        "url": "https://www.docteur-fitness.com/touche-talon-alternes"
+      },
+      {
+        "nom": "Planche inversée",
+        "id": "planche-inversee",
+        "url": "https://www.docteur-fitness.com/planche-inversee"
+      },
+      {
+        "nom": "Relevé de jambes assis",
+        "id": "releve-de-jambes-assis",
+        "url": "https://www.docteur-fitness.com/releve-de-jambes-assis"
+      },
+      {
+        "nom": "Ciseaux",
+        "id": "ciseaux",
+        "url": "https://www.docteur-fitness.com/ciseaux"
+      },
+      {
+        "nom": "Russian twist avec développé épaules",
+        "id": "russian-twist-avec-developpe-epaule",
+        "url": "https://www.docteur-fitness.com/russian-twist-avec-developpe-epaule"
+      },
+      {
+        "nom": "Dead bug",
+        "id": "dead-bug",
+        "url": "https://www.docteur-fitness.com/dead-bug"
+      },
+      {
+        "nom": "Cercles jambes tendues",
+        "id": "cercles-jambes-tendues",
+        "url": "https://www.docteur-fitness.com/cercles-jambes-tendues"
+      },
+      {
+        "nom": "Bear plank avec kickback",
+        "id": "bear-plank-avec-kickback",
+        "url": "https://www.docteur-fitness.com/bear-plank-avec-kickback"
+      },
+      {
+        "nom": "Planche latérale avec rotation",
+        "id": "planche-laterale-avec-rotation",
+        "url": "https://www.docteur-fitness.com/planche-laterale-avec-rotation"
+      },
+      {
+        "nom": "Crunch avec jambes verticales",
+        "id": "crunch-avec-jambes-verticales",
+        "url": "https://www.docteur-fitness.com/crunch-avec-jambes-verticales"
+      },
+      {
+        "nom": "Zercher carry",
+        "id": "zercher-carry",
+        "url": "https://www.docteur-fitness.com/zercher-carry"
+      }
+    ],
+    "Fessiers": [
+      {
+        "nom": "Squat avec rotation du tronc",
+        "id": "squat-avec-rotation-du-tronc",
+        "url": "https://www.docteur-fitness.com/squat-avec-rotation-du-tronc"
+      },
+      {
+        "nom": "Squat",
+        "id": "squat",
+        "url": "https://www.docteur-fitness.com/squat"
+      },
+      {
+        "nom": "Soulevé de terre roumain",
+        "id": "souleve-de-terre-roumain",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-roumain"
+      },
+      {
+        "nom": "Good morning",
+        "id": "good-morning",
+        "url": "https://www.docteur-fitness.com/good-morning"
+      },
+      {
+        "nom": "Montées sur banc",
+        "id": "montees-sur-banc",
+        "url": "https://www.docteur-fitness.com/montees-sur-banc"
+      },
+      {
+        "nom": "Reverse hyperextension",
+        "id": "reverse-hyperextension",
+        "url": "https://www.docteur-fitness.com/reverse-hyperextension"
+      },
+      {
+        "nom": "Donkey kick",
+        "id": "donkey-kick",
+        "url": "https://www.docteur-fitness.com/donkey-kick"
+      },
+      {
+        "nom": "Fire hydrant",
+        "id": "fire-hydrant",
+        "url": "https://www.docteur-fitness.com/fire-hydrant"
+      },
+      {
+        "nom": "Rack Pull",
+        "id": "rack-pull",
+        "url": "https://www.docteur-fitness.com/rack-pull"
+      },
+      {
+        "nom": "Soulevé de terre",
+        "id": "souleve-de-terre",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre"
+      },
+      {
+        "nom": "Hip thrust unilatéral",
+        "id": "hip-thrust-unilateral",
+        "url": "https://www.docteur-fitness.com/hip-thrust-unilateral"
+      },
+      {
+        "nom": "Squat sauté",
+        "id": "squat-saute",
+        "url": "https://www.docteur-fitness.com/squat-saute"
+      },
+      {
+        "nom": "Sled push",
+        "id": "sled-push",
+        "url": "https://www.docteur-fitness.com/sled-push"
+      },
+      {
+        "nom": "Fentes croisées",
+        "id": "fentes-croisees",
+        "url": "https://www.docteur-fitness.com/fentes-croisees"
+      },
+      {
+        "nom": "Pin squat",
+        "id": "pin-squat",
+        "url": "https://www.docteur-fitness.com/pin-squat"
+      },
+      {
+        "nom": "Bird dog",
+        "id": "bird-dog",
+        "url": "https://www.docteur-fitness.com/bird-dog"
+      },
+      {
+        "nom": "Hip thrust",
+        "id": "hip-thrust",
+        "url": "https://www.docteur-fitness.com/hip-thrust"
+      },
+      {
+        "nom": "Planche inversée",
+        "id": "planche-inversee",
+        "url": "https://www.docteur-fitness.com/planche-inversee"
+      },
+      {
+        "nom": "Extension lombaire au banc à 45°",
+        "id": "extension-lombaire-au-banc-a-45",
+        "url": "https://www.docteur-fitness.com/extension-lombaire-au-banc-a-45"
+      },
+      {
+        "nom": "Zercher Squat",
+        "id": "zercher-squat",
+        "url": "https://www.docteur-fitness.com/zercher-squat"
+      },
+      {
+        "nom": "Pistol squat",
+        "id": "pistol-squat",
+        "url": "https://www.docteur-fitness.com/pistol-squat"
+      },
+      {
+        "nom": "Bear plank avec kickback",
+        "id": "bear-plank-avec-kickback",
+        "url": "https://www.docteur-fitness.com/bear-plank-avec-kickback"
+      },
+      {
+        "nom": "Soulevé de terre valise",
+        "id": "souleve-de-terre-valise-a-un-bras",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-valise-a-un-bras"
+      },
+      {
+        "nom": "Zercher deadlift",
+        "id": "zercher-deadlift",
+        "url": "https://www.docteur-fitness.com/zercher-deadlift"
+      },
+      {
+        "nom": "Thruster",
+        "id": "thruster",
+        "url": "https://www.docteur-fitness.com/thruster"
+      },
+      {
+        "nom": "Squat cosaque",
+        "id": "squat-cosaque",
+        "url": "https://www.docteur-fitness.com/squat-cosaque"
+      }
+    ],
+    "Quadriceps": [
+      {
+        "nom": "Squat avec rotation du tronc",
+        "id": "squat-avec-rotation-du-tronc",
+        "url": "https://www.docteur-fitness.com/squat-avec-rotation-du-tronc"
+      },
+      {
+        "nom": "Squat",
+        "id": "squat",
+        "url": "https://www.docteur-fitness.com/squat"
+      },
+      {
+        "nom": "Montées sur banc",
+        "id": "montees-sur-banc",
+        "url": "https://www.docteur-fitness.com/montees-sur-banc"
+      },
+      {
+        "nom": "Soulevé de terre",
+        "id": "souleve-de-terre",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre"
+      },
+      {
+        "nom": "Air Squat",
+        "id": "air-squat",
+        "url": "https://www.docteur-fitness.com/air-squat"
+      },
+      {
+        "nom": "Squat sauté",
+        "id": "squat-saute",
+        "url": "https://www.docteur-fitness.com/squat-saute"
+      },
+      {
+        "nom": "Sled push",
+        "id": "sled-push",
+        "url": "https://www.docteur-fitness.com/sled-push"
+      },
+      {
+        "nom": "Fentes croisées",
+        "id": "fentes-croisees",
+        "url": "https://www.docteur-fitness.com/fentes-croisees"
+      },
+      {
+        "nom": "Pin squat",
+        "id": "pin-squat",
+        "url": "https://www.docteur-fitness.com/pin-squat"
+      },
+      {
+        "nom": "Squat sur banc",
+        "id": "squat-sur-banc",
+        "url": "https://www.docteur-fitness.com/squat-sur-banc"
+      },
+      {
+        "nom": "Jefferson squat",
+        "id": "jefferson-squat",
+        "url": "https://www.docteur-fitness.com/jefferson-squat"
+      },
+      {
+        "nom": "Zercher Squat",
+        "id": "zercher-squat",
+        "url": "https://www.docteur-fitness.com/zercher-squat"
+      },
+      {
+        "nom": "Squat statique contre un mur (exercice de la chaise)",
+        "id": "squat-statique-contre-un-mur-exercice-de-la-chaise",
+        "url": "https://www.docteur-fitness.com/squat-statique-contre-un-mur-exercice-de-la-chaise"
+      },
+      {
+        "nom": "Pistol squat",
+        "id": "pistol-squat",
+        "url": "https://www.docteur-fitness.com/pistol-squat"
+      },
+      {
+        "nom": "Soulevé de terre valise",
+        "id": "souleve-de-terre-valise-a-un-bras",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-valise-a-un-bras"
+      },
+      {
+        "nom": "Soulevé de terre sumo",
+        "id": "souleve-de-terre-sumo",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-sumo"
+      },
+      {
+        "nom": "Zercher deadlift",
+        "id": "zercher-deadlift",
+        "url": "https://www.docteur-fitness.com/zercher-deadlift"
+      },
+      {
+        "nom": "Thruster",
+        "id": "thruster",
+        "url": "https://www.docteur-fitness.com/thruster"
+      },
+      {
+        "nom": "Squat cosaque",
+        "id": "squat-cosaque",
+        "url": "https://www.docteur-fitness.com/squat-cosaque"
+      },
+      {
+        "nom": "Overhead squat",
+        "id": "overhead-squat",
+        "url": "https://www.docteur-fitness.com/overhead-squat"
+      }
+    ],
+    "Ischio-jambiers": [
+      {
+        "nom": "Squat avec rotation du tronc",
+        "id": "squat-avec-rotation-du-tronc",
+        "url": "https://www.docteur-fitness.com/squat-avec-rotation-du-tronc"
+      },
+      {
+        "nom": "Soulevé de terre jambes tendues",
+        "id": "souleve-de-terre-jambes-tendues",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-jambes-tendues"
+      },
+      {
+        "nom": "Squat",
+        "id": "squat",
+        "url": "https://www.docteur-fitness.com/squat"
+      },
+      {
+        "nom": "Good morning",
+        "id": "good-morning",
+        "url": "https://www.docteur-fitness.com/good-morning"
+      },
+      {
+        "nom": "Rack Pull",
+        "id": "rack-pull",
+        "url": "https://www.docteur-fitness.com/rack-pull"
+      },
+      {
+        "nom": "Soulevé de terre",
+        "id": "souleve-de-terre",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre"
+      },
+      {
+        "nom": "Reeves deadlift",
+        "id": "deadlift-reeves",
+        "url": "https://www.docteur-fitness.com/deadlift-reeves"
+      },
+      {
+        "nom": "Soulevé de terre avec déficit",
+        "id": "souleve-de-terre-avec-deficit",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-avec-deficit"
+      },
+      {
+        "nom": "Extension lombaire au banc à 45°",
+        "id": "extension-lombaire-au-banc-a-45",
+        "url": "https://www.docteur-fitness.com/extension-lombaire-au-banc-a-45"
+      },
+      {
+        "nom": "Pistol squat",
+        "id": "pistol-squat",
+        "url": "https://www.docteur-fitness.com/pistol-squat"
+      },
+      {
+        "nom": "Soulevé de terre valise",
+        "id": "souleve-de-terre-valise-a-un-bras",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-valise-a-un-bras"
+      },
+      {
+        "nom": "Soulevé de terre sumo",
+        "id": "souleve-de-terre-sumo",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-sumo"
+      },
+      {
+        "nom": "Zercher deadlift",
+        "id": "zercher-deadlift",
+        "url": "https://www.docteur-fitness.com/zercher-deadlift"
+      }
+    ],
+    "Mollets": [
+      {
+        "nom": "Extensions des mollets avec partenaire",
+        "id": "extensions-des-mollets-avec-partenaire",
+        "url": "https://www.docteur-fitness.com/extensions-des-mollets-avec-partenaire"
+      },
+      {
+        "nom": "Élévations des mollets au Donkey",
+        "id": "elevations-des-mollets-au-donkey",
+        "url": "https://www.docteur-fitness.com/elevations-des-mollets-au-donkey"
+      },
+      {
+        "nom": "Extensions des mollets sur une marche",
+        "id": "extensions-des-mollets-sur-une-marche",
+        "url": "https://www.docteur-fitness.com/extensions-des-mollets-sur-une-marche"
+      }
+    ]
+  },
+  "Élastique": {
+    "Épaules": [
+      {
+        "nom": "Rotations externes de l'épaule avec élastique",
+        "id": "rotations-externes-de-lepaule-avec-elastique",
+        "url": "https://www.docteur-fitness.com/rotations-externes-de-lepaule-avec-elastique"
+      },
+      {
+        "nom": "Rotations internes de l'épaule avec élastique",
+        "id": "rotations-internes-de-lepaule-avec-elastique",
+        "url": "https://www.docteur-fitness.com/rotations-internes-de-lepaule-avec-elastique"
+      },
+      {
+        "nom": "Passage d'épaule avec élastique",
+        "id": "passage-depaule-avec-elastique",
+        "url": "https://www.docteur-fitness.com/passage-depaule-avec-elastique"
+      },
+      {
+        "nom": "Écarté arrière à l'élastique",
+        "id": "ecarte-arriere-elastique",
+        "url": "https://www.docteur-fitness.com/ecarte-arriere-elastique"
+      },
+      {
+        "nom": "Développé épaule unilatéral avec élastique",
+        "id": "developpe-epaule-unilateral-avec-elastique",
+        "url": "https://www.docteur-fitness.com/developpe-epaule-unilateral-avec-elastique"
+      },
+      {
+        "nom": "Tirage menton avec élastique",
+        "id": "tirage-menton-avec-elastique",
+        "url": "https://www.docteur-fitness.com/tirage-menton-avec-elastique"
+      },
+      {
+        "nom": "Oiseau avec élastique",
+        "id": "oiseau-avec-elastique",
+        "url": "https://www.docteur-fitness.com/oiseau-avec-elastique"
+      },
+      {
+        "nom": "Développé épaules avec élastique",
+        "id": "developpe-epaules-avec-elastique",
+        "url": "https://www.docteur-fitness.com/developpe-epaules-avec-elastique"
+      },
+      {
+        "nom": "Extension horizontale des épaules avec élastique",
+        "id": "extension-horizontale-des-epaules-avec-elastique",
+        "url": "https://www.docteur-fitness.com/extension-horizontale-des-epaules-avec-elastique"
+      },
+      {
+        "nom": "Développé épaules assis avec élastique",
+        "id": "developpe-epaules-assis-avec-elastique",
+        "url": "https://www.docteur-fitness.com/developpe-epaules-assis-avec-elastique"
+      }
+    ],
+    "Biceps": [
+      {
+        "nom": "Curl biceps croisé à l'élastique",
+        "id": "curl-biceps-croise-elastique",
+        "url": "https://www.docteur-fitness.com/curl-biceps-croise-elastique"
+      },
+      {
+        "nom": "Curl concentré avec élastique",
+        "id": "curl-concentre-avec-elastique",
+        "url": "https://www.docteur-fitness.com/curl-concentre-avec-elastique"
+      },
+      {
+        "nom": "Curl overhead avec élastique",
+        "id": "curl-overhead-elastique",
+        "url": "https://www.docteur-fitness.com/curl-overhead-elastique"
+      },
+      {
+        "nom": "Curl en prise marteau avec élastique",
+        "id": "curl-en-prise-marteau-avec-elastique",
+        "url": "https://www.docteur-fitness.com/curl-en-prise-marteau-avec-elastique"
+      },
+      {
+        "nom": "Curl biceps avec élastique",
+        "id": "curl-biceps-avec-elastique",
+        "url": "https://www.docteur-fitness.com/curl-biceps-avec-elastique"
+      }
+    ],
+    "Triceps": [
+      {
+        "nom": "Extension des triceps au-dessus de la tête avec élastique",
+        "id": "extension-des-triceps-au-dessus-de-la-tete-avec-elastique",
+        "url": "https://www.docteur-fitness.com/extension-des-triceps-au-dessus-de-la-tete-avec-elastique"
+      },
+      {
+        "nom": "Extension verticale des triceps avec élastique",
+        "id": "extension-verticale-des-triceps-avec-elastique",
+        "url": "https://www.docteur-fitness.com/extension-verticale-des-triceps-avec-elastique"
+      }
+    ],
+    "Pectoraux": [
+      {
+        "nom": "Développé debout avec élastique",
+        "id": "developpe-debout-avec-elastique",
+        "url": "https://www.docteur-fitness.com/developpe-debout-avec-elastique"
+      },
+      {
+        "nom": "Développé couché avec élastique",
+        "id": "developpe-couche-avec-elastique",
+        "url": "https://www.docteur-fitness.com/developpe-couche-avec-elastique"
+      },
+      {
+        "nom": "Développé décliné avec élastique",
+        "id": "developpe-decline-avec-elastique",
+        "url": "https://www.docteur-fitness.com/developpe-decline-avec-elastique"
+      },
+      {
+        "nom": "Écartés avec élastique",
+        "id": "ecartes-avec-elastique",
+        "url": "https://www.docteur-fitness.com/ecartes-avec-elastique"
+      }
+    ],
+    "Dos": [
+      {
+        "nom": "Tirage alterné vertical à l'élastique",
+        "id": "tirage-alterne-vertical-elastique",
+        "url": "https://www.docteur-fitness.com/tirage-alterne-vertical-elastique"
+      },
+      {
+        "nom": "Rowing buste penché avec élastique",
+        "id": "rowing-buste-penche-avec-elastique",
+        "url": "https://www.docteur-fitness.com/rowing-buste-penche-avec-elastique"
+      },
+      {
+        "nom": "Traction assistée avec élastique",
+        "id": "traction-assistee-avec-elastique",
+        "url": "https://www.docteur-fitness.com/traction-assistee-avec-elastique"
+      },
+      {
+        "nom": "Rowing unilatéral avec élastique",
+        "id": "rowing-unilateral-avec-elastique",
+        "url": "https://www.docteur-fitness.com/rowing-unilateral-avec-elastique"
+      },
+      {
+        "nom": "Tirage horizontal avec élastique",
+        "id": "rowing-horizontal-avec-elastique",
+        "url": "https://www.docteur-fitness.com/rowing-horizontal-avec-elastique"
+      }
+    ],
+    "Abdominaux": [
+      {
+        "nom": "Flexion latérale à l'élastique",
+        "id": "flexion-laterale-elastique",
+        "url": "https://www.docteur-fitness.com/flexion-laterale-elastique"
+      },
+      {
+        "nom": "Crunch debout avec élastique",
+        "id": "crunch-debout-avec-elastique",
+        "url": "https://www.docteur-fitness.com/crunch-debout-avec-elastique"
+      },
+      {
+        "nom": "Rotation du buste avec élastique",
+        "id": "rotation-du-buste-avec-elastique",
+        "url": "https://www.docteur-fitness.com/rotation-du-buste-avec-elastique"
+      }
+    ],
+    "Fessiers": [
+      {
+        "nom": "Abduction de la hanche assis avec élastique",
+        "id": "abduction-de-la-hanche-assis-avec-elastique",
+        "url": "https://www.docteur-fitness.com/abduction-de-la-hanche-assis-avec-elastique"
+      },
+      {
+        "nom": "Fente bulgare à l'élastique",
+        "id": "fente-bulgare-a-elastique",
+        "url": "https://www.docteur-fitness.com/fente-bulgare-a-elastique"
+      },
+      {
+        "nom": "Good morning avec élastique",
+        "id": "good-morning-avec-elastique",
+        "url": "https://www.docteur-fitness.com/good-morning-avec-elastique"
+      },
+      {
+        "nom": "Hip thrusts à genoux avec élastique",
+        "id": "hip-thrusts-a-genoux-avec-elastique",
+        "url": "https://www.docteur-fitness.com/hip-thrusts-a-genoux-avec-elastique"
+      },
+      {
+        "nom": "Pull through avec élastique",
+        "id": "pull-through-avec-elastique",
+        "url": "https://www.docteur-fitness.com/pull-through-avec-elastique"
+      },
+      {
+        "nom": "Soulevé de terre avec élastique",
+        "id": "souleve-de-terre-avec-elastique",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-avec-elastique"
+      },
+      {
+        "nom": "Marche avec élastique",
+        "id": "marche-avec-elastique",
+        "url": "https://www.docteur-fitness.com/marche-avec-elastique"
+      }
+    ],
+    "Quadriceps": [
+      {
+        "nom": "Fente bulgare à l'élastique",
+        "id": "fente-bulgare-a-elastique",
+        "url": "https://www.docteur-fitness.com/fente-bulgare-a-elastique"
+      },
+      {
+        "nom": "Leg extension avec élastique",
+        "id": "leg-extension-avec-elastique",
+        "url": "https://www.docteur-fitness.com/leg-extension-avec-elastique"
+      },
+      {
+        "nom": "Overhead squat avec élastique",
+        "id": "overhead-squat-avec-elastique",
+        "url": "https://www.docteur-fitness.com/overhead-squat-avec-elastique"
+      },
+      {
+        "nom": "Split squat avec élastique",
+        "id": "split-squat-avec-elastique",
+        "url": "https://www.docteur-fitness.com/split-squat-avec-elastique"
+      },
+      {
+        "nom": "Squat avec élastique",
+        "id": "squat-avec-elastique",
+        "url": "https://www.docteur-fitness.com/squat-avec-elastique"
+      },
+      {
+        "nom": "Squat avec bande de résistance",
+        "id": "squat-avec-bande-de-resistance",
+        "url": "https://www.docteur-fitness.com/squat-avec-bande-de-resistance"
+      }
+    ],
+    "Ischio-jambiers": [
+      {
+        "nom": "Fente bulgare à l'élastique",
+        "id": "fente-bulgare-a-elastique",
+        "url": "https://www.docteur-fitness.com/fente-bulgare-a-elastique"
+      },
+      {
+        "nom": "Leg curl avec élastique",
+        "id": "leg-curl-avec-elastique",
+        "url": "https://www.docteur-fitness.com/leg-curl-avec-elastique"
+      },
+      {
+        "nom": "Good morning avec élastique",
+        "id": "good-morning-avec-elastique",
+        "url": "https://www.docteur-fitness.com/good-morning-avec-elastique"
+      },
+      {
+        "nom": "Nordic hamstring curl avec élastique",
+        "id": "nordic-hamstring-curl-avec-elastique",
+        "url": "https://www.docteur-fitness.com/nordic-hamstring-curl-avec-elastique"
+      },
+      {
+        "nom": "Soulevé de terre avec élastique",
+        "id": "souleve-de-terre-avec-elastique",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-avec-elastique"
+      },
+      {
+        "nom": "Leg curl allongé avec élastique",
+        "id": "leg-curl-allonge-avec-elastique",
+        "url": "https://www.docteur-fitness.com/leg-curl-allonge-avec-elastique"
+      }
+    ]
+  },
+  "Poulie": {
+    "Épaules": [
+      {
+        "nom": "Oiseau à la poulie à 45°",
+        "id": "oiseau-a-la-poulie-a-45",
+        "url": "https://www.docteur-fitness.com/oiseau-a-la-poulie-a-45"
+      },
+      {
+        "nom": "Rotation interne à 90° à la poulie",
+        "id": "rotation-interne-a-90-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/rotation-interne-a-90-a-la-poulie"
+      },
+      {
+        "nom": "Élévation latérale à la poulie en inclinaison",
+        "id": "elevation-laterale-a-la-poulie-en-inclinaison",
+        "url": "https://www.docteur-fitness.com/elevation-laterale-a-la-poulie-en-inclinaison"
+      },
+      {
+        "nom": "Face pull couché à la poulie",
+        "id": "face-pull-couche-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/face-pull-couche-a-la-poulie"
+      },
+      {
+        "nom": "Élévation en Y à la poulie",
+        "id": "elevation-en-y-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/elevation-en-y-a-la-poulie"
+      },
+      {
+        "nom": "Élévations latérales à la poulie",
+        "id": "elevations-laterales-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/elevations-laterales-a-la-poulie"
+      },
+      {
+        "nom": "Rotation externe de l'épaule à la poulie",
+        "id": "rotation-externe-de-lepaule-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/rotation-externe-de-lepaule-a-la-poulie"
+      },
+      {
+        "nom": "Élévations latérales unilatérales à la poulie",
+        "id": "elevations-laterales-unilaterale-poulie",
+        "url": "https://www.docteur-fitness.com/elevations-laterales-unilaterale-poulie"
+      },
+      {
+        "nom": "Élévations frontales à la poulie basse",
+        "id": "elevations-frontales-a-la-poulie-basse",
+        "url": "https://www.docteur-fitness.com/elevations-frontales-a-la-poulie-basse"
+      }
+    ],
+    "Biceps": [
+      {
+        "nom": "Curl allongé à la poulie",
+        "id": "curl-allonge-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/curl-allonge-a-la-poulie"
+      },
+      {
+        "nom": "Curl poulie en position squat",
+        "id": "curl-poulie-en-position-squat",
+        "url": "https://www.docteur-fitness.com/curl-poulie-en-position-squat"
+      },
+      {
+        "nom": "Curl au pupitre à la poulie",
+        "id": "curl-au-pupitre-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/curl-au-pupitre-a-la-poulie"
+      },
+      {
+        "nom": "Curl biceps à la poulie basse",
+        "id": "curl-biceps-a-la-poulie-basse",
+        "url": "https://www.docteur-fitness.com/curl-biceps-a-la-poulie-basse"
+      },
+      {
+        "nom": "Curl à la poulie vis-à-vis",
+        "id": "curl-a-la-poulie-vis-a-vis",
+        "url": "https://www.docteur-fitness.com/curl-a-la-poulie-vis-a-vis"
+      },
+      {
+        "nom": "Curl incliné à la poulie",
+        "id": "curl-incline-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/curl-incline-a-la-poulie"
+      }
+    ],
+    "Triceps": [
+      {
+        "nom": "Extensions des triceps incliné à la poulie basse",
+        "id": "extensions-des-triceps-incline-a-la-poulie-basse",
+        "url": "https://www.docteur-fitness.com/extensions-des-triceps-incline-a-la-poulie-basse"
+      },
+      {
+        "nom": "Extensions concentrées des triceps à la poulie",
+        "id": "extensions-concentrees-des-triceps-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/extensions-concentrees-des-triceps-a-la-poulie"
+      },
+      {
+        "nom": "Extension horizontale à la poulie",
+        "id": "extension-horizontale-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/extension-horizontale-a-la-poulie"
+      },
+      {
+        "nom": "Extension verticale à la poulie basse",
+        "id": "extension-verticale-a-la-poulie-basse",
+        "url": "https://www.docteur-fitness.com/extension-verticale-a-la-poulie-basse"
+      },
+      {
+        "nom": "Extensions verticales à la poulie haute",
+        "id": "extensions-verticales-a-la-poulie-haute",
+        "url": "https://www.docteur-fitness.com/extensions-verticales-a-la-poulie-haute"
+      },
+      {
+        "nom": "Extensions des triceps à la poulie haute à la corde",
+        "id": "extensions-des-triceps-a-la-poulie-haute-a-la-corde",
+        "url": "https://www.docteur-fitness.com/extensions-des-triceps-a-la-poulie-haute-a-la-corde"
+      }
+    ],
+    "Pectoraux": [
+      {
+        "nom": "Écartés à la poulie vis-à-vis",
+        "id": "ecartes-a-la-poulie-vis-a-vis-pour-les-pectoraux",
+        "url": "https://www.docteur-fitness.com/ecartes-a-la-poulie-vis-a-vis-pour-les-pectoraux"
+      },
+      {
+        "nom": "Écartés couché à la poulie vis-à-vis",
+        "id": "ecartes-couche-la-poulie-vis-a-vis",
+        "url": "https://www.docteur-fitness.com/ecartes-couche-la-poulie-vis-a-vis"
+      },
+      {
+        "nom": "Développé incliné à la poulie",
+        "id": "developpe-incline-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/developpe-incline-a-la-poulie"
+      },
+      {
+        "nom": "Écarté à la poulie vis à vis haute à genoux",
+        "id": "ecarte-a-la-poulie-vis-a-vis-haute-a-genoux",
+        "url": "https://www.docteur-fitness.com/ecarte-a-la-poulie-vis-a-vis-haute-a-genoux"
+      },
+      {
+        "nom": "Écarté unilatéral à la poulie",
+        "id": "ecarte-unilateral-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/ecarte-unilateral-a-la-poulie"
+      },
+      {
+        "nom": "Écartés à la poulie haute",
+        "id": "ecartes-a-la-poulie-haute",
+        "url": "https://www.docteur-fitness.com/ecartes-a-la-poulie-haute"
+      }
+    ],
+    "Dos": [
+      {
+        "nom": "Tirage horizontal à la poulie",
+        "id": "tirage-horizontal-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/tirage-horizontal-a-la-poulie"
+      },
+      {
+        "nom": "Pull-over à la poulie",
+        "id": "pull-over-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/pull-over-a-la-poulie"
+      },
+      {
+        "nom": "Shrug à la poulie",
+        "id": "shrug-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/shrug-a-la-poulie"
+      },
+      {
+        "nom": "Tirage incliné à la poulie haute",
+        "id": "tirage-incline-a-la-poulie-haute",
+        "url": "https://www.docteur-fitness.com/tirage-incline-a-la-poulie-haute"
+      }
+    ],
+    "Abdominaux": [
+      {
+        "nom": "Crunch à la poulie",
+        "id": "crunch-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/crunch-a-la-poulie"
+      },
+      {
+        "nom": "Crunch à la poulie pour les obliques",
+        "id": "crunch-a-la-poulie-pour-les-obliques",
+        "url": "https://www.docteur-fitness.com/crunch-a-la-poulie-pour-les-obliques"
+      },
+      {
+        "nom": "Rotation du buste debout à la poulie",
+        "id": "rotation-du-buste-debout-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/rotation-du-buste-debout-a-la-poulie"
+      },
+      {
+        "nom": "Flexions latérales à la poulie basse",
+        "id": "flexions-laterales-a-la-poulie-basse",
+        "url": "https://www.docteur-fitness.com/flexions-laterales-a-la-poulie-basse"
+      },
+      {
+        "nom": "Russian twists à la poulie sur Swiss ball",
+        "id": "russian-twists-a-la-poulie-sur-swiss-ball",
+        "url": "https://www.docteur-fitness.com/russian-twists-a-la-poulie-sur-swiss-ball"
+      }
+    ],
+    "Fessiers": [
+      {
+        "nom": "Pull through à la poulie",
+        "id": "pull-through-a-la-poulie",
+        "url": "https://www.docteur-fitness.com/pull-through-a-la-poulie"
+      },
+      {
+        "nom": "Extension de la hanche à la poulie basse",
+        "id": "extension-de-la-hanche-a-la-poulie-basse",
+        "url": "https://www.docteur-fitness.com/extension-de-la-hanche-a-la-poulie-basse"
+      }
+    ]
+  },
+  "Machine": {
+    "Épaules": [
+      {
+        "nom": "Élévations latérales à la machine",
+        "id": "elevations-laterales-a-la-machine",
+        "url": "https://www.docteur-fitness.com/elevations-laterales-a-la-machine"
+      },
+      {
+        "nom": "Pec deck inversé",
+        "id": "pec-deck-inverse",
+        "url": "https://www.docteur-fitness.com/pec-deck-inverse"
+      },
+      {
+        "nom": "Presse à épaules inclinée",
+        "id": "presse-a-epaules-inclinee",
+        "url": "https://www.docteur-fitness.com/presse-a-epaules-inclinee"
+      },
+      {
+        "nom": "Développé épaules à la Smith machine",
+        "id": "developpe-epaules-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/developpe-epaules-a-la-smith-machine"
+      },
+      {
+        "nom": "Développé épaules à la machine",
+        "id": "developpe-epaules-a-la-machine",
+        "url": "https://www.docteur-fitness.com/developpe-epaules-a-la-machine"
+      }
+    ],
+    "Biceps": [
+      {
+        "nom": "Curl biceps assis à la machine",
+        "id": "curl-biceps-assis-a-la-machine",
+        "url": "https://www.docteur-fitness.com/curl-biceps-assis-a-la-machine"
+      },
+      {
+        "nom": "Drag curl à la Smith machine",
+        "id": "drag-curl-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/drag-curl-a-la-smith-machine"
+      }
+    ],
+    "Triceps": [
+      {
+        "nom": "Extensions des triceps à la machine Technogym",
+        "id": "extensions-des-triceps-a-la-machine-technogym",
+        "url": "https://www.docteur-fitness.com/extensions-des-triceps-a-la-machine-technogym"
+      },
+      {
+        "nom": "Dips assis à la machine Matrix",
+        "id": "dips-assis-a-la-machine-matrix",
+        "url": "https://www.docteur-fitness.com/dips-assis-a-la-machine-matrix"
+      },
+      {
+        "nom": "Dips assistés à la machine",
+        "id": "dips-assistes-a-la-machine",
+        "url": "https://www.docteur-fitness.com/dips-assistes-a-la-machine"
+      },
+      {
+        "nom": "Dips assis à la machine Hammer Strength",
+        "id": "dips-assis-a-la-machine",
+        "url": "https://www.docteur-fitness.com/dips-assis-a-la-machine"
+      },
+      {
+        "nom": "Extensions des triceps incliné à la Smith machine",
+        "id": "extensions-triceps-incline-smith-machine",
+        "url": "https://www.docteur-fitness.com/extensions-triceps-incline-smith-machine"
+      },
+      {
+        "nom": "Développé couché prise serrée à la Smith machine",
+        "id": "developpe-couche-prise-serree-smith-machine",
+        "url": "https://www.docteur-fitness.com/developpe-couche-prise-serree-smith-machine"
+      }
+    ],
+    "Pectoraux": [
+      {
+        "nom": "Pec-deck ou butterfly",
+        "id": "pec-deck-ou-butterfly",
+        "url": "https://www.docteur-fitness.com/pec-deck-ou-butterfly"
+      },
+      {
+        "nom": "Développé incliné à la machine convergente",
+        "id": "developpe-incline-a-la-machine-convergente",
+        "url": "https://www.docteur-fitness.com/developpe-incline-a-la-machine-convergente"
+      },
+      {
+        "nom": "Développé couché à la Smith machine",
+        "id": "developpe-couche-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/developpe-couche-a-la-smith-machine"
+      },
+      {
+        "nom": "Hex press à la Smith machine",
+        "id": "hex-press-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/hex-press-a-la-smith-machine"
+      },
+      {
+        "nom": "Pompes inclinées sur Smith Machine",
+        "id": "pompes-inclinees-sur-smith-machine",
+        "url": "https://www.docteur-fitness.com/pompes-inclinees-sur-smith-machine"
+      },
+      {
+        "nom": "Développé assis à la machine pour les pectoraux",
+        "id": "developpe-machine-assis-pour-les-pectoraux",
+        "url": "https://www.docteur-fitness.com/developpe-machine-assis-pour-les-pectoraux"
+      }
+    ],
+    "Dos": [
+      {
+        "nom": "Pull-over assis à la machine",
+        "id": "pull-over-assis-a-la-machine",
+        "url": "https://www.docteur-fitness.com/pull-over-assis-a-la-machine"
+      },
+      {
+        "nom": "Rowing en pronation assis à la machine Technogym",
+        "id": "rowing-en-pronation-assis-a-la-machine-technogym",
+        "url": "https://www.docteur-fitness.com/rowing-en-pronation-assis-a-la-machine-technogym"
+      },
+      {
+        "nom": "Extension lombaire à la machine",
+        "id": "extension-lombaire-a-la-machine",
+        "url": "https://www.docteur-fitness.com/extension-lombaire-a-la-machine"
+      },
+      {
+        "nom": "Rowing à la barre en T avec machine",
+        "id": "rowing-a-la-barre-en-t-avec-machine",
+        "url": "https://www.docteur-fitness.com/rowing-a-la-barre-en-t-avec-machine"
+      },
+      {
+        "nom": "Rowing en prise neutre assis à la machine",
+        "id": "rowing-assis-a-la-machine-en-prise-neutre",
+        "url": "https://www.docteur-fitness.com/rowing-assis-a-la-machine-en-prise-neutre"
+      },
+      {
+        "nom": "Tirage vertical en supination à la machine Hammer Strength",
+        "id": "tirage-vertical-en-supination-machine-hammer-strength",
+        "url": "https://www.docteur-fitness.com/tirage-vertical-en-supination-machine-hammer-strength"
+      },
+      {
+        "nom": "Traction assistée à la machine",
+        "id": "traction-assistee-a-la-machine",
+        "url": "https://www.docteur-fitness.com/traction-assistee-a-la-machine"
+      },
+      {
+        "nom": "Shrug à la machine à mollets",
+        "id": "shrug-a-la-machine-a-mollets",
+        "url": "https://www.docteur-fitness.com/shrug-a-la-machine-a-mollets"
+      },
+      {
+        "nom": "Soulevé de terre avec machine",
+        "id": "souleve-de-terre-avec-machine",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-avec-machine"
+      },
+      {
+        "nom": "Rowing à la Smith machine",
+        "id": "rowing-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/rowing-a-la-smith-machine"
+      }
+    ],
+    "Abdominaux": [
+      {
+        "nom": "Relevé de jambes à la chaise romaine",
+        "id": "releve-de-jambes-a-la-chaise-romaine",
+        "url": "https://www.docteur-fitness.com/releve-de-jambes-a-la-chaise-romaine"
+      },
+      {
+        "nom": "Crunch à la machine",
+        "id": "crunch-a-la-machine",
+        "url": "https://www.docteur-fitness.com/crunch-a-la-machine"
+      },
+      {
+        "nom": "AB Coaster",
+        "id": "ab-coaster",
+        "url": "https://www.docteur-fitness.com/ab-coaster"
+      },
+      {
+        "nom": "Sits-up à la chaise romaine",
+        "id": "sits-up-a-la-chaise-romaine",
+        "url": "https://www.docteur-fitness.com/sits-up-a-la-chaise-romaine"
+      }
+    ],
+    "Fessiers": [
+      {
+        "nom": "Extension de hanche à la machine",
+        "id": "extension-de-hanche-a-la-machine",
+        "url": "https://www.docteur-fitness.com/extension-de-hanche-a-la-machine"
+      },
+      {
+        "nom": "Hip thrust à la machine",
+        "id": "hip-thrust-a-la-machine",
+        "url": "https://www.docteur-fitness.com/hip-thrust-a-la-machine"
+      },
+      {
+        "nom": "Presse à cuisses verticale",
+        "id": "presse-a-cuisses-verticale",
+        "url": "https://www.docteur-fitness.com/presse-a-cuisses-verticale"
+      },
+      {
+        "nom": "Hack squat",
+        "id": "hack-squat",
+        "url": "https://www.docteur-fitness.com/hack-squat"
+      },
+      {
+        "nom": "Hip thrust à la smith machine",
+        "id": "hip-thrust-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/hip-thrust-a-la-smith-machine"
+      },
+      {
+        "nom": "Hack squat assis",
+        "id": "hack-squat-assis",
+        "url": "https://www.docteur-fitness.com/hack-squat-assis"
+      },
+      {
+        "nom": "Presse à cuisse sur le côté",
+        "id": "presse-a-cuisse-sur-le-cote",
+        "url": "https://www.docteur-fitness.com/presse-a-cuisse-sur-le-cote"
+      },
+      {
+        "nom": "Hack squat inversé",
+        "id": "hack-squat-inverse",
+        "url": "https://www.docteur-fitness.com/hack-squat-inverse"
+      },
+      {
+        "nom": "Extensions de hanches au GHD",
+        "id": "glute-ham-developer",
+        "url": "https://www.docteur-fitness.com/glute-ham-developer"
+      },
+      {
+        "nom": "Soulevé de terre avec machine",
+        "id": "souleve-de-terre-avec-machine",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-avec-machine"
+      },
+      {
+        "nom": "Presse à cuisses horizontale",
+        "id": "presse-a-cuisses-horizontale",
+        "url": "https://www.docteur-fitness.com/presse-a-cuisses-horizontale"
+      },
+      {
+        "nom": "Extension de jambe unilatérale sur une machine à dips assistés",
+        "id": "extension-de-jambe-unilaterale-sur-une-machine-a-dips-assistes",
+        "url": "https://www.docteur-fitness.com/extension-de-jambe-unilaterale-sur-une-machine-a-dips-assistes"
+      }
+    ],
+    "Quadriceps": [
+      {
+        "nom": "Leg extension avec élastique",
+        "id": "leg-extension-avec-elastique",
+        "url": "https://www.docteur-fitness.com/leg-extension-avec-elastique"
+      },
+      {
+        "nom": "Presse à cuisses inclinée",
+        "id": "presse-a-cuisses-inclinee",
+        "url": "https://www.docteur-fitness.com/presse-a-cuisses-inclinee"
+      },
+      {
+        "nom": "Leg extension",
+        "id": "leg-extension",
+        "url": "https://www.docteur-fitness.com/leg-extension"
+      },
+      {
+        "nom": "Presse à cuisses verticale",
+        "id": "presse-a-cuisses-verticale",
+        "url": "https://www.docteur-fitness.com/presse-a-cuisses-verticale"
+      },
+      {
+        "nom": "Hack squat",
+        "id": "hack-squat",
+        "url": "https://www.docteur-fitness.com/hack-squat"
+      },
+      {
+        "nom": "Hack squat assis",
+        "id": "hack-squat-assis",
+        "url": "https://www.docteur-fitness.com/hack-squat-assis"
+      },
+      {
+        "nom": "Sissy squat avec machine",
+        "id": "sissy-squat-avec-machine",
+        "url": "https://www.docteur-fitness.com/sissy-squat-avec-machine"
+      },
+      {
+        "nom": "Pendulum squat",
+        "id": "pendulum-squat",
+        "url": "https://www.docteur-fitness.com/pendulum-squat"
+      },
+      {
+        "nom": "Presse à cuisse sur le côté",
+        "id": "presse-a-cuisse-sur-le-cote",
+        "url": "https://www.docteur-fitness.com/presse-a-cuisse-sur-le-cote"
+      },
+      {
+        "nom": "Belt squat",
+        "id": "belt-squat",
+        "url": "https://www.docteur-fitness.com/belt-squat"
+      },
+      {
+        "nom": "Hack squat inversé",
+        "id": "hack-squat-inverse",
+        "url": "https://www.docteur-fitness.com/hack-squat-inverse"
+      },
+      {
+        "nom": "Leg extension iso latéral unilatéral Hammer strenght",
+        "id": "leg-extension-iso-lateral-unilateral-hammer-strenght",
+        "url": "https://www.docteur-fitness.com/leg-extension-iso-lateral-unilateral-hammer-strenght"
+      },
+      {
+        "nom": "Sissy squat sans machine",
+        "id": "sissy-squat",
+        "url": "https://www.docteur-fitness.com/sissy-squat"
+      },
+      {
+        "nom": "Presse à cuisses iso-latérale",
+        "id": "presse-a-cuisses-iso-laterale",
+        "url": "https://www.docteur-fitness.com/presse-a-cuisses-iso-laterale"
+      },
+      {
+        "nom": "Split squat à la Smith machine",
+        "id": "split-squat-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/split-squat-a-la-smith-machine"
+      },
+      {
+        "nom": "Presse à cuisses horizontale",
+        "id": "presse-a-cuisses-horizontale",
+        "url": "https://www.docteur-fitness.com/presse-a-cuisses-horizontale"
+      },
+      {
+        "nom": "Squat à la Smith machine",
+        "id": "squat-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/squat-a-la-smith-machine"
+      },
+      {
+        "nom": "Extension de jambe unilatérale sur une machine à dips assistés",
+        "id": "extension-de-jambe-unilaterale-sur-une-machine-a-dips-assistes",
+        "url": "https://www.docteur-fitness.com/extension-de-jambe-unilaterale-sur-une-machine-a-dips-assistes"
+      }
+    ],
+    "Ischio-jambiers": [
+      {
+        "nom": "Leg curl avec élastique",
+        "id": "leg-curl-avec-elastique",
+        "url": "https://www.docteur-fitness.com/leg-curl-avec-elastique"
+      },
+      {
+        "nom": "Leg curl allongé",
+        "id": "leg-curl-allonge",
+        "url": "https://www.docteur-fitness.com/leg-curl-allonge"
+      },
+      {
+        "nom": "Presse à cuisses inclinée",
+        "id": "presse-a-cuisses-inclinee",
+        "url": "https://www.docteur-fitness.com/presse-a-cuisses-inclinee"
+      },
+      {
+        "nom": "Presse à cuisses verticale",
+        "id": "presse-a-cuisses-verticale",
+        "url": "https://www.docteur-fitness.com/presse-a-cuisses-verticale"
+      },
+      {
+        "nom": "Leg curl au ballon de gym",
+        "id": "leg-curl-au-ballon-de-gym",
+        "url": "https://www.docteur-fitness.com/leg-curl-au-ballon-de-gym"
+      },
+      {
+        "nom": "Leg curl unilatéral debout à la machine",
+        "id": "leg-curl-unilateral-debout-a-la-machine",
+        "url": "https://www.docteur-fitness.com/leg-curl-unilateral-debout-a-la-machine"
+      },
+      {
+        "nom": "Leg curl décliné avec haltère",
+        "id": "leg-curl-decline-avec-haltere",
+        "url": "https://www.docteur-fitness.com/leg-curl-decline-avec-haltere"
+      },
+      {
+        "nom": "Extensions de hanches au GHD",
+        "id": "glute-ham-developer",
+        "url": "https://www.docteur-fitness.com/glute-ham-developer"
+      },
+      {
+        "nom": "Soulevé de terre avec machine",
+        "id": "souleve-de-terre-avec-machine",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-avec-machine"
+      },
+      {
+        "nom": "Leg curl avec sangles de suspension",
+        "id": "leg-curl-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/leg-curl-avec-sangles-de-suspension"
+      },
+      {
+        "nom": "Leg curl assis à la machine",
+        "id": "leg-curl-assis-a-la-machine",
+        "url": "https://www.docteur-fitness.com/leg-curl-assis-a-la-machine"
+      },
+      {
+        "nom": "Leg curl inversé sur le tirage vertical",
+        "id": "leg-curl-inverse-sur-le-tirage-vertical",
+        "url": "https://www.docteur-fitness.com/leg-curl-inverse-sur-le-tirage-vertical"
+      },
+      {
+        "nom": "Leg curl allongé avec élastique",
+        "id": "leg-curl-allonge-avec-elastique",
+        "url": "https://www.docteur-fitness.com/leg-curl-allonge-avec-elastique"
+      }
+    ],
+    "Mollets": [
+      {
+        "nom": "Extension à la presse à mollets assis",
+        "id": "extension-a-la-presse-a-mollets-assis",
+        "url": "https://www.docteur-fitness.com/extension-a-la-presse-a-mollets-assis"
+      },
+      {
+        "nom": "Extensions des mollets au hack-squat",
+        "id": "extensions-des-mollets-au-hack-squat",
+        "url": "https://www.docteur-fitness.com/extensions-des-mollets-au-hack-squat"
+      },
+      {
+        "nom": "Extensions des mollets assis à la Smith machine",
+        "id": "extensions-des-mollets-assis-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/extensions-des-mollets-assis-a-la-smith-machine"
+      },
+      {
+        "nom": "Extensions des mollets debout à la Smith machine",
+        "id": "extensions-des-mollets-debout-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/extensions-des-mollets-debout-a-la-smith-machine"
+      },
+      {
+        "nom": "Extensions des mollets debout à la machine",
+        "id": "extensions-des-mollets-debout-a-la-machine",
+        "url": "https://www.docteur-fitness.com/extensions-des-mollets-debout-a-la-machine"
+      },
+      {
+        "nom": "Extension des mollets assis à la machine",
+        "id": "extension-des-mollets-assis-a-la-machine",
+        "url": "https://www.docteur-fitness.com/extension-des-mollets-assis-a-la-machine"
+      },
+      {
+        "nom": "Extension des mollets à la presse",
+        "id": "extension-des-mollets-a-la-presse",
+        "url": "https://www.docteur-fitness.com/extension-des-mollets-a-la-presse"
+      }
+    ]
+  },
+  "Landmine": {
+    "Épaules": [
+      {
+        "nom": "Développé épaules debout à la landmine",
+        "id": "developpe-a-la-landmine",
+        "url": "https://www.docteur-fitness.com/developpe-a-la-landmine"
+      },
+      {
+        "nom": "Élévations latérales avec landmine",
+        "id": "elevations-laterales-avec-landmine",
+        "url": "https://www.docteur-fitness.com/elevations-laterales-avec-landmine"
+      },
+      {
+        "nom": "Développé épaule unilatéral à genou avec landmine",
+        "id": "developpe-epaules-unilateral-landmine",
+        "url": "https://www.docteur-fitness.com/developpe-epaules-unilateral-landmine"
+      },
+      {
+        "nom": "Thruster avec landmine",
+        "id": "thruster-avec-landmine",
+        "url": "https://www.docteur-fitness.com/thruster-avec-landmine"
+      }
+    ],
+    "Pectoraux": [
+      {
+        "nom": "Écartés unilatéraux à la landmine",
+        "id": "ecartes-unilateraux-a-la-landmine",
+        "url": "https://www.docteur-fitness.com/ecartes-unilateraux-a-la-landmine"
+      },
+      {
+        "nom": "Développé à la landmine à genoux pour les pectoraux",
+        "id": "developpe-a-la-landmine-pour-les-pectoraux",
+        "url": "https://www.docteur-fitness.com/developpe-a-la-landmine-pour-les-pectoraux"
+      }
+    ],
+    "Dos": [
+      {
+        "nom": "Rowing unilatéral à la landmine",
+        "id": "rowing-unilateral-a-la-landmine",
+        "url": "https://www.docteur-fitness.com/rowing-unilateral-a-la-landmine"
+      }
+    ],
+    "Abdominaux": [
+      {
+        "nom": "Rotations du buste avec landmine",
+        "id": "rotations-du-buste-avec-landmine",
+        "url": "https://www.docteur-fitness.com/rotations-du-buste-avec-landmine"
+      }
+    ],
+    "Fessiers": [
+      {
+        "nom": "Deadlift jambes tendues unilatéral avec landmine",
+        "id": "deadlift-jambes-tendues-unilateral-avec-landmine",
+        "url": "https://www.docteur-fitness.com/deadlift-jambes-tendues-unilateral-avec-landmine"
+      },
+      {
+        "nom": "Soulevé de terre roumain à la landmine",
+        "id": "souleve-de-terre-roumain-a-la-landmine",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-roumain-a-la-landmine"
+      },
+      {
+        "nom": "Squat sumo à la landmine",
+        "id": "squat-sumo-a-la-landmine",
+        "url": "https://www.docteur-fitness.com/squat-sumo-a-la-landmine"
+      },
+      {
+        "nom": "Squat avec landmine",
+        "id": "squat-avec-landmine",
+        "url": "https://www.docteur-fitness.com/squat-avec-landmine"
+      }
+    ],
+    "Quadriceps": [
+      {
+        "nom": "Squat sumo à la landmine",
+        "id": "squat-sumo-a-la-landmine",
+        "url": "https://www.docteur-fitness.com/squat-sumo-a-la-landmine"
+      },
+      {
+        "nom": "Thruster avec landmine",
+        "id": "thruster-avec-landmine",
+        "url": "https://www.docteur-fitness.com/thruster-avec-landmine"
+      },
+      {
+        "nom": "Fentes inversées avec landmine",
+        "id": "fentes-inversees-avec-landmine",
+        "url": "https://www.docteur-fitness.com/fentes-inversees-avec-landmine"
+      },
+      {
+        "nom": "Squat avec landmine",
+        "id": "squat-avec-landmine",
+        "url": "https://www.docteur-fitness.com/squat-avec-landmine"
+      }
+    ],
+    "Ischio-jambiers": [
+      {
+        "nom": "Single leg landmine RDL",
+        "id": "single-leg-landmine-rdl",
+        "url": "https://www.docteur-fitness.com/single-leg-landmine-rdl"
+      },
+      {
+        "nom": "Deadlift jambes tendues unilatéral avec landmine",
+        "id": "deadlift-jambes-tendues-unilateral-avec-landmine",
+        "url": "https://www.docteur-fitness.com/deadlift-jambes-tendues-unilateral-avec-landmine"
+      },
+      {
+        "nom": "Soulevé de terre roumain à la landmine",
+        "id": "souleve-de-terre-roumain-a-la-landmine",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-roumain-a-la-landmine"
+      },
+      {
+        "nom": "Squat sumo à la landmine",
+        "id": "squat-sumo-a-la-landmine",
+        "url": "https://www.docteur-fitness.com/squat-sumo-a-la-landmine"
+      }
+    ]
+  },
+  "Kettlebell": {
+    "Épaules": [
+      {
+        "nom": "Élévations latérales avec kettlebell",
+        "id": "elevations-laterales-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/elevations-laterales-avec-kettlebell"
+      },
+      {
+        "nom": "Tirage menton avec kettlebell",
+        "id": "tirage-menton-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/tirage-menton-avec-kettlebell"
+      },
+      {
+        "nom": "Développé épaule avec kettlebell",
+        "id": "developpe-epaule-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/developpe-epaule-avec-kettlebell"
+      },
+      {
+        "nom": "Thruster avec kettlebell",
+        "id": "thruster-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/thruster-avec-kettlebell"
+      }
+    ],
+    "Pectoraux": [
+      {
+        "nom": "Développé couché unilatéral avec kettlebell",
+        "id": "developpe-couche-unilateral-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/developpe-couche-unilateral-avec-kettlebell"
+      },
+      {
+        "nom": "Développé couché au sol avec kettlebell",
+        "id": "developpe-couche-au-sol-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/developpe-couche-au-sol-avec-kettlebell"
+      }
+    ],
+    "Fessiers": [
+      {
+        "nom": "Kettlebell swing",
+        "id": "kettlebell-swing",
+        "url": "https://www.docteur-fitness.com/kettlebell-swing"
+      },
+      {
+        "nom": "Soulevé de terre roumain avec kettlebell",
+        "id": "souleve-de-terre-roumain-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-roumain-avec-kettlebell"
+      },
+      {
+        "nom": "Squat goblet avec kettlebell",
+        "id": "squat-goblet-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/squat-goblet-avec-kettlebell"
+      },
+      {
+        "nom": "Fentes avant avec kettlebell",
+        "id": "fentes-avant-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/fentes-avant-avec-kettlebell"
+      },
+      {
+        "nom": "Soulevé de terre sumo avec kettlebell",
+        "id": "souleve-de-terre-sumo-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-sumo-avec-kettlebell"
+      },
+      {
+        "nom": "Thruster avec kettlebell",
+        "id": "thruster-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/thruster-avec-kettlebell"
+      }
+    ],
+    "Quadriceps": [
+      {
+        "nom": "Kettlebell back squat",
+        "id": "kettlebell-back-squat",
+        "url": "https://www.docteur-fitness.com/kettlebell-back-squat"
+      },
+      {
+        "nom": "Soulevé de terre roumain avec kettlebell",
+        "id": "souleve-de-terre-roumain-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-roumain-avec-kettlebell"
+      },
+      {
+        "nom": "Marche du fermier avec kettlebells",
+        "id": "marche-du-fermier-avec-kettlebells",
+        "url": "https://www.docteur-fitness.com/marche-du-fermier-avec-kettlebells"
+      },
+      {
+        "nom": "Squat goblet avec kettlebell",
+        "id": "squat-goblet-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/squat-goblet-avec-kettlebell"
+      },
+      {
+        "nom": "Fentes avant avec kettlebell",
+        "id": "fentes-avant-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/fentes-avant-avec-kettlebell"
+      },
+      {
+        "nom": "Soulevé de terre sumo avec kettlebell",
+        "id": "souleve-de-terre-sumo-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-sumo-avec-kettlebell"
+      },
+      {
+        "nom": "Thruster avec kettlebell",
+        "id": "thruster-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/thruster-avec-kettlebell"
+      },
+      {
+        "nom": "Squat avant avec double kettlebell",
+        "id": "squat-avant-avec-double-kettlebell",
+        "url": "https://www.docteur-fitness.com/squat-avant-avec-double-kettlebell"
+      }
+    ],
+    "Ischio-jambiers": [
+      {
+        "nom": "Kettlebell back squat",
+        "id": "kettlebell-back-squat",
+        "url": "https://www.docteur-fitness.com/kettlebell-back-squat"
+      },
+      {
+        "nom": "Kettlebell swing",
+        "id": "kettlebell-swing",
+        "url": "https://www.docteur-fitness.com/kettlebell-swing"
+      },
+      {
+        "nom": "Soulevé de terre roumain avec kettlebell",
+        "id": "souleve-de-terre-roumain-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-roumain-avec-kettlebell"
+      },
+      {
+        "nom": "Marche du fermier avec kettlebells",
+        "id": "marche-du-fermier-avec-kettlebells",
+        "url": "https://www.docteur-fitness.com/marche-du-fermier-avec-kettlebells"
+      },
+      {
+        "nom": "Squat goblet avec kettlebell",
+        "id": "squat-goblet-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/squat-goblet-avec-kettlebell"
+      },
+      {
+        "nom": "Fentes avant avec kettlebell",
+        "id": "fentes-avant-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/fentes-avant-avec-kettlebell"
+      },
+      {
+        "nom": "Soulevé de terre sumo avec kettlebell",
+        "id": "souleve-de-terre-sumo-avec-kettlebell",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-sumo-avec-kettlebell"
+      }
+    ]
+  },
+  "Smith machine": {
+    "Épaules": [
+      {
+        "nom": "Tirage menton barre guidée",
+        "id": "tirage-menton-barre-guidee",
+        "url": "https://www.docteur-fitness.com/tirage-menton-barre-guidee"
+      },
+      {
+        "nom": "Développé épaules à la Smith machine",
+        "id": "developpe-epaules-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/developpe-epaules-a-la-smith-machine"
+      },
+      {
+        "nom": "Développé nuque barre guidée",
+        "id": "developpe-nuque-barre-guidee",
+        "url": "https://www.docteur-fitness.com/developpe-nuque-barre-guidee"
+      }
+    ],
+    "Biceps": [
+      {
+        "nom": "Drag curl à la Smith machine",
+        "id": "drag-curl-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/drag-curl-a-la-smith-machine"
+      }
+    ],
+    "Triceps": [
+      {
+        "nom": "Extensions des triceps incliné à la Smith machine",
+        "id": "extensions-triceps-incline-smith-machine",
+        "url": "https://www.docteur-fitness.com/extensions-triceps-incline-smith-machine"
+      },
+      {
+        "nom": "Développé couché prise serrée à la Smith machine",
+        "id": "developpe-couche-prise-serree-smith-machine",
+        "url": "https://www.docteur-fitness.com/developpe-couche-prise-serree-smith-machine"
+      }
+    ],
+    "Pectoraux": [
+      {
+        "nom": "Développé couché à la Smith machine",
+        "id": "developpe-couche-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/developpe-couche-a-la-smith-machine"
+      },
+      {
+        "nom": "Hex press à la Smith machine",
+        "id": "hex-press-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/hex-press-a-la-smith-machine"
+      },
+      {
+        "nom": "Pompes inclinées sur Smith Machine",
+        "id": "pompes-inclinees-sur-smith-machine",
+        "url": "https://www.docteur-fitness.com/pompes-inclinees-sur-smith-machine"
+      }
+    ],
+    "Dos": [
+      {
+        "nom": "Rowing à la Smith machine",
+        "id": "rowing-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/rowing-a-la-smith-machine"
+      }
+    ],
+    "Fessiers": [
+      {
+        "nom": "Hip thrust à la smith machine",
+        "id": "hip-thrust-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/hip-thrust-a-la-smith-machine"
+      }
+    ],
+    "Quadriceps": [
+      {
+        "nom": "Split squat à la Smith machine",
+        "id": "split-squat-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/split-squat-a-la-smith-machine"
+      },
+      {
+        "nom": "Squat à la Smith machine",
+        "id": "squat-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/squat-a-la-smith-machine"
+      }
+    ],
+    "Mollets": [
+      {
+        "nom": "Extensions des mollets assis à la Smith machine",
+        "id": "extensions-des-mollets-assis-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/extensions-des-mollets-assis-a-la-smith-machine"
+      },
+      {
+        "nom": "Extensions des mollets debout à la Smith machine",
+        "id": "extensions-des-mollets-debout-a-la-smith-machine",
+        "url": "https://www.docteur-fitness.com/extensions-des-mollets-debout-a-la-smith-machine"
+      }
+    ]
+  },
+  "Barre": {
+    "Épaules": [
+      {
+        "nom": "Élévation frontale allongée à la barre",
+        "id": "elevation-frontale-allongee-a-la-barre",
+        "url": "https://www.docteur-fitness.com/elevation-frontale-allongee-a-la-barre"
+      }
+    ],
+    "Biceps": [
+      {
+        "nom": "Curl à la barre",
+        "id": "curl-a-la-barre",
+        "url": "https://www.docteur-fitness.com/curl-a-la-barre"
+      },
+      {
+        "nom": "Curl pupitre barre EZ",
+        "id": "curl-pupitre-barre-ez",
+        "url": "https://www.docteur-fitness.com/curl-pupitre-barre-ez"
+      },
+      {
+        "nom": "Curl inversé à la barre",
+        "id": "curl-inverse-a-la-barre",
+        "url": "https://www.docteur-fitness.com/curl-inverse-a-la-barre"
+      }
+    ],
+    "Triceps": [
+      {
+        "nom": "Barre front",
+        "id": "barre-front",
+        "url": "https://www.docteur-fitness.com/barre-front"
+      },
+      {
+        "nom": "Dips aux barres parallèles",
+        "id": "comment-faire-des-dips",
+        "url": "https://www.docteur-fitness.com/comment-faire-des-dips"
+      },
+      {
+        "nom": "Extension verticale assis à la barre",
+        "id": "extension-verticale-assis-a-la-barre",
+        "url": "https://www.docteur-fitness.com/extension-verticale-assis-a-la-barre"
+      }
+    ],
+    "Pectoraux": [
+      {
+        "nom": "Développé incliné à la barre",
+        "id": "developpe-incline-a-la-barre",
+        "url": "https://www.docteur-fitness.com/developpe-incline-a-la-barre"
+      },
+      {
+        "nom": "Dips aux barres parallèles",
+        "id": "comment-faire-des-dips",
+        "url": "https://www.docteur-fitness.com/comment-faire-des-dips"
+      },
+      {
+        "nom": "Développé décliné à la barre",
+        "id": "developpe-decline-a-la-barre",
+        "url": "https://www.docteur-fitness.com/developpe-decline-a-la-barre"
+      }
+    ],
+    "Dos": [
+      {
+        "nom": "Traction barre derrière",
+        "id": "traction-barre-derriere",
+        "url": "https://www.docteur-fitness.com/traction-barre-derriere"
+      },
+      {
+        "nom": "Rowing barre",
+        "id": "comment-faire-du-rowing-barre",
+        "url": "https://www.docteur-fitness.com/comment-faire-du-rowing-barre"
+      },
+      {
+        "nom": "Shrug barre",
+        "id": "shrug-barre",
+        "url": "https://www.docteur-fitness.com/shrug-barre"
+      },
+      {
+        "nom": "Rowing à la barre en T avec machine",
+        "id": "rowing-a-la-barre-en-t-avec-machine",
+        "url": "https://www.docteur-fitness.com/rowing-a-la-barre-en-t-avec-machine"
+      },
+      {
+        "nom": "Pull-over décliné à la barre",
+        "id": "pull-over-decline-a-la-barre",
+        "url": "https://www.docteur-fitness.com/pull-over-decline-a-la-barre"
+      },
+      {
+        "nom": "Pull-over avec barre",
+        "id": "pull-over-avec-barre",
+        "url": "https://www.docteur-fitness.com/pull-over-avec-barre"
+      }
+    ],
+    "Abdominaux": [
+      {
+        "nom": "Rotations du buste avec barre",
+        "id": "rotations-du-buste-avec-barre",
+        "url": "https://www.docteur-fitness.com/rotations-du-buste-avec-barre"
+      },
+      {
+        "nom": "Roulage avec une barre",
+        "id": "abdominaux-avec-une-barre",
+        "url": "https://www.docteur-fitness.com/abdominaux-avec-une-barre"
+      }
+    ],
+    "Fessiers": [
+      {
+        "nom": "Squat barre devant",
+        "id": "squat-barre-devant",
+        "url": "https://www.docteur-fitness.com/squat-barre-devant"
+      },
+      {
+        "nom": "Montées sur banc latérales avec barre",
+        "id": "montees-sur-banc-laterales-avec-barre",
+        "url": "https://www.docteur-fitness.com/montees-sur-banc-laterales-avec-barre"
+      },
+      {
+        "nom": "Fentes avant avec barre",
+        "id": "fentes-avant-avec-barre",
+        "url": "https://www.docteur-fitness.com/fentes-avant-avec-barre"
+      }
+    ],
+    "Quadriceps": [
+      {
+        "nom": "Squat barre devant",
+        "id": "squat-barre-devant",
+        "url": "https://www.docteur-fitness.com/squat-barre-devant"
+      },
+      {
+        "nom": "Montées sur banc latérales avec barre",
+        "id": "montees-sur-banc-laterales-avec-barre",
+        "url": "https://www.docteur-fitness.com/montees-sur-banc-laterales-avec-barre"
+      },
+      {
+        "nom": "Fentes avant avec barre",
+        "id": "fentes-avant-avec-barre",
+        "url": "https://www.docteur-fitness.com/fentes-avant-avec-barre"
+      },
+      {
+        "nom": "Soulevé de terre à la trap bar",
+        "id": "souleve-de-terre-a-la-trap-bar",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-a-la-trap-bar"
+      },
+      {
+        "nom": "Safety bar squat",
+        "id": "safety-bar-squat",
+        "url": "https://www.docteur-fitness.com/safety-bar-squat"
+      }
+    ],
+    "Ischio-jambiers": [
+      {
+        "nom": "Fentes avant avec barre",
+        "id": "fentes-avant-avec-barre",
+        "url": "https://www.docteur-fitness.com/fentes-avant-avec-barre"
+      },
+      {
+        "nom": "Soulevé de terre à la trap bar",
+        "id": "souleve-de-terre-a-la-trap-bar",
+        "url": "https://www.docteur-fitness.com/souleve-de-terre-a-la-trap-bar"
+      }
+    ],
+    "Mollets": [
+      {
+        "nom": "Extension des mollets à la barre debout",
+        "id": "extension-des-mollets-a-la-barre-debout",
+        "url": "https://www.docteur-fitness.com/extension-des-mollets-a-la-barre-debout"
+      },
+      {
+        "nom": "Extensions des mollets assis avec barre",
+        "id": "extensions-des-mollets-assis-avec-barre",
+        "url": "https://www.docteur-fitness.com/extensions-des-mollets-assis-avec-barre"
+      }
+    ]
+  },
+  "Sangles de suspension / TRX": {
+    "Épaules": [
+      {
+        "nom": "Oiseau inversé avec sangles de suspension",
+        "id": "oiseau-inverse-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/oiseau-inverse-avec-sangles-de-suspension"
+      }
+    ],
+    "Biceps": [
+      {
+        "nom": "Curl unilatéral avec sangles de suspension",
+        "id": "curl-unilateral-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/curl-unilateral-avec-sangles-de-suspension"
+      },
+      {
+        "nom": "Curl avec sangles de suspension",
+        "id": "curl-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/curl-avec-sangles-de-suspension"
+      }
+    ],
+    "Triceps": [
+      {
+        "nom": "Extension de triceps en suspension",
+        "id": "extension-de-triceps-en-suspension",
+        "url": "https://www.docteur-fitness.com/extension-de-triceps-en-suspension"
+      },
+      {
+        "nom": "Extensions des triceps avec sangles de suspension",
+        "id": "extensions-des-triceps-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/extensions-des-triceps-avec-sangles-de-suspension"
+      },
+      {
+        "nom": "Dips aux anneaux",
+        "id": "dips-aux-anneaux",
+        "url": "https://www.docteur-fitness.com/dips-aux-anneaux"
+      }
+    ],
+    "Pectoraux": [
+      {
+        "nom": "Pompes inclinées avec sangles de suspension",
+        "id": "pompes-inclinees-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/pompes-inclinees-avec-sangles-de-suspension"
+      },
+      {
+        "nom": "Écartés avec sangles de suspension",
+        "id": "ecartes-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/ecartes-avec-sangles-de-suspension"
+      },
+      {
+        "nom": "Chest press avec sangles de suspension",
+        "id": "chest-press-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/chest-press-avec-sangles-de-suspension"
+      }
+    ],
+    "Dos": [
+      {
+        "nom": "Tractions aux anneaux",
+        "id": "tractions-aux-anneaux",
+        "url": "https://www.docteur-fitness.com/tractions-aux-anneaux"
+      },
+      {
+        "nom": "Dead Hang (suspension passive)",
+        "id": "dead-hang-suspension-passive",
+        "url": "https://www.docteur-fitness.com/dead-hang-suspension-passive"
+      },
+      {
+        "nom": "Tractions australiennes avec sangles de suspension",
+        "id": "tractions-australiennes-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/tractions-australiennes-avec-sangles-de-suspension"
+      },
+      {
+        "nom": "Oiseau inversé avec sangles de suspension",
+        "id": "oiseau-inverse-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/oiseau-inverse-avec-sangles-de-suspension"
+      },
+      {
+        "nom": "Rowing avec sangles de suspension",
+        "id": "rowing-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/rowing-avec-sangles-de-suspension"
+      }
+    ],
+    "Abdominaux": [
+      {
+        "nom": "Crunch avec sangles de suspension",
+        "id": "crunch-avec-sangle-de-suspension",
+        "url": "https://www.docteur-fitness.com/crunch-avec-sangle-de-suspension"
+      },
+      {
+        "nom": "Planche avec sangles de suspension",
+        "id": "planche-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/planche-avec-sangles-de-suspension"
+      }
+    ],
+    "Fessiers": [
+      {
+        "nom": "Squat avec sangles de suspension",
+        "id": "squat-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/squat-avec-sangles-de-suspension"
+      },
+      {
+        "nom": "Hip thrust avec sangles de suspension",
+        "id": "hip-thrust-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/hip-thrust-avec-sangles-de-suspension"
+      }
+    ],
+    "Quadriceps": [
+      {
+        "nom": "Squat avec sangles de suspension",
+        "id": "squat-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/squat-avec-sangles-de-suspension"
+      },
+      {
+        "nom": "Squat pistolet avec sangle de suspension",
+        "id": "squat-pistolet-avec-sangle-de-suspension",
+        "url": "https://www.docteur-fitness.com/squat-pistolet-avec-sangle-de-suspension"
+      },
+      {
+        "nom": "Split squat avec sangles de suspension",
+        "id": "split-squat-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/split-squat-avec-sangles-de-suspension"
+      }
+    ],
+    "Ischio-jambiers": [
+      {
+        "nom": "Leg curl avec sangles de suspension",
+        "id": "leg-curl-avec-sangles-de-suspension",
+        "url": "https://www.docteur-fitness.com/leg-curl-avec-sangles-de-suspension"
+      }
+    ]
+  },
+  "Swiss ball": {
+    "Dos": [
+      {
+        "nom": "Extensions lombaires sur Swiss ball",
+        "id": "extensions-lombaires-sur-swiss-ball",
+        "url": "https://www.docteur-fitness.com/extensions-lombaires-sur-swiss-ball"
+      }
+    ],
+    "Abdominaux": [
+      {
+        "nom": "Crunch sur swiss ball",
+        "id": "crunch-sur-swiss-ball",
+        "url": "https://www.docteur-fitness.com/crunch-sur-swiss-ball"
+      },
+      {
+        "nom": "Jackknife sur swiss ball",
+        "id": "jackknife-sur-swiss-ball",
+        "url": "https://www.docteur-fitness.com/jackknife-sur-swiss-ball"
+      },
+      {
+        "nom": "Planche sur Swiss ball",
+        "id": "planche-sur-swiss-ball",
+        "url": "https://www.docteur-fitness.com/planche-sur-swiss-ball"
+      },
+      {
+        "nom": "Russian twists à la poulie sur Swiss ball",
+        "id": "russian-twists-a-la-poulie-sur-swiss-ball",
+        "url": "https://www.docteur-fitness.com/russian-twists-a-la-poulie-sur-swiss-ball"
+      }
+    ],
+    "Fessiers": [
+      {
+        "nom": "Hyperextension inversée au Swiss ball",
+        "id": "hyperextension-inversee-au-swiss-ball",
+        "url": "https://www.docteur-fitness.com/hyperextension-inversee-au-swiss-ball"
+      }
+    ],
+    "Ischio-jambiers": [
+      {
+        "nom": "Leg curl au ballon de gym",
+        "id": "leg-curl-au-ballon-de-gym",
+        "url": "https://www.docteur-fitness.com/leg-curl-au-ballon-de-gym"
+      }
+    ]
+  },
+  "Sandbag": {
+    "Fessiers": [
+      {
+        "nom": "Fentes marchées avec sandbag",
+        "id": "fentes-marchees-avec-sandbag",
+        "url": "https://www.docteur-fitness.com/fentes-marchees-avec-sandbag"
+      }
+    ],
+    "Quadriceps": [
+      {
+        "nom": "Fentes marchées avec sandbag",
+        "id": "fentes-marchees-avec-sandbag",
+        "url": "https://www.docteur-fitness.com/fentes-marchees-avec-sandbag"
+      }
+    ]
+  }
+}
