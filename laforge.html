@@ -519,7 +519,53 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
     </div>
   </div>
   <div class="scroll" id="wd-c" style="padding-bottom:110px"></div>
-  <div class="vbar"><button class="btn btn-p" onclick="wodDetailLaunch()">Lancer le chrono</button></div>
+  <div class="vbar"><button class="btn btn-p" id="wd-action-btn" onclick="wodDetailAction()">Lancer le chrono</button></div>
+</div>
+
+<!-- AJOUTER UNE SEANCE (choix du type) -->
+<div class="screen" id="sc-addtype">
+  <div class="hdr">
+    <div class="hdr-row">
+      <button class="bk-btn" onclick="goNav('home')">&#8592;</button>
+      <div style="flex:1;text-align:center">
+        <div class="htitle" style="font-size:17px">Ajouter une séance</div>
+        <div class="hsub">Non prévue dans ta semaine — quel type ?</div>
+      </div>
+      <div style="width:34px"></div>
+    </div>
+  </div>
+  <div class="scroll" id="addtype-c"></div>
+</div>
+
+<!-- AJOUTER UNE SEANCE — ERGO / AUTRE (formulaire léger) -->
+<div class="screen" id="sc-addlight">
+  <div class="hdr">
+    <div class="hdr-row">
+      <button class="bk-btn" onclick="showSc('addtype')">&#8592;</button>
+      <div style="flex:1;text-align:center">
+        <div class="htitle" id="addlight-title" style="font-size:17px"></div>
+      </div>
+      <div style="width:34px"></div>
+    </div>
+  </div>
+  <div class="scroll" id="addlight-c" style="padding-bottom:110px"></div>
+  <div class="vbar"><button class="btn btn-p" onclick="addLightSave()">Ajouter à aujourd'hui</button></div>
+</div>
+
+<!-- SEANCE IMPROVISEE -->
+<div class="screen" id="sc-adhoc">
+  <div class="hdr">
+    <div class="hdr-row">
+      <button class="bk-btn" onclick="showSc('addtype')">&#8592;</button>
+      <div style="flex:1;text-align:center">
+        <div class="htitle" style="font-size:16px">Séance muscu</div>
+        <div class="hsub" id="adhoc-sub"></div>
+      </div>
+      <div style="width:34px"></div>
+    </div>
+  </div>
+  <div class="scroll" id="adhoc-c" style="padding-bottom:110px"></div>
+  <div class="vbar"><button class="btn btn-p" onclick="adhocSave()">Créer et démarrer</button></div>
 </div>
 
 <!-- BANQUE DE WOD (lecture depuis Chrono) -->
@@ -1267,12 +1313,12 @@ function finishOnb(){
 
 // ── HOME ──────────────────────────────────────────────────────────────────────
 function wpLabel(entry,dayIdx){
-  var wodDone=dayIdx!==undefined&&localStorage.getItem('wod_done_'+WEEK+'_'+dayIdx);
-  if(!entry||entry.type==='repos')return wodDone?'WOD':'\u2013';
+  var extra=dayIdx!==undefined&&(localStorage.getItem('wod_done_'+WEEK+'_'+dayIdx)||localStorage.getItem('extra_light_'+WEEK+'_'+dayIdx)||extraDoneFor(WEEK,dayIdx));
+  if(!entry||entry.type==='repos')return extra?(localStorage.getItem('wod_done_'+WEEK+'_'+dayIdx)?'WOD':'+1'):'\u2013';
   if(entry.type==='wod')return 'WOD';
   var s=SEANCES.find(function(x){return x.id===entry.seance_id;});
   var lbl=s?s.nom.substring(0,3).toUpperCase():'\u2013';
-  return wodDone?lbl+'+':lbl;
+  return extra?lbl+'+':lbl;
 }
 function weekStats(){
   var now=new Date();
@@ -1300,6 +1346,8 @@ function weekStats(){
   WEEKPLAN.forEach(function(e,i){
     if(e.type==='seance'&&localStorage.getItem('done_'+e.seance_id+'_'+WEEK)==='1')nbFait++;
     if(localStorage.getItem('wod_done_'+WEEK+'_'+i))nbFait++;
+    if(localStorage.getItem('extra_light_'+WEEK+'_'+i))nbFait++;
+    if(extraDoneFor(WEEK,i))nbFait++;
   });
   return {nbFait:nbFait,nbSeries:nbSeries,volume:Math.round(volume)};
 }
@@ -1323,6 +1371,27 @@ function nextSeanceInfo(ti){
     }
   }
   return null;
+}
+function getTodayActivities(ti){
+  var acts=[];
+  var entry=WEEKPLAN[ti];
+  if(entry&&entry.type==='seance'){
+    var s=SEANCES.find(function(x){return x.id===entry.seance_id;});
+    if(s&&localStorage.getItem('done_'+s.id+'_'+WEEK)==='1'){
+      acts.push({type:'Muscu',nom:s.nom});
+    }
+  }
+  var wodDone=localStorage.getItem('wod_done_'+WEEK+'_'+ti);
+  if(wodDone)acts.push({type:'WOD',nom:wodDone});
+  extraSeancesFor(WEEK,ti).forEach(function(id){
+    if(localStorage.getItem('done_'+id+'_'+WEEK)==='1'){
+      var es=SEANCES.find(function(x){return x.id===id;});
+      if(es)acts.push({type:'Muscu',nom:es.nom});
+    }
+  });
+  var light=localStorage.getItem('extra_light_'+WEEK+'_'+ti);
+  if(light)acts.push({type:'Activité',nom:light});
+  return acts;
 }
 function renderHome(){
   loadWP();
@@ -1363,10 +1432,24 @@ function renderHome(){
       +'<div><div class="ctitle" style="font-size:20px">'+next.nom+'</div><div class="csub">Prochaine séance · '+next.jour+'</div></div>'
       +'<span style="color:var(--txt4);font-size:16px">&#8250;</span></div>';
   }
+  var todayActs=getTodayActivities(ti);
+  if(todayActs.length){
+    elC.innerHTML+='<div class="sec" style="margin-top:16px">Fait aujourd\'hui</div>';
+    todayActs.forEach(function(a){
+      elC.innerHTML+='<div class="card" style="padding:11px 14px;display:flex;align-items:center;gap:10px">'
+        +'<div style="width:22px;height:22px;flex-shrink:0;border-radius:50%;background:var(--accent);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px">&#10003;</div>'
+        +'<div style="min-width:0;flex:1"><div class="en" style="font-size:13px">'+a.nom+'</div></div>'
+        +'<span class="tag" style="border:1px solid var(--border2);color:var(--txt4);font-family:var(--font-cond);font-size:9px;font-weight:700;letter-spacing:.5px;padding:3px 8px;text-transform:uppercase;flex-shrink:0">'+a.type+'</span>'
+        +'</div>';
+    });
+  }
+  elC.innerHTML+='<button class="btn-ghost" style="border-style:dashed;margin-bottom:14px;margin-top:'+(todayActs.length?'10px':'0')+'" onclick="openAddType()">+ Ajouter une séance</button>';
   var wkHtml='';
   WEEKPLAN.forEach(function(e,i){
     var wodDone=localStorage.getItem('wod_done_'+WEEK+'_'+i);
-    var status=(e&&e.type==='seance'&&localStorage.getItem('done_'+e.seance_id+'_'+WEEK)==='1')?'done':wodDone?'done':(e&&e.type!=='repos')?'planned':'rest';
+    var lightDone=localStorage.getItem('extra_light_'+WEEK+'_'+i);
+    var extraSeanceDone=extraDoneFor(WEEK,i);
+    var status=(e&&e.type==='seance'&&localStorage.getItem('done_'+e.seance_id+'_'+WEEK)==='1')?'done':(wodDone||lightDone||extraSeanceDone)?'done':(e&&e.type!=='repos')?'planned':'rest';
     var dotColor=status==='done'?'var(--accent)':status==='planned'?'rgba(240,235,225,.35)':'transparent';
     wkHtml+='<div style="flex:1;text-align:center">'
       +'<div style="font-family:var(--font-cond);font-size:10.5px;font-weight:700;color:var(--txt4);margin-bottom:4px;text-transform:uppercase">'+DOW[i]+'</div>'
@@ -1409,7 +1492,7 @@ function renderProgTab(){
     var wodDone=localStorage.getItem('wod_done_'+WEEK+'_'+i);
     if(e.type==='wod'){label='WOD Day';badgeCls='var(--accent)';}
     else if(e.type==='seance'){
-      var s=ss.find(function(x){return x.id===e.seance_id;});
+      var s=SEANCES.find(function(x){return x.id===e.seance_id;});
       if(s){label=s.nom;badgeCls='var(--accent)';}
     } else if(wodDone){label='Repos';badgeCls='var(--txt4)';}
     var extra=wodDone&&e.type!=='wod'?' <span style="color:var(--accent);font-size:9px;font-weight:700">+WOD</span>':'';
@@ -2778,9 +2861,18 @@ function delUserWodV2(id){
 }
 
 // ── DETAIL D'UN WOD (avant lancement) ────────────────────────────────────
-var WD_CUR=null, WD_RETURN='wodbank';
+var WD_CUR=null, WD_RETURN='wodbank', WD_MODE='launch', WD_SELECT_CB=null;
 function openWodDetail(norm,returnTo){
-  WD_RETURN=returnTo||'wodbank';
+  WD_RETURN=returnTo||'wodbank';WD_MODE='launch';WD_SELECT_CB=null;
+  renderWodDetailCommon(norm);
+  updateWdActionBtn();
+}
+function openWodDetailSelect(norm,selectCb){
+  WD_RETURN='select-back';WD_MODE='select';WD_SELECT_CB=selectCb;
+  renderWodDetailCommon(norm);
+  updateWdActionBtn();
+}
+function renderWodDetailCommon(norm){
   document.getElementById('main-nav').style.display='none';
   showSc('woddetail');
   document.getElementById('wd-nom').textContent=norm.nom;
@@ -2795,6 +2887,10 @@ function openWodDetail(norm,returnTo){
     WD_CUR={norm:norm,raw:raw,userWod:null};
     document.getElementById('wd-c').innerHTML=badgeHtml+wodFullDetailHtml(raw);
   }
+}
+function updateWdActionBtn(){
+  var btn=document.getElementById('wd-action-btn');if(!btn)return;
+  btn.textContent=WD_MODE==='select'?'Choisir ce WOD':'Lancer le chrono';
 }
 function wodUserDetailHtml(u){
   if(!u)return '<div style="color:var(--txt4);font-size:12.5px">WOD introuvable.</div>';
@@ -2817,7 +2913,12 @@ function fmtMinSec(s){var m=Math.floor(s/60),ss=s%60;return ss?(m+'min'+ss):(m+'
 function wodDetailBack(){
   document.getElementById('main-nav').style.display='flex';
   if(WD_RETURN==='wodbank'){showSc('wodbank');}
+  else if(WD_RETURN==='select-back'){showSc('finbloc');renderFinBloc();}
   else{goNav('wod');}
+}
+function wodDetailAction(){
+  if(WD_MODE==='select'&&WD_SELECT_CB){WD_SELECT_CB(WD_CUR.norm);return;}
+  wodDetailLaunch();
 }
 function wodDetailLaunch(){
   if(!WD_CUR)return;
@@ -3104,12 +3205,18 @@ function renderCtorExl(){
   var html='';
   s.exercices.forEach(function(e,i){
     html+='<div class="exc" style="padding:11px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px">'
-      +'<div><div class="emuscle">'+(e.muscle||'')+'</div><div class="en">'+e.nom+'</div></div>'
-      +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">'
-      +'<div style="font-size:14px;font-weight:600;color:var(--txt3)">'+(e.sets||3)+'×'+(e.reps||10)+'</div>'
+      +'<div style="min-width:0;flex:1"><div class="emuscle">'+(e.muscle||'')+'</div><div class="en">'+e.nom+'</div></div>'
+      +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
+      +'<input class="exb-inp" type="number" value="'+(e.sets||3)+'" inputmode="numeric" style="width:38px" oninput="ctorSetExField('+i+',\'sets\',this.value)">'
+      +'<span style="color:var(--txt4);font-size:12px">&times;</span>'
+      +'<input class="exb-inp" type="number" value="'+(e.reps||10)+'" inputmode="numeric" style="width:38px" oninput="ctorSetExField('+i+',\'reps\',this.value)">'
       +'<button class="exb-del" onclick="ctorDelEx('+i+')">&#10005;</button></div></div>';
   });
   el.innerHTML=html;
+}
+function ctorSetExField(i,field,val){
+  var e=CTOR_STATE.seances[CTORCFG_IDX].exercices[i];if(!e)return;
+  e[field]=parseInt(val)||(field==='sets'?3:10);
 }
 function ctorDelEx(i){CTOR_STATE.seances[CTORCFG_IDX].exercices.splice(i,1);renderCtorExl();}
 function ctorOpenAddEx(){
@@ -3158,7 +3265,7 @@ function openFinBlocForSeance(){ // contexte séance en cours réelle
 }
 function openFinBlocFor(target){
   FB_TARGET=target;FB_TAB='A';
-  var existing=(target.kind==='ctor')?CTOR_STATE.seances[target.idx].finBloc:target.seance.finBloc;
+  var existing=(target.kind==='ctor')?CTOR_STATE.seances[target.idx].finBloc:(target.kind==='adhoc')?ADHOC_STATE.finBloc:target.seance.finBloc;
   if(existing){
     FB_STATE=Object.assign({minutes:20,intensite:'calme',rounds:5,effort:3,repos:1,machine:'ram',wodId:null,wodNom:null},existing);
     FB_TAB=existing.type||'A';
@@ -3169,9 +3276,19 @@ function openFinBlocFor(target){
 }
 function fbBack(){
   if(FB_TARGET&&FB_TARGET.kind==='live'){showSc('wk');renderWk();}
+  else if(FB_TARGET&&FB_TARGET.kind==='adhoc'){showSc('adhoc');renderAdhoc();}
   else{showSc('ctorcfg');renderCtorCfg();}
 }
 function fbSetTab(t){FB_TAB=t;renderFinBloc();}
+function fbPickWod(fi){
+  var w=(FB_STATE._listCache||[])[fi];if(!w)return;
+  FB_STATE.wodId=w.id;FB_STATE.wodNom=w.nom;
+  renderFinBloc();
+}
+function fbShowWodDetail(fi){
+  var w=(FB_STATE._listCache||[])[fi];if(!w)return;
+  openWodDetailSelect(w,function(picked){FB_STATE.wodId=picked.id;FB_STATE.wodNom=picked.nom;wodDetailBack();});
+}
 function renderFinBloc(){
   var tabs=[{k:'A',t:'WOD banque'},{k:'B',t:'Ergo temps'},{k:'C',t:'Rounds ergo'}];
   document.getElementById('fb-tabs').innerHTML=tabs.map(function(tb){return '<button class="'+(FB_TAB===tb.k?'on':'')+'" onclick="fbSetTab(\''+tb.k+'\')">'+tb.t+'</button>';}).join('');
@@ -3188,12 +3305,16 @@ function renderFinBloc(){
       }).slice(0,60);
       html='<div class="srch-w"><span class="srch-ic">&#128269;</span><input class="srch-i" placeholder="Rechercher un WOD..." oninput="FB_STATE._q=this.value;renderFinBloc()"></div>'
         +'<div class="fbar">'+fmts.map(function(f){return '<button class="fbtn'+((FB_STATE._fmt||'Tous')===f?' on':'')+'" onclick="FB_STATE._fmt=\''+f+'\';renderFinBloc()">'+f+'</button>';}).join('')+'</div>';
-      filtered.forEach(function(w){
+      FB_STATE._listCache=filtered;
+      filtered.forEach(function(w,fi){
         var on=FB_STATE.wodId===w.id;
-        html+='<div class="wod-card" style="'+(on?'border-color:var(--accent)':'')+'" onclick="FB_STATE.wodId=\''+w.id+'\';FB_STATE.wodNom=\''+w.nom.replace(/'/g,"\\'")+'\';renderFinBloc()">'
+        html+='<div class="wod-card" style="'+(on?'border-color:var(--accent)':'')+'">'
+          +'<div style="display:flex;justify-content:space-between;align-items:flex-start" onclick="fbPickWod('+fi+')">'
           +'<div class="wbadge" style="color:var(--accent);border-color:var(--accent-b);background:var(--accent-bg)">'+w.format+'</div>'
-          +'<div style="font-family:var(--font-display);font-size:20px;font-weight:700">'+w.nom+'</div>'
-          +(w.materiel?'<div style="font-size:12.5px;color:var(--txt4)">'+w.materiel+'</div>':'')+'</div>';
+          +'<button onclick="event.stopPropagation();fbShowWodDetail('+fi+')" style="background:none;border:1px solid var(--border2);color:var(--txt3);font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;cursor:pointer">Détail</button>'
+          +'</div>'
+          +'<div onclick="fbPickWod('+fi+')" style="font-family:var(--font-display);font-size:20px;font-weight:700">'+w.nom+'</div>'
+          +(w.materiel?'<div onclick="fbPickWod('+fi+')" style="font-size:12.5px;color:var(--txt4)">'+w.materiel+'</div>':'')+'</div>';
       });
     }
   } else if(FB_TAB==='B'){
@@ -3256,6 +3377,10 @@ function fbAdd(){
     var s=CTOR_STATE.seances[FB_TARGET.idx];if(!s)return;
     s.finBloc=fb;s.finBlocOn=true;
     showSc('ctorcfg');renderCtorCfg();
+  } else if(FB_TARGET.kind==='adhoc'){
+    if(!ADHOC_STATE)return;
+    ADHOC_STATE.finBloc=fb;ADHOC_STATE.finBlocOn=true;
+    showSc('adhoc');renderAdhoc();
   } else {
     var live=FB_TARGET.seance;if(!live)return;
     live.finBloc=fb;
@@ -3319,6 +3444,228 @@ function progDoneContinue(){
 }
 function progDoneNew(){
   openCtor();
+}
+
+// ── SEANCE IMPROVISEE (ajout ponctuel dans la semaine) ───────────────────
+var ADHOC_STATE=null;
+function ensureAdhocProg(){
+  var p=PROGS.find(function(x){return x.adhoc;});
+  if(p)return Promise.resolve(p);
+  return sbP('programmes',{user_id:USER.id,nom:'Séances improvisées',couleur:'#8C867E',ordre:999,adhoc:true}).then(function(arr){
+    PROGS.push(arr[0]);
+    return arr[0];
+  });
+}
+function openAdhocSeance(){
+  var dayIdx=todayIdx();
+  ADHOC_STATE={dayIdx:dayIdx,nom:'Séance du jour',zone:'hyper',exercices:[],finBloc:null,finBlocOn:false};
+  document.getElementById('main-nav').style.display='none';
+  showSc('adhoc');renderAdhoc();
+}
+function renderAdhoc(){
+  var s=ADHOC_STATE;if(!s)return;
+  document.getElementById('adhoc-sub').textContent='Aujourd\'hui — '+DOWFULL[s.dayIdx];
+  var zones=[{k:'force',t:'Force'},{k:'hyper',t:'Hypertrophie'},{k:'endu',t:'Endurance'}];
+  var html='<div class="lbl" style="margin-top:0">Nom de la séance</div>'
+    +'<input class="inp" value="'+s.nom+'" oninput="ADHOC_STATE.nom=this.value" style="margin-bottom:16px">'
+    +'<div class="lbl">Zone d\'entraînement</div>'
+    +'<div class="chips" style="margin-bottom:18px">'
+    +zones.map(function(z){return '<button class="chip'+(s.zone===z.k?' on':'')+'" onclick="adhocSetZone(\''+z.k+'\')">'+z.t+'</button>';}).join('')
+    +'</div>'
+    +'<div class="lbl">Exercices</div><div id="adhoc-exl"></div>'
+    +'<button class="btn-ghost" style="border-style:dashed;margin-bottom:16px" onclick="adhocOpenAddEx()">+ Chercher un exercice</button>'
+    +'<div class="lbl">WOD / Ergo en fin de séance</div>'
+    +'<div class="card" style="padding:13px;'+(s.finBloc?'border-color:var(--accent)':'')+'">'
+    +'<div class="mr-row" style="margin-bottom:'+(s.finBloc?'8px':'0')+'">'
+    +'<button class="mr-tog'+(s.finBloc?' on':'')+'" onclick="adhocToggleWod()"></button>'
+    +'<span class="mr-lbl">Ajouter un bloc WOD / ergo</span></div>'
+    +(s.finBloc?('<div class="csub" style="margin-bottom:8px">'+finBlocSummary(s.finBloc)+'</div><button class="btn-s btn-sm" onclick="openFinBlocFor({kind:\'adhoc\'})">Modifier le bloc</button>')
+      :(s.finBlocOn?'<button class="btn-s btn-sm" onclick="openFinBlocFor({kind:\'adhoc\'})">Choisir le bloc →</button>':''))
+    +'</div>';
+  document.getElementById('adhoc-c').innerHTML=html;
+  renderAdhocExl();
+}
+function adhocSetZone(k){ADHOC_STATE.zone=k;renderAdhoc();}
+function renderAdhocExl(){
+  var s=ADHOC_STATE;if(!s)return;
+  var el=document.getElementById('adhoc-exl');if(!el)return;
+  if(!s.exercices.length){el.innerHTML='<div style="color:var(--txt4);font-size:12px;padding:6px 0 10px">Aucun exercice</div>';return;}
+  var html='';
+  s.exercices.forEach(function(e,i){
+    html+='<div class="exc" style="padding:11px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px">'
+      +'<div style="min-width:0;flex:1"><div class="emuscle">'+(e.muscle||'')+'</div><div class="en">'+e.nom+'</div></div>'
+      +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
+      +'<input class="exb-inp" type="number" value="'+(e.sets||3)+'" inputmode="numeric" style="width:38px" oninput="adhocSetExField('+i+',\'sets\',this.value)">'
+      +'<span style="color:var(--txt4);font-size:12px">&times;</span>'
+      +'<input class="exb-inp" type="number" value="'+(e.reps||10)+'" inputmode="numeric" style="width:38px" oninput="adhocSetExField('+i+',\'reps\',this.value)">'
+      +'<button class="exb-del" onclick="adhocDelEx('+i+')">&#10005;</button></div></div>';
+  });
+  el.innerHTML=html;
+}
+function adhocSetExField(i,field,val){
+  var e=ADHOC_STATE.exercices[i];if(!e)return;
+  e[field]=parseInt(val)||(field==='sets'?3:10);
+}
+function adhocDelEx(i){ADHOC_STATE.exercices.splice(i,1);renderAdhocExl();}
+function adhocOpenAddEx(){
+  document.getElementById('modal-c').innerHTML='<div class="mtitle">Chercher un exercice</div>'
+    +'<div class="srch-w"><span class="srch-ic">&#128269;</span>'
+    +'<input class="srch-i" placeholder="Rechercher..." oninput="adhocFilterEx(this.value)"></div>'
+    +'<div class="srch-res" id="srch-res"></div>';
+  adhocFilterEx('');openModal();
+}
+function adhocFilterEx(val){
+  var src=EX_FULL||EX;
+  var n=norm(val);
+  var res=src.filter(function(e){return norm(e.n).indexOf(n)>=0||norm(e.m).indexOf(n)>=0;}).slice(0,25);
+  var html='';
+  res.forEach(function(e){
+    var nn=e.n.replace(/'/g,"\\'");var mm=(e.m||'').replace(/'/g,"\\'");
+    html+='<div class="srch-item" onclick="adhocAddExFn(\''+nn+'\',\''+mm+'\')">'
+      +'<div class="snom">'+e.n+'</div><div class="smus">'+(e.m||'')+'</div></div>';
+  });
+  document.getElementById('srch-res').innerHTML=html;
+}
+function adhocAddExFn(nom,muscle){
+  ADHOC_STATE.exercices.push({nom:nom,muscle:muscle,sets:4,reps:8});
+  closeModal();renderAdhocExl();
+}
+function adhocToggleWod(){
+  var s=ADHOC_STATE;
+  if(s.finBloc){s.finBloc=null;s.finBlocOn=false;}
+  else{s.finBlocOn=!s.finBlocOn;}
+  renderAdhoc();
+}
+function adhocSave(){
+  var s=ADHOC_STATE;if(!s)return;
+  if(!s.nom.trim()){toast('Nomme la séance');return;}
+  toast('Création...');
+  ensureAdhocProg().then(function(prog){
+    var existingCount=SEANCES.filter(function(x){return x.prog_id===prog.id;}).length;
+    return sbP('seances',{programme_id:prog.id,user_id:USER.id,nom:s.nom,ordre:existingCount,zone:s.zone,finBloc:s.finBloc||null}).then(function(sarr){
+      var sean=sarr[0];
+      var p2=Promise.resolve();
+      s.exercices.forEach(function(e,ei){
+        p2=p2.then(function(){
+          return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,exercice_nom:e.nom,muscle:e.muscle||'',sets:e.sets||3,reps:e.reps||10,max_reps:false,progression_type:'poids',progression_valeur:2.5,progression_frequence:1,ordre:ei});
+        });
+      });
+      return p2.then(function(){
+        return sbG('seance_exercices','seance_id=eq.'+sean.id+'&order=ordre.asc');
+      }).then(function(exos){
+        SEANCES.push(Object.assign({},sean,{prog_id:prog.id,exercices:exos||[]}));
+        loadWP();
+        var cur=WEEKPLAN[s.dayIdx];
+        if(!cur||cur.type==='repos'){
+          WEEKPLAN[s.dayIdx]={type:'seance',seance_id:sean.id};
+          saveWP2();
+        } else {
+          addExtraSeance(s.dayIdx,sean.id);
+        }
+        return sean.id;
+      });
+    });
+  }).then(function(seanceId){
+    ADHOC_STATE=null;
+    document.getElementById('main-nav').style.display='flex';
+    toast('Séance ajoutée — c\'est parti !');
+    openWk(seanceId);
+  }).catch(function(e){console.error(e);toast('Erreur - réessaie');});
+}
+function addExtraSeance(dayIdx,seanceId){
+  var key='extra_seances_'+WEEK+'_'+dayIdx;
+  try{
+    var arr=JSON.parse(localStorage.getItem(key)||'[]');
+    arr.push(seanceId);
+    localStorage.setItem(key,JSON.stringify(arr));
+  }catch(e){}
+}
+function extraSeancesFor(week,dayIdx){
+  try{return JSON.parse(localStorage.getItem('extra_seances_'+week+'_'+dayIdx)||'[]');}catch(e){return [];}
+}
+function extraDoneFor(week,dayIdx){
+  return extraSeancesFor(week,dayIdx).some(function(id){return localStorage.getItem('done_'+id+'_'+week)==='1';});
+}
+
+// ── AJOUTER UNE SEANCE — sélecteur de type (Muscu / WOD / Ergo / Autre) ──
+function openAddType(){
+  document.getElementById('main-nav').style.display='none';
+  showSc('addtype');
+  var types=[
+    {k:'muscu',t:'Muscu',s:'Choisis tes exercices, séries et reps'},
+    {k:'wod',t:'WOD',s:'Depuis la banque, ou crée le tien'},
+    {k:'ergo',t:'Ergo',s:'Rameur, vélo, ski — durée et intensité'},
+    {k:'autre',t:'Autre',s:'Course, natation, sport co...'}
+  ];
+  document.getElementById('addtype-c').innerHTML=types.map(function(ty){
+    return '<div class="choice" onclick="pickAddType(\''+ty.k+'\')"><div class="ct">'+ty.t+'</div><div class="cs">'+ty.s+'</div></div>';
+  }).join('');
+}
+function pickAddType(k){
+  if(k==='muscu')openAdhocSeance();
+  else if(k==='wod')openWodBank('browse');
+  else openAddLight(k);
+}
+var ADDLIGHT_TYPE='ergo';
+function openAddLight(type){
+  ADDLIGHT_TYPE=type;
+  showSc('addlight');
+  document.getElementById('addlight-title').textContent=type==='ergo'?'Séance ergo':'Autre activité';
+  var html='';
+  if(type==='ergo'){
+    html='<div class="lbl" style="margin-top:0">Machine</div>'
+      +'<div class="chips" style="margin-bottom:16px" id="al-machine-chips">'
+      +[{k:'ram',t:'Rameur'},{k:'velo',t:'Vélo'},{k:'ski',t:'Skierg'}].map(function(m){return '<button class="chip'+(m.k==='ram'?' on':'')+'" data-m="'+m.k+'" onclick="alSetMachine(\''+m.k+'\')">'+m.t+'</button>';}).join('')
+      +'</div>'
+      +'<div class="lbl">Durée</div>'
+      +'<div class="stepper" style="margin-bottom:18px">'
+      +'<button onclick="alAdjMin(-5)">&#8722;</button>'
+      +'<div class="stepper-val" id="al-min-val" style="font-size:40px">20 <span style="font-size:13px;color:var(--txt4);letter-spacing:1px">MINUTES</span></div>'
+      +'<button onclick="alAdjMin(5)">&#43;</button></div>'
+      +'<div class="lbl">Intensité</div>'
+      +'<div class="gridcards" id="al-int-cards">'
+      +['calme','sout'].map(function(k){var t=k==='calme'?'Tranquille':'Soutenue';var s=k==='calme'?'Récup active, nez fermé':'Rythme continu, essoufflé';return '<div class="choice'+(k==='calme'?' on':'')+'" data-i="'+k+'" onclick="alSetInt(\''+k+'\')"><div class="ct">'+t+'</div><div class="cs">'+s+'</div></div>';}).join('')
+      +'</div>';
+    AL_STATE={machine:'ram',minutes:20,intensite:'calme'};
+  } else {
+    html='<div class="lbl" style="margin-top:0">Nom de l\'activité</div>'
+      +'<input class="inp" id="al-nom" placeholder="Ex. Course à pied, Foot..." style="margin-bottom:14px">'
+      +'<div class="lbl">Durée (min, optionnel)</div>'
+      +'<input class="inp" id="al-dur" type="number" inputmode="numeric" placeholder="Ex. 45" style="margin-bottom:14px">'
+      +'<div class="lbl">Notes</div>'
+      +'<textarea class="inp" id="al-notes" rows="3" style="resize:vertical"></textarea>';
+  }
+  document.getElementById('addlight-c').innerHTML=html;
+}
+var AL_STATE={machine:'ram',minutes:20,intensite:'calme'};
+function alSetMachine(k){
+  AL_STATE.machine=k;
+  document.querySelectorAll('#al-machine-chips .chip').forEach(function(c){c.classList.toggle('on',c.getAttribute('data-m')===k);});
+}
+function alAdjMin(d){
+  AL_STATE.minutes=Math.max(5,Math.min(120,AL_STATE.minutes+d));
+  document.getElementById('al-min-val').innerHTML=AL_STATE.minutes+' <span style="font-size:13px;color:var(--txt4);letter-spacing:1px">MINUTES</span>';
+}
+function alSetInt(k){
+  AL_STATE.intensite=k;
+  document.querySelectorAll('#al-int-cards .choice').forEach(function(c){c.classList.toggle('on',c.getAttribute('data-i')===k);});
+}
+function addLightSave(){
+  var ti=todayIdx();
+  var label;
+  if(ADDLIGHT_TYPE==='ergo'){
+    var mlbl=AL_STATE.machine==='ram'?'Rameur':AL_STATE.machine==='velo'?'Vélo':'Skierg';
+    label=mlbl+' '+AL_STATE.minutes+' min · '+(AL_STATE.intensite==='calme'?'Tranquille':'Soutenue');
+  } else {
+    var nom=(document.getElementById('al-nom')||{value:''}).value.trim();
+    if(!nom){toast('Donne un nom à l\'activité');return;}
+    var dur=(document.getElementById('al-dur')||{value:''}).value.trim();
+    label=nom+(dur?' · '+dur+' min':'');
+  }
+  try{localStorage.setItem('extra_light_'+WEEK+'_'+ti,label);}catch(e){}
+  toast('Ajouté à aujourd\'hui !');
+  document.getElementById('main-nav').style.display='flex';
+  goNav('home');
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
