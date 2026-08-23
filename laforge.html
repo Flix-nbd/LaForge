@@ -506,6 +506,22 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
   <div class="scroll" id="progdone-c" style="padding:0;position:relative"></div>
 </div>
 
+<!-- DETAIL D'UN WOD -->
+<div class="screen" id="sc-woddetail">
+  <div class="hdr">
+    <div class="hdr-row">
+      <button class="bk-btn" onclick="wodDetailBack()">&#8592;</button>
+      <div style="flex:1;text-align:center">
+        <div class="htitle" id="wd-nom" style="font-size:17px"></div>
+        <div class="hsub" id="wd-sub"></div>
+      </div>
+      <div style="width:34px"></div>
+    </div>
+  </div>
+  <div class="scroll" id="wd-c" style="padding-bottom:110px"></div>
+  <div class="vbar"><button class="btn btn-p" onclick="wodDetailLaunch()">Lancer le chrono</button></div>
+</div>
+
 <!-- BANQUE DE WOD (lecture depuis Chrono) -->
 <div class="screen" id="sc-wodbank">
   <div class="hdr">
@@ -2265,6 +2281,7 @@ var CF_FORMATS=['EMOM','AMRAP','For Time','Rounds'];
 var CF_fmt='AMRAP',CF_dur=1200,CF_rem=1200,CF_run=false,CF_int=null;
 function fmtCF(s){var m=Math.floor(s/60),ss=s%60;return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');}
 function renderChrono(){
+  if(IV_STATE){renderChronoInterval();return;}
   var tabsHtml='';
   CF_FORMATS.forEach(function(f){
     tabsHtml+='<button class="'+(f===CF_fmt?'on':'')+'" onclick="setCFmt(\''+f+'\')">'+f+'</button>';
@@ -2274,19 +2291,7 @@ function renderChrono(){
   var presetsHtml=CF_DUR_PRESETS.map(function(m){
     return '<button class="chip'+(Math.round(CF_dur/60)===m?' on':'')+'" onclick="setCFDur('+m+')">'+m+' min</button>';
   }).join('');
-  var wodInfoHtml='';
-  if(ACTIVE_WOD){
-    wodInfoHtml='<div class="card" style="padding:14px;border-color:var(--accent-b);margin-bottom:12px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
-      +'<span class="wbadge" style="color:var(--accent);border-color:var(--accent-b);background:var(--accent-bg)">'+ACTIVE_WOD.format+'</span>'
-      +'<button onclick="clearActiveWod()" style="background:none;border:none;color:var(--txt4);font-size:16px;cursor:pointer;padding:0 2px">&#10005;</button>'
-      +'</div>'
-      +'<div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--txt);margin-bottom:4px">'+ACTIVE_WOD.nom+'</div>'
-      +(ACTIVE_WOD.materiel?'<div style="font-size:11.5px;color:var(--txt4);margin-bottom:6px">'+ACTIVE_WOD.materiel+'</div>':'')
-      +(ACTIVE_WOD.desc?'<div style="font-size:12.5px;color:var(--txt3);line-height:1.5;margin-bottom:10px">'+ACTIVE_WOD.desc+'</div>':'')
-      +'<button class="btn-s btn-sm" onclick="completeActiveWod()">Marquer comme fait aujourd\'hui</button>'
-      +'</div>';
-  }
+  var wodInfoHtml=activeWodCardHtml();
   document.getElementById('cf-body').innerHTML=
     wodInfoHtml
     +'<div class="card cf-card cross" style="position:relative;padding:24px;text-align:center;border-color:var(--border-on)">'
@@ -2308,7 +2313,44 @@ function renderChrono(){
     +'</div>'
     +'<button class="btn-ghost" onclick="openWodBank(\'browse\')">Charger un WOD de la banque</button>';
 }
-function setCFmt(f){CF_fmt=f;stopCF();CF_dur=(f==='EMOM')?600:(f==='For Time'?1800:f==='Rounds'?900:1200);CF_rem=CF_dur;renderChrono();}
+function activeWodCardHtml(){
+  if(!ACTIVE_WOD)return '';
+  return '<div class="card" style="padding:14px;border-color:var(--accent-b);margin-bottom:12px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
+    +'<span class="wbadge" style="color:var(--accent);border-color:var(--accent-b);background:var(--accent-bg)">'+ACTIVE_WOD.format+'</span>'
+    +'<button onclick="clearActiveWod()" style="background:none;border:none;color:var(--txt4);font-size:16px;cursor:pointer;padding:0 2px">&#10005;</button>'
+    +'</div>'
+    +'<div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--txt);margin-bottom:4px">'+ACTIVE_WOD.nom+'</div>'
+    +(ACTIVE_WOD.materiel?'<div style="font-size:11.5px;color:var(--txt4);margin-bottom:6px">'+ACTIVE_WOD.materiel+'</div>':'')
+    +(ACTIVE_WOD.desc?'<div style="font-size:12.5px;color:var(--txt3);line-height:1.5;margin-bottom:10px">'+ACTIVE_WOD.desc+'</div>':'')
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="btn-s btn-sm" onclick="completeActiveWod()">Marqué comme fait</button>'
+    +'<button class="btn-ghost" style="width:auto;padding:7px 14px;font-size:11px" onclick="openWodDetail({id:ACTIVE_WOD.id,nom:ACTIVE_WOD.nom,format:ACTIVE_WOD.format,materiel:ACTIVE_WOD.materiel,section:(WD_CUR&&WD_CUR.userWod?\'user\':\'\')},\'chrono\')">Voir le détail</button>'
+    +'</div>'
+    +'</div>';
+}
+function renderChronoInterval(){
+  document.getElementById('cf-tabs').className='';
+  document.getElementById('cf-tabs').innerHTML='';
+  var isRest=IV_STATE.phase==='rest';
+  var col=isRest?'var(--red)':'var(--accent)';
+  document.getElementById('cf-body').innerHTML=
+    activeWodCardHtml()
+    +'<div class="card cf-card cross" style="position:relative;padding:24px;text-align:center;border-color:'+(isRest?'rgba(193,84,63,.5)':'var(--border-on)')+'">'
+    +'<div class="grain soft"></div>'
+    +'<div style="position:relative">'
+    +'<div style="font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:2px;color:'+col+';margin-bottom:6px">'+(isRest?'REPOS':'EFFORT')+'</div>'
+    +'<div style="font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:1px;color:var(--txt4);margin-bottom:14px">ROUND '+IV_STATE.round+' / '+IV_STATE.totalRounds+'</div>'
+    +'<div id="cf-disp" style="font-family:var(--font-display);font-weight:800;font-size:88px;letter-spacing:-2px;font-variant-numeric:tabular-nums;line-height:1;color:'+col+'">'+fmtCF(IV_STATE.rem)+'</div>'
+    +'<div style="height:2px;background:var(--border2);margin:18px 0 4px"><div id="cf-bar" style="height:2px;background:'+col+';width:'+(IV_STATE.rem/(isRest?IV_STATE.restDur:IV_STATE.workDur)*100)+'%"></div></div>'
+    +'</div></div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:10px">'
+    +'<button class="btn btn-p" style="margin:0;flex:2" onclick="ivToggle()">'+(IV_STATE.running?'Pause':'Démarrer')+'</button>'
+    +'<button class="btn btn-s" style="margin:0;flex:1" onclick="ivReset()">Reset</button>'
+    +'</div>'
+    +'<button class="btn-ghost" onclick="clearActiveWod()">Quitter le mode intervalles</button>';
+}
+function setCFmt(f){IV_STATE=null;CF_fmt=f;stopCF();CF_dur=(f==='EMOM')?600:(f==='For Time'?1800:f==='Rounds'?900:1200);CF_rem=CF_dur;renderChrono();}
 function adjCF(d){
   if(CF_run)return;
   CF_dur=Math.max(60,Math.min(3600,CF_dur+d));CF_rem=CF_dur;
@@ -2369,20 +2411,103 @@ function normWod(w,section){
   var materiel=w.materiel||(Array.isArray(w.equipement)?w.equipement.join(', '):w.equipement)||'';
   return {id:w.id||(section+'-'+Math.random().toString(36).slice(2,8)),nom:w.nom||'WOD',format:format,materiel:materiel,lieu:w.lieu||'',section:section};
 }
+function fmtMouv(m){
+  var parts=[m.exercice||''];
+  if(m.schema_reps)parts.push(m.schema_reps+' reps');
+  else if(m.reps!==undefined)parts.push(m.reps+' reps');
+  if(m.distance)parts.push(m.distance);
+  var charge=[];
+  if(m.charge_rx)charge.push('RX '+m.charge_rx);
+  if(m.charge_debutant)charge.push('déb. '+m.charge_debutant);
+  var line='<b>'+parts[0]+'</b>'+(parts.length>1?' — '+parts.slice(1).join(', '):'');
+  if(charge.length)line+='<div style="font-size:11px;color:var(--txt4);margin-top:1px">'+charge.join(' · ')+'</div>';
+  return line;
+}
+function wodMeta(raw){
+  var out=[];
+  if(raw.duree_estimee)out.push('Durée estimée : '+raw.duree_estimee);
+  else if(raw.duree)out.push('Durée : '+raw.duree);
+  if(raw.niveau)out.push('Niveau : '+raw.niveau);
+  if(raw.structure)out.push(raw.structure);
+  return out;
+}
+// Formateur universel — gère les 5 schémas présents dans wod_bank.json
+function wodFullDetailHtml(raw){
+  var html='';
+  var meta=wodMeta(raw);
+  if(meta.length)html+='<div style="font-size:12.5px;color:var(--txt3);line-height:1.6;margin-bottom:10px">'+meta.join(' · ')+'</div>';
+
+  // Schéma A — wods_monsieurwod : mouvements[] avec reps/charges
+  if(raw.mouvements&&raw.mouvements.length){
+    html+='<div class="sec" style="margin-top:0">Mouvements</div>';
+    raw.mouvements.forEach(function(m){
+      html+='<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">'+fmtMouv(m)+'</div>';
+    });
+  }
+  // Schéma B — wods_supplementaires : schema_reps par tour
+  if(raw.schema_reps&&typeof raw.schema_reps==='object'){
+    html+='<div class="sec">Détail des tours</div>';
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+    Object.keys(raw.schema_reps).forEach(function(k){
+      html+='<div style="border:1px solid var(--border2);padding:6px 9px;font-size:12px"><span style="color:var(--txt4)">'+k.replace('tour','Tour ')+'</span> — <b>'+raw.schema_reps[k]+'</b></div>';
+    });
+    html+='</div>';
+  }
+  // Schéma C — wods_hybrides : strength{} + metcon{}
+  if(raw.strength){
+    html+='<div class="sec">Force — '+(raw.strength.format||'')+(raw.strength.duree_min?' · '+raw.strength.duree_min+' min':'')+'</div>';
+    (raw.strength.blocs||[]).forEach(function(b){
+      html+='<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">'
+        +(b.minute?'<span style="color:var(--txt4);font-size:11px">Min. '+b.minute+'</span> — ':'')
+        +'<b>'+b.exercice+'</b>'+(b.reps?' — '+b.reps:'')+(b.charge?' ('+b.charge+')':'')+'</div>';
+    });
+  }
+  if(raw.metcon){
+    html+='<div class="sec">Metcon — '+(raw.metcon.format||'')+(raw.metcon.duree_min?' · '+raw.metcon.duree_min+' min':'')+'</div>';
+    if(raw.metcon.description)html+='<div style="font-size:13px;color:var(--txt2);line-height:1.5;margin-bottom:6px">'+raw.metcon.description+'</div>';
+    (raw.metcon.mouvements||[]).forEach(function(m){
+      html+='<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">'+fmtMouv(m)+'</div>';
+    });
+  }
+  // Schéma D — wods_import_chrome : sections[] (Échauffement / Le WOD / Conseils / ...)
+  if(raw.sections&&raw.sections.length){
+    raw.sections.forEach(function(s){
+      if(!s.text)return;
+      html+='<div class="sec">'+(s.title||'')+'</div>'
+        +'<div style="font-size:13px;color:var(--txt2);line-height:1.55;margin-bottom:4px">'+s.text.replace(/^\d+\s/,'')+'</div>';
+    });
+  }
+  // Schéma E — wods_hero / simple : description texte seule
+  if(raw.description&&!raw.mouvements&&!raw.sections){
+    html+='<div style="font-size:13px;color:var(--txt2);line-height:1.55">'+raw.description+'</div>';
+  }
+  if(raw.conseils)html+='<div class="sec">Conseils</div><div style="font-size:12.5px;color:var(--txt3);line-height:1.55">'+raw.conseils+'</div>';
+  if(raw.adaptations)html+='<div class="sec">Adaptations</div><div style="font-size:12.5px;color:var(--txt3);line-height:1.55">'+raw.adaptations+'</div>';
+  if(raw.reperes_perf){
+    html+='<div class="sec">Repères de perf</div><div style="font-size:12.5px;color:var(--txt3);line-height:1.7">';
+    Object.keys(raw.reperes_perf).forEach(function(k){html+=k+' : <b style="color:var(--txt2)">'+raw.reperes_perf[k]+'</b><br>';});
+    html+='</div>';
+  }
+  if(!html)html='<div style="font-size:12.5px;color:var(--txt4)">Aucun détail disponible pour ce WOD.</div>';
+  return html;
+}
+// Version courte (pour la carte compacte dans le Chrono actif)
 function wodDescOf(raw){
   if(raw.description)return raw.description;
   if(raw.metcon&&raw.metcon.description)return raw.metcon.description;
+  if(raw.mouvements&&raw.mouvements.length)return raw.mouvements.map(function(m){return m.exercice+(m.reps!==undefined?' '+m.reps:(m.schema_reps?' '+m.schema_reps:''));}).join(' · ');
+  if(raw.structure)return raw.structure;
   if(raw.sections&&raw.sections.length){
     var wodSec=raw.sections.find(function(s){return /wod/i.test(s.title||'');})||raw.sections[1]||raw.sections[0];
-    return wodSec?wodSec.text:'';
+    return wodSec?wodSec.text.replace(/^\d+\s/,''):'';
   }
   if(raw.strength&&raw.strength.blocs)return raw.strength.blocs.map(function(b){return b.exercice+' '+(b.reps||'');}).join(' · ');
   return '';
 }
 function wodDureeMin(raw,format){
-  var src=(raw.duree||raw.dur||'').toString();
-  var m=src.match(/(\d+)/);
-  if(m)return parseInt(m[1]);
+  var src=(raw.duree||raw.dur||raw.duree_estimee||(raw.strength&&raw.strength.duree_min)||(raw.metcon&&raw.metcon.duree_min)||'').toString();
+  var nums=src.match(/\d+/g);
+  if(nums&&nums.length)return parseInt(nums[nums.length-1]);
   if(format==='EMOM')return 12;
   if(format==='AMRAP')return 20;
   return 20;
@@ -2596,26 +2721,44 @@ function openWodBank(mode,pickCb){
 }
 function wbSetFmt(f){WB_FMT=f;renderWodBankList();}
 function wbSearch(v){WB_Q=v;renderWodBankList();}
+// ── WOD PERSONNELS (créés par l'utilisateur, classés par catégorie libre) ──
+function loadUserWods(){try{return JSON.parse(localStorage.getItem('user_wods_v2')||'[]');}catch(e){return [];}}
+function saveUserWods(arr){try{localStorage.setItem('user_wods_v2',JSON.stringify(arr));}catch(e){}}
+function userWodNorm(u){return {id:u.id,nom:u.nom,format:u.categorie.toUpperCase(),materiel:(u.exos||[]).map(function(e){return e.n;}).join(', '),lieu:'',section:'user',isUser:true};}
+function allWodsNorm(){
+  var bank=WODBANK_NORM||[];
+  var user=loadUserWods().map(userWodNorm);
+  return bank.concat(user);
+}
+function wodCategories(){
+  var base=['Tous','EMOM','AMRAP','FOR TIME'];
+  var extra=Array.from(new Set(loadUserWods().map(function(u){return u.categorie.toUpperCase();}))).filter(function(c){return base.indexOf(c)<0;});
+  return base.concat(extra);
+}
 function renderWodBankList(){
-  var list=WODBANK_NORM||[];
+  var list=allWodsNorm();
   var q=norm(WB_Q||'');
   var filtered=list.filter(function(w){
     if(WB_FMT!=='Tous'&&w.format!==WB_FMT)return false;
     if(q&&norm(w.nom).indexOf(q)<0)return false;
     return true;
-  }).slice(0,80);
-  var fmts=['Tous','EMOM','AMRAP','FOR TIME'];
+  }).slice(0,120);
+  var fmts=wodCategories();
   var html='<div class="srch-w"><span class="srch-ic">&#128269;</span><input class="srch-i" placeholder="Rechercher un WOD..." oninput="wbSearch(this.value)"></div>'
-    +'<div class="fbar">'+fmts.map(function(f){return '<button class="fbtn'+(WB_FMT===f?' on':'')+'" onclick="wbSetFmt(\''+f+'\')">'+f+'</button>';}).join('')+'</div>';
-  if(!list.length){
-    html+='<div style="text-align:center;color:var(--txt4);font-size:12px;padding:30px 0">Banque de WOD indisponible hors serveur local (data/wod_bank.json non chargeable).</div>';
+    +'<div class="fbar">'+fmts.map(function(f){return '<button class="fbtn'+(WB_FMT===f?' on':'')+'" onclick="wbSetFmt(\''+f+'\')">'+f+'</button>';}).join('')+'</div>'
+    +'<button class="btn-ghost" style="border-style:dashed;margin-bottom:12px" onclick="openCreateWod()">+ Créer un WOD</button>';
+  if(!WODBANK_NORM&&!loadUserWods().length){
+    html+='<div style="text-align:center;color:var(--txt4);font-size:12px;padding:30px 0">Banque de WOD indisponible hors serveur local (data/wod_bank.json non chargeable). Tu peux quand même créer tes propres WOD.</div>';
   } else if(!filtered.length){
     html+='<div style="text-align:center;color:var(--txt4);font-size:12px;padding:30px 0">Aucun résultat</div>';
   } else {
-    filtered.forEach(function(w,i){
+    filtered.forEach(function(w){
       var idx=list.indexOf(w);
       html+='<div class="wod-card" onclick="wbPick('+idx+')">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
         +'<div class="wbadge" style="color:var(--accent);border-color:var(--accent-b);background:var(--accent-bg)">'+w.format+'</div>'
+        +(w.isUser?'<button onclick="event.stopPropagation();delUserWodV2(\''+w.id+'\')" style="background:none;border:none;color:var(--txt4);font-size:15px;cursor:pointer">&#10005;</button>':'')
+        +'</div>'
         +'<div style="font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--txt);margin-bottom:4px">'+w.nom+'</div>'
         +(w.materiel?'<div style="font-size:12.5px;color:var(--txt4)">'+w.materiel+'</div>':'')
         +'</div>';
@@ -2624,9 +2767,131 @@ function renderWodBankList(){
   document.getElementById('wodbank-c').innerHTML=html;
 }
 function wbPick(idx){
-  var w=(WODBANK_NORM||[])[idx];if(!w)return;
+  var w=allWodsNorm()[idx];if(!w)return;
   if(WB_MODE==='pick'&&WB_PICKCB){WB_PICKCB(w);return;}
-  loadWodIntoChrono(w);
+  openWodDetail(w,'wodbank');
+}
+function delUserWodV2(id){
+  if(!confirm('Supprimer ce WOD ?'))return;
+  saveUserWods(loadUserWods().filter(function(u){return u.id!==id;}));
+  renderWodBankList();toast('WOD supprimé');
+}
+
+// ── DETAIL D'UN WOD (avant lancement) ────────────────────────────────────
+var WD_CUR=null, WD_RETURN='wodbank';
+function openWodDetail(norm,returnTo){
+  WD_RETURN=returnTo||'wodbank';
+  document.getElementById('main-nav').style.display='none';
+  showSc('woddetail');
+  document.getElementById('wd-nom').textContent=norm.nom;
+  document.getElementById('wd-sub').textContent=norm.format+(norm.materiel?' · '+norm.materiel:'');
+  var badgeHtml='<span class="wbadge" style="color:var(--accent);border-color:var(--accent-b);background:var(--accent-bg);margin-bottom:12px">'+norm.format+'</span>';
+  if(norm.section==='user'){
+    var u=loadUserWods().find(function(x){return x.id===norm.id;});
+    WD_CUR={norm:norm,raw:null,userWod:u};
+    document.getElementById('wd-c').innerHTML=badgeHtml+wodUserDetailHtml(u);
+  } else {
+    var raw=(WODBANK_RAW&&WODBANK_RAW[norm.id])||{};
+    WD_CUR={norm:norm,raw:raw,userWod:null};
+    document.getElementById('wd-c').innerHTML=badgeHtml+wodFullDetailHtml(raw);
+  }
+}
+function wodUserDetailHtml(u){
+  if(!u)return '<div style="color:var(--txt4);font-size:12.5px">WOD introuvable.</div>';
+  var html='';
+  if(u.structureType==='rounds'){
+    html+='<div class="card cross" style="position:relative;padding:16px;text-align:center;border-color:var(--accent-b);margin-bottom:14px">'
+      +'<div style="font-family:var(--font-display);font-size:24px;font-weight:800">'+u.rounds+' &times; '+fmtMinSec(u.work)+' effort / '+fmtMinSec(u.rest)+' repos</div></div>';
+  } else {
+    html+='<div class="card cross" style="position:relative;padding:16px;text-align:center;border-color:var(--accent-b);margin-bottom:14px">'
+      +'<div style="font-family:var(--font-display);font-size:24px;font-weight:800">'+u.dur+' min</div></div>';
+  }
+  if(u.exos&&u.exos.length){
+    html+='<div class="sec" style="margin-top:0">Exercices</div>';
+    u.exos.forEach(function(e){html+='<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><b>'+e.n+'</b>'+(e.r?' — '+e.r:'')+'</div>';});
+  }
+  if(u.notes)html+='<div class="sec">Notes</div><div style="font-size:12.5px;color:var(--txt3);line-height:1.55">'+u.notes+'</div>';
+  return html;
+}
+function fmtMinSec(s){var m=Math.floor(s/60),ss=s%60;return ss?(m+'min'+ss):(m+' min');}
+function wodDetailBack(){
+  document.getElementById('main-nav').style.display='flex';
+  if(WD_RETURN==='wodbank'){showSc('wodbank');}
+  else{goNav('wod');}
+}
+function wodDetailLaunch(){
+  if(!WD_CUR)return;
+  if(WD_CUR.userWod&&WD_CUR.userWod.structureType==='rounds')launchIntervalWod(WD_CUR.userWod);
+  else if(WD_CUR.userWod)launchSimpleUserWod(WD_CUR.userWod);
+  else loadWodIntoChrono(WD_CUR.norm);
+}
+
+// ── WOD PERSO — CRÉATION ──────────────────────────────────────────────────
+var CW_STRUCT='rounds';
+function openCreateWod(){
+  document.getElementById('modal-c').innerHTML=
+    '<div class="mtitle">Créer un WOD</div>'
+    +'<div class="lbl" style="margin-top:0">Nom</div><input class="inp" id="cw-nom" placeholder="Ex. Simulation combat" style="margin-bottom:9px">'
+    +'<div class="lbl">Catégorie (onglet)</div><input class="inp" id="cw-cat" placeholder="Ex. Boxe, Cardio, Perso..." style="margin-bottom:9px">'
+    +'<div class="lbl">Structure</div>'
+    +'<div class="chips" style="margin-bottom:9px">'
+    +'<button class="chip on" id="cw-struct-rounds" onclick="cwSetStruct(\'rounds\')">Rounds (travail/repos)</button>'
+    +'<button class="chip" id="cw-struct-duree" onclick="cwSetStruct(\'duree\')">Durée simple</button>'
+    +'</div>'
+    +'<div id="cw-struct-body"></div>'
+    +'<div class="lbl">Exercices (optionnel)</div>'
+    +'<div id="cw-exl"></div>'
+    +'<button class="btn-s" style="margin-bottom:10px" onclick="cwAddEx()">+ Exercice</button>'
+    +'<div class="lbl">Notes</div><textarea class="inp" id="cw-notes" rows="2" style="margin-bottom:14px;resize:vertical"></textarea>'
+    +'<button class="btn btn-p" onclick="cwSave()">Créer ce WOD</button>';
+  CW_STRUCT='rounds';renderCwStructBody();openModal();
+}
+function cwSetStruct(t){
+  CW_STRUCT=t;
+  document.getElementById('cw-struct-rounds').classList.toggle('on',t==='rounds');
+  document.getElementById('cw-struct-duree').classList.toggle('on',t==='duree');
+  renderCwStructBody();
+}
+function renderCwStructBody(){
+  var el=document.getElementById('cw-struct-body');if(!el)return;
+  if(CW_STRUCT==='rounds'){
+    el.innerHTML='<div style="display:flex;gap:7px;margin-bottom:9px">'
+      +'<div style="flex:1"><div class="exb-fl">Rounds</div><input class="exb-inp" type="number" id="cw-rounds" value="3" inputmode="numeric"></div>'
+      +'<div style="flex:1"><div class="exb-fl">Effort (min)</div><input class="exb-inp" type="number" id="cw-work" value="3" step="0.5" inputmode="decimal"></div>'
+      +'<div style="flex:1"><div class="exb-fl">Repos (min)</div><input class="exb-inp" type="number" id="cw-rest" value="1" step="0.5" inputmode="decimal"></div>'
+      +'</div>';
+  } else {
+    el.innerHTML='<div class="lbl" style="margin-top:0">Durée totale (min)</div><input class="inp" id="cw-dur" type="number" value="20" inputmode="numeric" style="margin-bottom:9px">';
+  }
+}
+function cwAddEx(){
+  var el=document.getElementById('cw-exl');if(!el)return;
+  var d=document.createElement('div');
+  d.style.cssText='display:flex;gap:5px;margin-bottom:5px;align-items:center';
+  d.innerHTML='<input class="inp cw-ex-n" placeholder="Exercice..." style="flex:2"><input class="inp cw-ex-r" placeholder="Reps/consigne" style="flex:1"><button onclick="this.parentNode.remove()" style="background:none;border:none;color:var(--txt4);font-size:16px;cursor:pointer;flex-shrink:0">&#10005;</button>';
+  el.appendChild(d);
+}
+function cwSave(){
+  var nom=(document.getElementById('cw-nom')||{value:''}).value.trim();
+  var cat=(document.getElementById('cw-cat')||{value:''}).value.trim();
+  if(!nom){toast('Donne un nom');return;}
+  if(!cat){toast('Donne une catégorie');return;}
+  var exos=[];
+  document.querySelectorAll('#cw-exl > div').forEach(function(row){
+    var n=(row.querySelector('.cw-ex-n')||{value:''}).value.trim();
+    var r=(row.querySelector('.cw-ex-r')||{value:''}).value.trim();
+    if(n)exos.push({n:n,r:r});
+  });
+  var wod={id:'uw_'+Date.now().toString(36),nom:nom,categorie:cat,structureType:CW_STRUCT,exos:exos,notes:(document.getElementById('cw-notes')||{value:''}).value.trim()};
+  if(CW_STRUCT==='rounds'){
+    wod.rounds=Math.max(1,parseInt(document.getElementById('cw-rounds').value)||3);
+    wod.work=Math.max(5,Math.round((parseFloat(document.getElementById('cw-work').value)||3)*60));
+    wod.rest=Math.max(0,Math.round((parseFloat(document.getElementById('cw-rest').value)||1)*60));
+  } else {
+    wod.dur=Math.max(1,parseInt(document.getElementById('cw-dur').value)||20);
+  }
+  var all=loadUserWods();all.push(wod);saveUserWods(all);
+  closeModal();renderWodBankList();toast(nom+' créé !');
 }
 
 // ── LIER UN WOD DE LA BANQUE AU CHRONO ───────────────────────────────────
@@ -2635,6 +2900,7 @@ function loadWodIntoChrono(norm){
   var raw=(WODBANK_RAW&&WODBANK_RAW[norm.id])||{};
   var mins=wodDureeMin(raw,norm.format);
   ACTIVE_WOD={id:norm.id,nom:norm.nom,format:norm.format,materiel:norm.materiel,desc:wodDescOf(raw)};
+  IV_STATE=null;
   stopCF();
   CF_fmt=(norm.format==='EMOM')?'EMOM':(norm.format==='AMRAP')?'AMRAP':'For Time';
   CF_dur=mins*60;CF_rem=CF_dur;
@@ -2642,7 +2908,16 @@ function loadWodIntoChrono(norm){
   goNav('wod');
   toast(norm.nom+' chargé dans le Chrono');
 }
-function clearActiveWod(){ACTIVE_WOD=null;renderChrono();}
+function launchSimpleUserWod(u){
+  ACTIVE_WOD={id:u.id,nom:u.nom,format:u.categorie.toUpperCase(),materiel:(u.exos||[]).map(function(e){return e.n;}).join(', '),desc:(u.exos||[]).map(function(e){return e.n+(e.r?' '+e.r:'');}).join(' · ')};
+  IV_STATE=null;
+  stopCF();
+  CF_fmt='For Time';CF_dur=(u.dur||20)*60;CF_rem=CF_dur;
+  document.getElementById('main-nav').style.display='flex';
+  goNav('wod');
+  toast(u.nom+' chargé dans le Chrono');
+}
+function clearActiveWod(){ACTIVE_WOD=null;ivStop();IV_STATE=null;renderChrono();}
 function completeActiveWod(){
   if(!ACTIVE_WOD)return;
   var ti=todayIdx();
@@ -2654,8 +2929,48 @@ function completeActiveWod(){
   }
   try{localStorage.setItem('wod_done_'+WEEK+'_'+ti,ACTIVE_WOD.nom);}catch(e){}
   toast(ACTIVE_WOD.nom+' marqué comme fait aujourd\'hui');
-  ACTIVE_WOD=null;
+  ACTIVE_WOD=null;ivStop();IV_STATE=null;
   renderChrono();
+}
+
+// ── MOTEUR D'INTERVALLES (rounds travail/repos — WOD perso type Boxe) ───
+var IV_STATE=null;
+function launchIntervalWod(u){
+  ACTIVE_WOD={id:u.id,nom:u.nom,format:u.categorie.toUpperCase(),materiel:(u.exos||[]).map(function(e){return e.n;}).join(', '),desc:(u.exos||[]).map(function(e){return e.n+(e.r?' '+e.r:'');}).join(' · ')};
+  stopCF();
+  IV_STATE={round:1,totalRounds:u.rounds,phase:'work',rem:u.work,workDur:u.work,restDur:u.rest,running:false,interval:null};
+  document.getElementById('main-nav').style.display='flex';
+  goNav('wod');
+  toast(u.nom+' chargé — mode intervalles');
+}
+function ivToggle(){if(!IV_STATE)return;IV_STATE.running?ivPause():ivStart();}
+function ivStart(){
+  if(!IV_STATE)return;
+  IV_STATE.running=true;
+  IV_STATE.interval=setInterval(function(){
+    IV_STATE.rem--;
+    ivUpdateDisplay();
+    if(IV_STATE.rem<=0){
+      if(navigator.vibrate)navigator.vibrate(200);
+      if(IV_STATE.phase==='work'&&IV_STATE.restDur>0){IV_STATE.phase='rest';IV_STATE.rem=IV_STATE.restDur;renderChrono();}
+      else{
+        IV_STATE.round++;
+        if(IV_STATE.round>IV_STATE.totalRounds){
+          ivStop();if(navigator.vibrate)navigator.vibrate([300,100,300,100,300]);toast('WOD terminé !');renderChrono();return;
+        }
+        IV_STATE.phase='work';IV_STATE.rem=IV_STATE.workDur;renderChrono();
+      }
+    }
+  },1000);
+  renderChrono();
+}
+function ivPause(){if(IV_STATE){clearInterval(IV_STATE.interval);IV_STATE.running=false;}renderChrono();}
+function ivStop(){if(IV_STATE){clearInterval(IV_STATE.interval);IV_STATE.running=false;}}
+function ivReset(){if(!IV_STATE)return;ivStop();IV_STATE.round=1;IV_STATE.phase='work';IV_STATE.rem=IV_STATE.workDur;renderChrono();}
+function ivUpdateDisplay(){
+  var d=document.getElementById('cf-disp');if(d)d.textContent=fmtCF(IV_STATE.rem);
+  var bar=document.getElementById('cf-bar');if(bar){var tot=IV_STATE.phase==='work'?IV_STATE.workDur:IV_STATE.restDur;bar.style.width=Math.max(0,IV_STATE.rem/tot*100)+'%';}
+  var fab=document.getElementById('tfab');if(fab&&IV_STATE.running)fab.textContent=fmtCF(IV_STATE.rem);
 }
 
 // ── CONSTRUCTEUR DE PROGRAMME (split) ────────────────────────────────────
