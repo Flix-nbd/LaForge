@@ -1788,10 +1788,10 @@ function renderProfilCard(){
       +'</div>'
       +'<div class="stat-row"><span class="stat-k">Objectifs</span><span class="stat-v" style="text-align:right;max-width:60%">'+objL+'</span></div>'
       +'<div class="stat-row"><span class="stat-k">Lieux</span><span class="stat-v">'+lieuxL+'</span></div>'
-      +'<button class="btn-s btn-sm" style="margin-top:10px" onclick="showSc(\'profil\');renderProfilScreen()">Modifier</button>'
+      +'<button class="btn-s btn-sm" style="margin-top:10px" onclick="openProfilFromSet()">Modifier</button>'
     ):(
       '<div class="csub" style="margin-bottom:10px">Profil non renseigné.</div>'
-      +'<button class="btn-s btn-sm" onclick="showSc(\'profil\');renderProfilScreen()">Renseigner mon profil</button>'
+      +'<button class="btn-s btn-sm" onclick="openProfilFromSet()">Renseigner mon profil</button>'
     ))
     +'</div></div><div class="sdiv"></div>'
     +'<div class="set-s"><div class="set-t">Programmes · Exercices</div>'
@@ -2214,7 +2214,7 @@ function updT(){
 // ── DONNÉES ÉTENDUES (chargement best-effort, fallback silencieux sur les données déjà en dur) ──
 var EX_FULL=null, WODBANK_NORM=null;
 function loadExFull(){
-  return fetch('../data/exercices_musculation.json').then(function(r){return r.json();}).then(function(arr){
+  return fetch('data/exercices_musculation.json').then(function(r){return r.json();}).then(function(arr){
     EX_FULL=arr.map(function(e){return {n:e.nom,m:e.groupe_musculaire};});
   }).catch(function(){EX_FULL=null;});
 }
@@ -2228,7 +2228,7 @@ function normWod(w,section){
   return {id:w.id||(section+'-'+Math.random().toString(36).slice(2,8)),nom:w.nom||'WOD',format:format,materiel:materiel,lieu:w.lieu||'',section:section};
 }
 function loadWodBank(){
-  return fetch('../data/wod_bank.json').then(function(r){return r.json();}).then(function(db){
+  return fetch('data/wod_bank.json').then(function(r){return r.json();}).then(function(db){
     var all=[];
     ['wods_hybrides','wods_monsieurwod','wods_supplementaires','wods_hero','wods_import_chrome'].forEach(function(sec){
       (db[sec]||[]).forEach(function(w){all.push(normWod(w,sec));});
@@ -2257,7 +2257,7 @@ function renderAccroche(){
     +'<div style="position:absolute;inset:0;background:radial-gradient(120% 70% at 50% 8%, rgba(222,138,84,.13), transparent 60%)"></div>'
     +'<div style="position:relative;min-height:100dvh;display:flex;flex-direction:column;padding:calc(var(--st) + 24px) 20px calc(24px + var(--sb))">'
     +'<div style="flex:1;display:flex;align-items:center;justify-content:center">'
-    +'<img src="../assets/logo-laforge-alpha.png" alt="LaForge" style="max-width:318px;width:100%" onerror="this.style.display=\'none\'">'
+    +'<img src="assets/logo-laforge-alpha.png" alt="LaForge" style="max-width:318px;width:100%" onerror="this.style.display=\'none\'">'
     +'</div>'
     +'<div style="text-align:center">'
     +'<div style="font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing:.5px;text-transform:uppercase;color:var(--txt);margin-bottom:8px">Ton profil</div>'
@@ -2266,7 +2266,8 @@ function renderAccroche(){
     +'<button class="btn-ghost" onclick="skipProfil()">Plus tard — voir les réglages</button>'
     +'</div></div>';
 }
-function startProfilOnb(){showSc('profil');renderProfilScreen();}
+function startProfilOnb(){document.getElementById('main-nav').style.display='none';showSc('profil');renderProfilScreen();}
+function openProfilFromSet(){document.getElementById('main-nav').style.display='none';showSc('profil');renderProfilScreen();}
 function skipProfil(){
   saveProfilLS();
   loadL();
@@ -2356,6 +2357,7 @@ var CALC_RETURN='stats';
 function openCalc(exName){
   CALC_EX=exName||'Général';CALC_W=60;CALC_R=5;CALC_LAST=null;
   CALC_RETURN=(CURWK&&document.getElementById('sc-wk').classList.contains('active'))?'wk':'stats';
+  if(CALC_RETURN==='stats')document.getElementById('main-nav').style.display='none';
   document.getElementById('calc-exname').textContent=CALC_EX;
   showSc('calc');renderCalc();
 }
@@ -2420,6 +2422,7 @@ function setCFDur(min){if(CF_run)return;CF_dur=min*60;CF_rem=CF_dur;renderChrono
 var WB_FMT='Tous', WB_Q='', WB_MODE='browse', WB_PICKCB=null;
 function openWodBank(mode,pickCb){
   WB_MODE=mode||'browse';WB_PICKCB=pickCb||null;WB_FMT='Tous';WB_Q='';
+  document.getElementById('main-nav').style.display='none';
   showSc('wodbank');
   if(WODBANK_NORM){renderWodBankList();}
   else{
@@ -2472,6 +2475,7 @@ var SPLITS={
 };
 function openCtor(){
   CTOR_STATE={nom:'',semaines:8,split:null,seances:[]};
+  document.getElementById('main-nav').style.display='none';
   showSc('ctor1');renderCtor1();
 }
 function renderCtor1(){
