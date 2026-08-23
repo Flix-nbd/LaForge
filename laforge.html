@@ -1445,7 +1445,7 @@ function renderHome(){
     var extraSeanceDone=extraDoneFor(WEEK,i);
     var status=(e&&e.type==='seance'&&localStorage.getItem('done_'+e.seance_id+'_'+WEEK)==='1')?'done':(wodDone||lightDone||extraSeanceDone)?'done':(e&&e.type!=='repos')?'planned':'rest';
     var dotColor=status==='done'?'var(--accent)':status==='planned'?'rgba(240,235,225,.35)':'transparent';
-    wkHtml+='<div style="flex:1;text-align:center">'
+    wkHtml+='<div style="flex:1;text-align:center;cursor:pointer" onclick="openDayDetailHome('+i+')">'
       +'<div style="font-family:var(--font-cond);font-size:10.5px;font-weight:700;color:var(--txt4);margin-bottom:4px;text-transform:uppercase">'+DOW[i]+'</div>'
       +'<div style="padding:8px 2px;font-size:9px;font-weight:700;border:1px solid '+(i===ti?'var(--accent-b)':'var(--border2)')+';background:'+(i===ti?'var(--card3)':'var(--card2)')+';color:'+(i===ti?'var(--txt)':'var(--txt3)')+'">'+wpLabel(e,i)+'</div>'
       +'<div style="width:5px;height:5px;border-radius:50%;background:'+dotColor+';margin:4px auto 0"></div>'
@@ -3015,7 +3015,7 @@ function launchSimpleUserWod(u){
 function clearActiveWod(){ACTIVE_WOD=null;ivStop();IV_STATE=null;renderChrono();}
 function completeActiveWod(){
   if(!ACTIVE_WOD)return;
-  var ti=todayIdx();
+  var ti=targetDay();
   loadWP();
   var cur=WEEKPLAN[ti];
   if(!cur||cur.type==='repos'){
@@ -3023,8 +3023,8 @@ function completeActiveWod(){
     saveWP2();
   }
   try{localStorage.setItem('wod_done_'+WEEK+'_'+ti,ACTIVE_WOD.nom);}catch(e){}
-  toast(ACTIVE_WOD.nom+' marqué comme fait aujourd\'hui');
-  ACTIVE_WOD=null;ivStop();IV_STATE=null;
+  toast(ACTIVE_WOD.nom+' marqué comme fait — '+DOWFULL[ti]);
+  ACTIVE_WOD=null;ivStop();IV_STATE=null;ADD_TARGET_DAY=null;
   renderChrono();
 }
 
@@ -3451,14 +3451,14 @@ function ensureAdhocProg(){
   });
 }
 function openAdhocSeance(){
-  var dayIdx=todayIdx();
-  ADHOC_STATE={dayIdx:dayIdx,nom:'Séance du jour',zone:'hyper',exercices:[],finBloc:null,finBlocOn:false};
+  var dayIdx=targetDay();
+  ADHOC_STATE={dayIdx:dayIdx,nom:'Séance du '+DOWFULL[dayIdx],zone:'hyper',exercices:[],finBloc:null,finBlocOn:false};
   document.getElementById('main-nav').style.display='none';
   showSc('adhoc');renderAdhoc();
 }
 function renderAdhoc(){
   var s=ADHOC_STATE;if(!s)return;
-  document.getElementById('adhoc-sub').textContent='Aujourd\'hui — '+DOWFULL[s.dayIdx];
+  document.getElementById('adhoc-sub').textContent=DOWFULL[s.dayIdx].charAt(0).toUpperCase()+DOWFULL[s.dayIdx].slice(1);
   var zones=[{k:'force',t:'Force'},{k:'hyper',t:'Hypertrophie'},{k:'endu',t:'Endurance'}];
   var html='<div class="lbl" style="margin-top:0">Nom de la séance</div>'
     +'<input class="inp" value="'+s.nom+'" oninput="ADHOC_STATE.nom=this.value" style="margin-bottom:16px">'
@@ -3560,7 +3560,7 @@ function adhocSave(){
       });
     });
   }).then(function(seanceId){
-    ADHOC_STATE=null;
+    ADHOC_STATE=null;ADD_TARGET_DAY=null;
     document.getElementById('main-nav').style.display='flex';
     toast('Séance ajoutée — c\'est parti !');
     openWk(seanceId);
@@ -3582,7 +3582,10 @@ function extraDoneFor(week,dayIdx){
 }
 
 // ── AJOUTER UNE SEANCE — sélecteur de type (Muscu / WOD / Ergo / Autre) ──
-function openAddType(){
+var ADD_TARGET_DAY=null;
+function targetDay(){return ADD_TARGET_DAY!==null?ADD_TARGET_DAY:todayIdx();}
+function openAddType(dayIdx){
+  ADD_TARGET_DAY=(dayIdx!==undefined)?dayIdx:null;
   document.getElementById('main-nav').style.display='none';
   showSc('addtype');
   var types=[
@@ -3591,9 +3594,10 @@ function openAddType(){
     {k:'ergo',t:'Ergo',s:'Rameur, vélo, ski — durée et intensité'},
     {k:'autre',t:'Autre',s:'Course, natation, sport co...'}
   ];
-  document.getElementById('addtype-c').innerHTML=types.map(function(ty){
-    return '<div class="choice" onclick="pickAddType(\''+ty.k+'\')"><div class="ct">'+ty.t+'</div><div class="cs">'+ty.s+'</div></div>';
-  }).join('');
+  document.getElementById('addtype-c').innerHTML='<div class="csub" style="margin-bottom:14px">'+DOWFULL[targetDay()]+'</div>'
+    +types.map(function(ty){
+      return '<div class="choice" onclick="pickAddType(\''+ty.k+'\')"><div class="ct">'+ty.t+'</div><div class="cs">'+ty.s+'</div></div>';
+    }).join('');
 }
 function pickAddType(k){
   if(k==='muscu')openAdhocSeance();
@@ -3645,7 +3649,7 @@ function alSetInt(k){
   document.querySelectorAll('#al-int-cards .choice').forEach(function(c){c.classList.toggle('on',c.getAttribute('data-i')===k);});
 }
 function addLightSave(){
-  var ti=todayIdx();
+  var ti=targetDay();
   var label;
   if(ADDLIGHT_TYPE==='ergo'){
     var mlbl=AL_STATE.machine==='ram'?'Rameur':AL_STATE.machine==='velo'?'Vélo':'Skierg';
@@ -3657,9 +3661,39 @@ function addLightSave(){
     label=nom+(dur?' · '+dur+' min':'');
   }
   try{localStorage.setItem('extra_light_'+WEEK+'_'+ti,label);}catch(e){}
-  toast('Ajouté à aujourd\'hui !');
+  toast('Ajouté à '+DOWFULL[ti]+' !');
+  ADD_TARGET_DAY=null;
   document.getElementById('main-nav').style.display='flex';
   goNav('home');
+}
+
+// ── DETAIL D'UN JOUR (depuis Accueil — voir / démarrer / ajouter) ────────
+function openDayDetailHome(dayIdx){
+  var e=WEEKPLAN[dayIdx];
+  var acts=getTodayActivities(dayIdx);
+  var lbl=DOWFULL[dayIdx];
+  var html='<div class="mtitle">'+lbl.charAt(0).toUpperCase()+lbl.slice(1)+'</div>';
+  if(acts.length){
+    acts.forEach(function(a){
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">'
+        +'<div style="width:20px;height:20px;flex-shrink:0;border-radius:50%;background:var(--accent);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:10px">&#10003;</div>'
+        +'<div style="flex:1;font-size:13px;min-width:0">'+a.nom+'</div>'
+        +'<span style="font-family:var(--font-cond);font-size:9px;color:var(--txt4);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0">'+a.type+'</span></div>';
+    });
+  } else {
+    html+='<div style="color:var(--txt4);font-size:12.5px;padding:6px 0 4px">Rien d\'enregistré ce jour.</div>';
+  }
+  if(e&&e.type==='seance'){
+    var s=SEANCES.find(function(x){return x.id===e.seance_id;});
+    if(s&&localStorage.getItem('done_'+s.id+'_'+WEEK)!=='1'){
+      html+='<button class="btn-s" style="margin-top:12px" onclick="closeModal();openWk(\''+s.id+'\')">Démarrer '+s.nom+'</button>';
+    }
+  } else if(e&&e.type==='wod'&&!localStorage.getItem('wod_done_'+WEEK+'_'+dayIdx)){
+    html+='<button class="btn-s" style="margin-top:12px" onclick="closeModal();goNav(\'wod\')">Aller au Chrono</button>';
+  }
+  html+='<button class="btn-ghost" style="border-style:dashed;margin-top:10px" onclick="closeModal();openAddType('+dayIdx+')">+ Ajouter une séance à ce jour</button>';
+  document.getElementById('modal-c').innerHTML=html;
+  openModal();
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
