@@ -488,7 +488,7 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 <div class="screen" id="sc-finbloc">
   <div class="hdr">
     <div class="hdr-row">
-      <button class="bk-btn" onclick="showSc('ctorcfg');renderCtorCfg()">&#8592;</button>
+      <button class="bk-btn" onclick="fbBack()">&#8592;</button>
       <div style="flex:1;text-align:center">
         <div class="htitle" style="font-size:16px">Fin de séance</div>
         <div class="hsub">Trois formats au choix</div>
@@ -499,6 +499,11 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
   </div>
   <div class="scroll" id="fb-c" style="padding-bottom:110px"></div>
   <div class="vbar"><button class="btn btn-p" onclick="fbAdd()">Ajouter à la séance</button></div>
+</div>
+
+<!-- PROGRAMME TERMINE -->
+<div class="screen" id="sc-progdone">
+  <div class="scroll" id="progdone-c" style="padding:0;position:relative"></div>
 </div>
 
 <!-- BANQUE DE WOD (lecture depuis Chrono) -->
@@ -1245,11 +1250,13 @@ function finishOnb(){
 }
 
 // ── HOME ──────────────────────────────────────────────────────────────────────
-function wpLabel(entry){
-  if(!entry||entry.type==='repos')return '\u2013';
+function wpLabel(entry,dayIdx){
+  var wodDone=dayIdx!==undefined&&localStorage.getItem('wod_done_'+WEEK+'_'+dayIdx);
+  if(!entry||entry.type==='repos')return wodDone?'WOD':'\u2013';
   if(entry.type==='wod')return 'WOD';
   var s=SEANCES.find(function(x){return x.id===entry.seance_id;});
-  return s?s.nom.substring(0,3).toUpperCase():'\u2013';
+  var lbl=s?s.nom.substring(0,3).toUpperCase():'\u2013';
+  return wodDone?lbl+'+':lbl;
 }
 function weekStats(){
   var now=new Date();
@@ -1276,7 +1283,7 @@ function weekStats(){
   });
   WEEKPLAN.forEach(function(e,i){
     if(e.type==='seance'&&localStorage.getItem('done_'+e.seance_id+'_'+WEEK)==='1')nbFait++;
-    else if(e.type==='wod'&&localStorage.getItem('wod_done_'+WEEK+'_'+i))nbFait++;
+    if(localStorage.getItem('wod_done_'+WEEK+'_'+i))nbFait++;
   });
   return {nbFait:nbFait,nbSeries:nbSeries,volume:Math.round(volume)};
 }
@@ -1342,12 +1349,12 @@ function renderHome(){
   }
   var wkHtml='';
   WEEKPLAN.forEach(function(e,i){
-    var wodDone=e&&e.type==='wod'&&localStorage.getItem('wod_done_'+WEEK+'_'+i);
+    var wodDone=localStorage.getItem('wod_done_'+WEEK+'_'+i);
     var status=(e&&e.type==='seance'&&localStorage.getItem('done_'+e.seance_id+'_'+WEEK)==='1')?'done':wodDone?'done':(e&&e.type!=='repos')?'planned':'rest';
     var dotColor=status==='done'?'var(--accent)':status==='planned'?'rgba(240,235,225,.35)':'transparent';
     wkHtml+='<div style="flex:1;text-align:center">'
       +'<div style="font-family:var(--font-cond);font-size:10.5px;font-weight:700;color:var(--txt4);margin-bottom:4px;text-transform:uppercase">'+DOW[i]+'</div>'
-      +'<div style="padding:8px 2px;font-size:9px;font-weight:700;border:1px solid '+(i===ti?'var(--accent-b)':'var(--border2)')+';background:'+(i===ti?'var(--card3)':'var(--card2)')+';color:'+(i===ti?'var(--txt)':'var(--txt3)')+'">'+wpLabel(e)+'</div>'
+      +'<div style="padding:8px 2px;font-size:9px;font-weight:700;border:1px solid '+(i===ti?'var(--accent-b)':'var(--border2)')+';background:'+(i===ti?'var(--card3)':'var(--card2)')+';color:'+(i===ti?'var(--txt)':'var(--txt3)')+'">'+wpLabel(e,i)+'</div>'
       +'<div style="width:5px;height:5px;border-radius:50%;background:'+dotColor+';margin:4px auto 0"></div>'
       +'</div>';
   });
@@ -1369,7 +1376,7 @@ function renderProgBar(){
 }
 
 function switchProg(id){ACTPROG=id;saveL();renderHome();if(document.getElementById('sc-prog').classList.contains('active'))renderProgTab();}
-function chWeek(d){WEEK=Math.max(1,Math.min(20,WEEK+d));document.getElementById('wkn').textContent=WEEK;saveL();renderHome();}
+function chWeek(d){var prevWeek=WEEK;WEEK=Math.max(1,Math.min(20,WEEK+d));document.getElementById('wkn').textContent=WEEK;saveL();if(d>0&&checkProgCompletion(prevWeek,WEEK))return;renderHome();}
 
 var DOWFULL=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
 function renderProgTab(){
@@ -1382,15 +1389,17 @@ function renderProgTab(){
   }
   var ss=SEANCES.filter(function(s){return s.prog_id===prog.id;});
   WEEKPLAN.forEach(function(e,i){
-    var label='Repos',badgeCls='var(--txt3)';
-    if(e.type==='wod'){label='WOD Day';badgeCls='var(--green)';}
+    var label='Repos',badgeCls='var(--txt4)';
+    var wodDone=localStorage.getItem('wod_done_'+WEEK+'_'+i);
+    if(e.type==='wod'){label='WOD Day';badgeCls='var(--accent)';}
     else if(e.type==='seance'){
       var s=ss.find(function(x){return x.id===e.seance_id;});
-      if(s){label=s.nom;badgeCls='var(--green)';}
-    }
+      if(s){label=s.nom;badgeCls='var(--accent)';}
+    } else if(wodDone){label='Repos';badgeCls='var(--txt4)';}
+    var extra=wodDone&&e.type!=='wod'?' <span style="color:var(--accent);font-size:9px;font-weight:700">+WOD</span>':'';
     pHtml+='<div style="display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid var(--border);cursor:pointer" onclick="openDayPicker('+i+')">'
-      +'<div style="width:20px;font-size:11px;font-weight:700;color:var(--txt3);text-align:center">'+DOW[i]+'</div>'
-      +'<div style="flex:1;font-family:var(--font-heading);font-weight:600;font-size:15px">'+label+'</div>'
+      +'<div style="width:20px;font-size:11px;font-weight:700;color:var(--txt4);text-align:center">'+DOW[i]+'</div>'
+      +'<div style="flex:1;font-family:var(--font-display);font-weight:700;font-size:15px">'+label+extra+'</div>'
       +'<span class="tag" style="border:1px solid '+badgeCls+';color:'+badgeCls+';font-size:10px;padding:3px 9px">'+label+'</span>'
       +'</div>';
   });
@@ -1484,9 +1493,32 @@ function renderWk(){
       +'<div id="ed-'+i+'">'+renderExpandBody(i,ex,wp)+'</div>'
       +'</div></div>';
   });
+  html+='<div class="sec">Fin de séance</div>'
+    +'<div class="card cross" style="position:relative;padding:14px">'
+    +(s.finBloc?(
+      '<div style="font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:4px">'+finBlocSummary(s.finBloc)+'</div>'
+      +'<div style="display:flex;gap:8px;margin-top:8px">'
+      +'<button class="btn-s btn-sm" style="flex:1" onclick="openFinBlocForSeance()">Configurer</button>'
+      +(s.finBloc.type==='A'&&s.finBloc.wodId?'<button class="btn-s btn-sm" style="flex:1" onclick="launchSeanceWod()">Lancer</button>':'')
+      +'</div>'
+    ):(
+      '<div style="font-size:12.5px;color:var(--txt4);margin-bottom:8px">Aucun bloc de fin de séance pour l\'instant.</div>'
+      +'<button class="btn-ghost" style="border-style:dashed" onclick="openFinBlocForSeance()">+ Ajouter un bloc de fin de séance</button>'
+    ))
+    +'</div>';
   html+='<div id="mob-c" style="margin-top:16px"></div>';
   document.getElementById('wk-c').innerHTML=html;
   renderMobSection();
+}
+function launchSeanceWod(){
+  var s=CURWK;if(!s||!s.finBloc||s.finBloc.type!=='A')return;
+  var wodId=s.finBloc.wodId;
+  function go(){
+    var raw=(WODBANK_RAW&&WODBANK_RAW[wodId])||{};
+    var norm=(WODBANK_NORM||[]).find(function(w){return w.id===wodId;})||{id:wodId,nom:s.finBloc.wodNom,format:'FOR TIME',materiel:''};
+    loadWodIntoChrono(norm);
+  }
+  if(WODBANK_NORM)go();else loadWodBank().then(go);
 }
 
 function lastDetailFor(exId){
@@ -1702,7 +1734,9 @@ function autoVal(){
   toast(s.nom+' validee ! Seance suivante...');
   setTimeout(function(){
     var next=(idx+1)%ss.length;
+    var prevWeek=WEEK;
     if(next===0){WEEK=Math.min(20,WEEK+1);saveL();}
+    if(checkProgCompletion(prevWeek,WEEK))return;
     openWk(ss[next].id);
   },1200);
 }
@@ -1715,8 +1749,10 @@ function valSess(){
     var idx=ss.findIndex(function(x){return x.id===s.id;});
     var next=(idx+1)%ss.length;
     localStorage.setItem('li_'+ACTPROG,idx);
+    var prevWeek=WEEK;
     if(next===0){WEEK=Math.min(20,WEEK+1);saveL();toast('Cycle complet ! Semaine '+WEEK);}
     else toast('Seance suivante : '+ss[next].nom);
+    if(checkProgCompletion(prevWeek,WEEK))return;
     openWk(ss[next].id);
     return;
   }
@@ -2610,8 +2646,12 @@ function clearActiveWod(){ACTIVE_WOD=null;renderChrono();}
 function completeActiveWod(){
   if(!ACTIVE_WOD)return;
   var ti=todayIdx();
-  WEEKPLAN[ti]={type:'wod'};
-  saveWP2();
+  loadWP();
+  var cur=WEEKPLAN[ti];
+  if(!cur||cur.type==='repos'){
+    WEEKPLAN[ti]={type:'wod'};
+    saveWP2();
+  }
   try{localStorage.setItem('wod_done_'+WEEK+'_'+ti,ACTIVE_WOD.nom);}catch(e){}
   toast(ACTIVE_WOD.nom+' marqué comme fait aujourd\'hui');
   ACTIVE_WOD=null;
@@ -2793,8 +2833,29 @@ function ctorcfgSave(){
 }
 
 // ── FIN DE SÉANCE (3 formats) ────────────────────────────────────────────
-var FB_TAB='A', FB_STATE={minutes:20,intensite:'calme',rounds:5,effort:3,repos:1,machine:'ram',wodId:null,wodNom:null};
-function openFinBloc(){FB_TAB='A';showSc('finbloc');renderFinBloc();}
+var FB_TAB='A', FB_TARGET=null, FB_STATE={minutes:20,intensite:'calme',rounds:5,effort:3,repos:1,machine:'ram',wodId:null,wodNom:null};
+function openFinBloc(){ // contexte constructeur (rétro-compat)
+  openFinBlocFor({kind:'ctor',idx:CTORCFG_IDX});
+}
+function openFinBlocForSeance(){ // contexte séance en cours réelle
+  if(!CURWK)return;
+  openFinBlocFor({kind:'live',seance:CURWK});
+}
+function openFinBlocFor(target){
+  FB_TARGET=target;FB_TAB='A';
+  var existing=(target.kind==='ctor')?CTOR_STATE.seances[target.idx].finBloc:target.seance.finBloc;
+  if(existing){
+    FB_STATE=Object.assign({minutes:20,intensite:'calme',rounds:5,effort:3,repos:1,machine:'ram',wodId:null,wodNom:null},existing);
+    FB_TAB=existing.type||'A';
+  } else {
+    FB_STATE={minutes:20,intensite:'calme',rounds:5,effort:3,repos:1,machine:'ram',wodId:null,wodNom:null};
+  }
+  showSc('finbloc');renderFinBloc();
+}
+function fbBack(){
+  if(FB_TARGET&&FB_TARGET.kind==='live'){showSc('wk');renderWk();}
+  else{showSc('ctorcfg');renderCtorCfg();}
+}
 function fbSetTab(t){FB_TAB=t;renderFinBloc();}
 function renderFinBloc(){
   var tabs=[{k:'A',t:'WOD banque'},{k:'B',t:'Ergo temps'},{k:'C',t:'Rounds ergo'}];
@@ -2865,7 +2926,7 @@ function finBlocSummary(fb){
   return '';
 }
 function fbAdd(){
-  var s=CTOR_STATE.seances[CTORCFG_IDX];if(!s)return;
+  if(!FB_TARGET)return;
   var fb;
   if(FB_TAB==='A'){
     if(!FB_STATE.wodId){toast('Choisis un WOD');return;}
@@ -2875,9 +2936,74 @@ function fbAdd(){
   } else {
     fb={type:'C',rounds:FB_STATE.rounds,effort:FB_STATE.effort,repos:FB_STATE.repos,machine:FB_STATE.machine};
   }
-  s.finBloc=fb;s.finBlocOn=true;
   toast('Bloc ajouté');
-  showSc('ctorcfg');renderCtorCfg();
+  if(FB_TARGET.kind==='ctor'){
+    var s=CTOR_STATE.seances[FB_TARGET.idx];if(!s)return;
+    s.finBloc=fb;s.finBlocOn=true;
+    showSc('ctorcfg');renderCtorCfg();
+  } else {
+    var live=FB_TARGET.seance;if(!live)return;
+    live.finBloc=fb;
+    sbPt('seances',{finBloc:fb},'id=eq.'+live.id).catch(function(){});
+    showSc('wk');renderWk();
+  }
+}
+
+// ── FIN DE PROGRAMME (célébration) ───────────────────────────────────────
+function checkProgCompletion(prevWeek,newWeek){
+  var prog=PROGS.find(function(p){return p.id===ACTPROG;});
+  if(!prog||!prog.semaines)return false;
+  if(newWeek>prog.semaines&&prevWeek<=prog.semaines){
+    showProgDone(prog);
+    return true;
+  }
+  return false;
+}
+function showProgDone(prog){
+  var ss=SEANCES.filter(function(s){return s.prog_id===prog.id;});
+  var totalDone=0,totalSeries=0,totalVolume=0;
+  for(var w=1;w<=prog.semaines;w++){
+    ss.forEach(function(s){
+      if(localStorage.getItem('done_'+s.id+'_'+w)==='1')totalDone++;
+    });
+  }
+  Object.keys(PERF).forEach(function(exId){
+    (PERF[exId]||[]).forEach(function(p){
+      if(p.detail&&p.detail.length){
+        p.detail.forEach(function(row){totalSeries++;totalVolume+=(parseFloat(row.poids)||0)*(parseFloat(row.reps)||0);});
+      } else {
+        var setsN=parseInt(p.sets)||1;
+        totalSeries+=setsN;totalVolume+=(parseFloat(p.poids)||0)*(parseFloat(p.reps)||0)*setsN;
+      }
+    });
+  });
+  document.getElementById('main-nav').style.display='none';
+  showSc('progdone');
+  document.getElementById('progdone-c').innerHTML=
+    '<div class="grain"></div>'
+    +'<div style="position:absolute;inset:0;background:radial-gradient(120% 70% at 50% 8%, rgba(222,138,84,.16), transparent 60%)"></div>'
+    +'<div style="position:relative;min-height:100dvh;display:flex;flex-direction:column;padding:calc(var(--st) + 24px) 20px calc(24px + var(--sb))">'
+    +'<div style="flex:1;display:flex;flex-direction:column;justify-content:center">'
+    +'<div style="font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:2px;color:var(--accent);margin-bottom:10px">PROGRAMME TERMINÉ</div>'
+    +'<div style="font-family:var(--font-display);font-size:32px;font-weight:800;text-transform:uppercase;line-height:1.05;margin-bottom:8px">Bravo, '+prog.nom+' bouclé !</div>'
+    +'<div style="font-size:14px;color:var(--txt3);line-height:1.5;margin-bottom:24px">'+prog.semaines+' semaines complétées. Voici ton récap.</div>'
+    +'<div class="gridcards" style="margin-bottom:24px">'
+    +'<div class="stat-card" style="text-align:center;padding:16px 8px"><div style="font-family:var(--font-display);font-weight:800;font-size:28px">'+totalDone+'</div><div style="font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:1px;color:var(--txt4);margin-top:3px">SÉANCES</div></div>'
+    +'<div class="stat-card" style="text-align:center;padding:16px 8px"><div style="font-family:var(--font-display);font-weight:800;font-size:28px">'+totalSeries+'</div><div style="font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:1px;color:var(--txt4);margin-top:3px">SÉRIES</div></div>'
+    +'</div>'
+    +'<div class="stat-card" style="text-align:center;padding:16px 8px;margin-bottom:0"><div style="font-family:var(--font-display);font-weight:800;font-size:28px">'+Math.round(totalVolume)+'</div><div style="font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:1px;color:var(--txt4);margin-top:3px">VOLUME KG TOTAL</div></div>'
+    +'</div>'
+    +'<div>'
+    +'<button class="btn btn-p" style="margin-bottom:8px" onclick="progDoneContinue()">Continuer ce programme</button>'
+    +'<button class="btn-ghost" onclick="progDoneNew()">Commencer un nouveau programme</button>'
+    +'</div></div>';
+}
+function progDoneContinue(){
+  document.getElementById('main-nav').style.display='flex';
+  goNav('home');
+}
+function progDoneNew(){
+  openCtor();
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
