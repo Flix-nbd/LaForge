@@ -1268,8 +1268,9 @@ function weekStats(){
       }
     });
   });
-  WEEKPLAN.forEach(function(e){
+  WEEKPLAN.forEach(function(e,i){
     if(e.type==='seance'&&localStorage.getItem('done_'+e.seance_id+'_'+WEEK)==='1')nbFait++;
+    else if(e.type==='wod'&&localStorage.getItem('wod_done_'+WEEK+'_'+i))nbFait++;
   });
   return {nbFait:nbFait,nbSeries:nbSeries,volume:Math.round(volume)};
 }
@@ -1335,11 +1336,12 @@ function renderHome(){
   }
   var wkHtml='';
   WEEKPLAN.forEach(function(e,i){
-    var status=(e&&e.type==='seance'&&localStorage.getItem('done_'+e.seance_id+'_'+WEEK)==='1')?'done':(e&&e.type!=='repos')?'planned':'rest';
+    var wodDone=e&&e.type==='wod'&&localStorage.getItem('wod_done_'+WEEK+'_'+i);
+    var status=(e&&e.type==='seance'&&localStorage.getItem('done_'+e.seance_id+'_'+WEEK)==='1')?'done':wodDone?'done':(e&&e.type!=='repos')?'planned':'rest';
     var dotColor=status==='done'?'var(--accent)':status==='planned'?'rgba(240,235,225,.35)':'transparent';
     wkHtml+='<div style="flex:1;text-align:center">'
       +'<div style="font-family:var(--font-cond);font-size:10.5px;font-weight:700;color:var(--txt4);margin-bottom:4px;text-transform:uppercase">'+DOW[i]+'</div>'
-      +'<div style="padding:8px 2px;font-size:9px;font-weight:700;border:1px solid '+(i===ti?'rgba(240,235,225,.45)':'var(--border2)')+';background:'+(i===ti?'var(--card-on)':'var(--card2)')+';color:'+(i===ti?'var(--txt)':'var(--txt3)')+'">'+wpLabel(e)+'</div>'
+      +'<div style="padding:8px 2px;font-size:9px;font-weight:700;border:1px solid '+(i===ti?'var(--accent-b)':'var(--border2)')+';background:'+(i===ti?'var(--card3)':'var(--card2)')+';color:'+(i===ti?'var(--txt)':'var(--txt3)')+'">'+wpLabel(e)+'</div>'
       +'<div style="width:5px;height:5px;border-radius:50%;background:'+dotColor+';margin:4px auto 0"></div>'
       +'</div>';
   });
@@ -2230,8 +2232,22 @@ function renderChrono(){
   var presetsHtml=CF_DUR_PRESETS.map(function(m){
     return '<button class="chip'+(Math.round(CF_dur/60)===m?' on':'')+'" onclick="setCFDur('+m+')">'+m+' min</button>';
   }).join('');
+  var wodInfoHtml='';
+  if(ACTIVE_WOD){
+    wodInfoHtml='<div class="card" style="padding:14px;border-color:var(--accent-b);margin-bottom:12px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
+      +'<span class="wbadge" style="color:var(--accent);border-color:var(--accent-b);background:var(--accent-bg)">'+ACTIVE_WOD.format+'</span>'
+      +'<button onclick="clearActiveWod()" style="background:none;border:none;color:var(--txt4);font-size:16px;cursor:pointer;padding:0 2px">&#10005;</button>'
+      +'</div>'
+      +'<div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--txt);margin-bottom:4px">'+ACTIVE_WOD.nom+'</div>'
+      +(ACTIVE_WOD.materiel?'<div style="font-size:11.5px;color:var(--txt4);margin-bottom:6px">'+ACTIVE_WOD.materiel+'</div>':'')
+      +(ACTIVE_WOD.desc?'<div style="font-size:12.5px;color:var(--txt3);line-height:1.5;margin-bottom:10px">'+ACTIVE_WOD.desc+'</div>':'')
+      +'<button class="btn-s btn-sm" onclick="completeActiveWod()">Marquer comme fait aujourd\'hui</button>'
+      +'</div>';
+  }
   document.getElementById('cf-body').innerHTML=
-    '<div class="card cf-card cross" style="position:relative;padding:24px;text-align:center;border-color:var(--border-on)">'
+    wodInfoHtml
+    +'<div class="card cf-card cross" style="position:relative;padding:24px;text-align:center;border-color:var(--border-on)">'
     +'<div class="grain soft"></div>'
     +'<div style="position:relative">'
     +'<div style="font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:2px;color:var(--txt4);margin-bottom:14px">TEMPS RESTANT</div>'
@@ -2296,7 +2312,7 @@ function updT(){
 // ══════════════════════════════════════════════════════════════════════════
 
 // ── DONNÉES ÉTENDUES (chargement best-effort, fallback silencieux sur les données déjà en dur) ──
-var EX_FULL=null, WODBANK_NORM=null;
+var EX_FULL=null, WODBANK_NORM=null, WODBANK_RAW=null;
 function loadExFull(){
   return fetch('exercices_musculation.json').then(function(r){return r.json();}).then(function(arr){
     EX_FULL=arr.map(function(e){return {n:e.nom,m:e.groupe_musculaire};});
@@ -2311,14 +2327,36 @@ function normWod(w,section){
   var materiel=w.materiel||(Array.isArray(w.equipement)?w.equipement.join(', '):w.equipement)||'';
   return {id:w.id||(section+'-'+Math.random().toString(36).slice(2,8)),nom:w.nom||'WOD',format:format,materiel:materiel,lieu:w.lieu||'',section:section};
 }
+function wodDescOf(raw){
+  if(raw.description)return raw.description;
+  if(raw.metcon&&raw.metcon.description)return raw.metcon.description;
+  if(raw.sections&&raw.sections.length){
+    var wodSec=raw.sections.find(function(s){return /wod/i.test(s.title||'');})||raw.sections[1]||raw.sections[0];
+    return wodSec?wodSec.text:'';
+  }
+  if(raw.strength&&raw.strength.blocs)return raw.strength.blocs.map(function(b){return b.exercice+' '+(b.reps||'');}).join(' · ');
+  return '';
+}
+function wodDureeMin(raw,format){
+  var src=(raw.duree||raw.dur||'').toString();
+  var m=src.match(/(\d+)/);
+  if(m)return parseInt(m[1]);
+  if(format==='EMOM')return 12;
+  if(format==='AMRAP')return 20;
+  return 20;
+}
 function loadWodBank(){
   return fetch('wod_bank.json').then(function(r){return r.json();}).then(function(db){
-    var all=[];
+    var all=[];WODBANK_RAW={};
     ['wods_hybrides','wods_monsieurwod','wods_supplementaires','wods_hero','wods_import_chrome'].forEach(function(sec){
-      (db[sec]||[]).forEach(function(w){all.push(normWod(w,sec));});
+      (db[sec]||[]).forEach(function(w){
+        var n=normWod(w,sec);
+        all.push(n);
+        WODBANK_RAW[n.id]=w;
+      });
     });
     WODBANK_NORM=all;
-  }).catch(function(){WODBANK_NORM=null;});
+  }).catch(function(){WODBANK_NORM=null;WODBANK_RAW=null;});
 }
 
 // ── PROFIL ────────────────────────────────────────────────────────────────
@@ -2546,7 +2584,32 @@ function renderWodBankList(){
 function wbPick(idx){
   var w=(WODBANK_NORM||[])[idx];if(!w)return;
   if(WB_MODE==='pick'&&WB_PICKCB){WB_PICKCB(w);return;}
-  toast(w.nom);
+  loadWodIntoChrono(w);
+}
+
+// ── LIER UN WOD DE LA BANQUE AU CHRONO ───────────────────────────────────
+var ACTIVE_WOD=null;
+function loadWodIntoChrono(norm){
+  var raw=(WODBANK_RAW&&WODBANK_RAW[norm.id])||{};
+  var mins=wodDureeMin(raw,norm.format);
+  ACTIVE_WOD={id:norm.id,nom:norm.nom,format:norm.format,materiel:norm.materiel,desc:wodDescOf(raw)};
+  stopCF();
+  CF_fmt=(norm.format==='EMOM')?'EMOM':(norm.format==='AMRAP')?'AMRAP':'For Time';
+  CF_dur=mins*60;CF_rem=CF_dur;
+  document.getElementById('main-nav').style.display='flex';
+  goNav('wod');
+  toast(norm.nom+' chargé dans le Chrono');
+}
+function clearActiveWod(){ACTIVE_WOD=null;renderChrono();}
+function completeActiveWod(){
+  if(!ACTIVE_WOD)return;
+  var ti=todayIdx();
+  WEEKPLAN[ti]={type:'wod'};
+  saveWP2();
+  try{localStorage.setItem('wod_done_'+WEEK+'_'+ti,ACTIVE_WOD.nom);}catch(e){}
+  toast(ACTIVE_WOD.nom+' marqué comme fait aujourd\'hui');
+  ACTIVE_WOD=null;
+  renderChrono();
 }
 
 // ── CONSTRUCTEUR DE PROGRAMME (split) ────────────────────────────────────
