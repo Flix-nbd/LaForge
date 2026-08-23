@@ -1273,6 +1273,27 @@ function weekStats(){
   });
   return {nbFait:nbFait,nbSeries:nbSeries,volume:Math.round(volume)};
 }
+function seancePct(s){
+  if(!s)return 0;
+  var exos=s.exercices||[];
+  if(!exos.length)return 0;
+  var dc=exos.filter(function(e){return localStorage.getItem('ex_'+e.id+'_'+WEEK)==='1';}).length;
+  return Math.round(dc/exos.length*100);
+}
+function nextSeanceInfo(ti){
+  var DOWFULL2=['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+  for(var off=1;off<=7;off++){
+    var idx=(ti+off)%7;
+    var e=WEEKPLAN[idx];
+    if(e&&e.type==='seance'){
+      var s=SEANCES.find(function(x){return x.id===e.seance_id;});
+      if(s)return {nom:s.nom,jour:DOWFULL2[idx]};
+    } else if(e&&e.type==='wod'){
+      return {nom:'WOD',jour:DOWFULL2[idx]};
+    }
+  }
+  return null;
+}
 function renderHome(){
   loadWP();
   document.getElementById('h-date').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
@@ -1281,10 +1302,10 @@ function renderHome(){
   var entry=WEEKPLAN[ti];
   var elC=document.getElementById('h-cards');
   if(!entry||entry.type==='repos'){
-    elC.innerHTML='<div class="card" style="padding:16px;text-align:center;color:var(--txt3)">Repos aujourd\'hui</div>';
+    elC.innerHTML='<div class="card" style="padding:16px;text-align:center;color:var(--txt4)">Repos aujourd\'hui</div>';
   } else if(entry.type==='wod'){
     elC.innerHTML='<div class="card hl" style="padding:0"><div style="padding:16px"><span class="cbadge">AUJOURD\'HUI</span>'
-      +'<div class="ctitle" style="font-size:24px;margin:8px 0 14px">WOD</div>'
+      +'<div class="ctitle" style="font-size:32px;margin:8px 0 14px">WOD</div>'
       +'<button class="btn btn-p" style="margin:0" onclick="goNav(\'wod\')">Aller au chrono</button></div></div>';
   } else {
     var s=SEANCES.find(function(x){return x.id===entry.seance_id;});
@@ -1292,27 +1313,42 @@ function renderHome(){
     else{
       var exos=s.exercices||[];
       var muscles=Array.from(new Set(exos.map(function(e){return e.muscle;}).filter(Boolean))).slice(0,3).join(' \u00b7 ');
+      var pct=seancePct(s);
       elC.innerHTML='<div class="card hl" style="padding:0"><div style="padding:16px">'
+        +'<div style="display:flex;align-items:flex-start;justify-content:space-between">'
         +'<span class="cbadge">AUJOURD\'HUI</span>'
-        +'<div class="ctitle" style="font-size:24px;margin:8px 0 4px">'+s.nom+'</div>'
-        +(muscles?'<div style="font-size:12px;color:var(--txt3);margin-bottom:14px">'+muscles+'</div>':'<div style="margin-bottom:14px"></div>')
-        +'<button class="btn btn-p" style="margin:0" onclick="openWk(\''+s.id+'\')">D\u00e9marrer la s\u00e9ance</button>'
-        +'</div></div>';
+        +'<span style="font-family:var(--font-display);font-weight:800;font-size:16px;color:var(--accent)">'+pct+'%</span>'
+        +'</div>'
+        +'<div class="ctitle" style="font-size:32px;margin:8px 0 4px">'+s.nom+'</div>'
+        +(muscles?'<div style="font-size:12px;color:var(--txt4)">'+muscles+'</div>':'')
+        +'</div>'
+        +'<div class="cbar"><div class="cprog" style="width:'+pct+'%"></div></div>'
+        +'<div style="padding:14px 16px 16px"><button class="btn btn-p" style="margin:0" onclick="openWk(\''+s.id+'\')">D\u00e9marrer la s\u00e9ance</button></div>'
+        +'</div>';
     }
+  }
+  var next=nextSeanceInfo(ti);
+  if(next){
+    elC.innerHTML+='<div class="card" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between">'
+      +'<div><div class="ctitle" style="font-size:20px">'+next.nom+'</div><div class="csub">Prochaine séance · '+next.jour+'</div></div>'
+      +'<span style="color:var(--txt4);font-size:16px">&#8250;</span></div>';
   }
   var wkHtml='';
   WEEKPLAN.forEach(function(e,i){
+    var status=(e&&e.type==='seance'&&localStorage.getItem('done_'+e.seance_id+'_'+WEEK)==='1')?'done':(e&&e.type!=='repos')?'planned':'rest';
+    var dotColor=status==='done'?'var(--accent)':status==='planned'?'rgba(240,235,225,.35)':'transparent';
     wkHtml+='<div style="flex:1;text-align:center">'
-      +'<div style="font-size:9px;color:var(--txt3);margin-bottom:4px">'+DOW[i]+'</div>'
-      +'<div style="padding:8px 2px;font-size:9px;font-weight:700;border:1px solid var(--border2);background:'+(i===ti?'var(--green)':'var(--card2)')+';color:'+(i===ti?'var(--bg)':'var(--txt2)')+'">'+wpLabel(e)+'</div>'
+      +'<div style="font-family:var(--font-cond);font-size:10.5px;font-weight:700;color:var(--txt4);margin-bottom:4px;text-transform:uppercase">'+DOW[i]+'</div>'
+      +'<div style="padding:8px 2px;font-size:9px;font-weight:700;border:1px solid '+(i===ti?'rgba(240,235,225,.45)':'var(--border2)')+';background:'+(i===ti?'var(--card-on)':'var(--card2)')+';color:'+(i===ti?'var(--txt)':'var(--txt3)')+'">'+wpLabel(e)+'</div>'
+      +'<div style="width:5px;height:5px;border-radius:50%;background:'+dotColor+';margin:4px auto 0"></div>'
       +'</div>';
   });
   document.getElementById('h-week').innerHTML=wkHtml;
   var st=weekStats();
   document.getElementById('h-stats').innerHTML=
-    '<div class="stat-card" style="flex:1;text-align:center;padding:14px 8px"><div style="font-family:var(--font-heading);font-weight:700;font-size:22px">'+st.nbFait+'</div><div style="font-size:9px;color:var(--txt3);margin-top:3px">SEANCES</div></div>'
-    +'<div class="stat-card" style="flex:1;text-align:center;padding:14px 8px"><div style="font-family:var(--font-heading);font-weight:700;font-size:22px">'+st.nbSeries+'</div><div style="font-size:9px;color:var(--txt3);margin-top:3px">SERIES</div></div>'
-    +'<div class="stat-card" style="flex:1;text-align:center;padding:14px 8px"><div style="font-family:var(--font-heading);font-weight:700;font-size:22px">'+st.volume+'</div><div style="font-size:9px;color:var(--txt3);margin-top:3px">VOLUME KG</div></div>';
+    '<div class="stat-card" style="flex:1;text-align:center;padding:14px 8px"><div style="font-family:var(--font-display);font-weight:800;font-size:28px">'+st.nbFait+'</div><div style="font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:1px;color:var(--txt4);margin-top:3px">SÉANCES</div></div>'
+    +'<div class="stat-card" style="flex:1;text-align:center;padding:14px 8px"><div style="font-family:var(--font-display);font-weight:800;font-size:28px">'+st.nbSeries+'</div><div style="font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:1px;color:var(--txt4);margin-top:3px">SÉRIES</div></div>'
+    +'<div class="stat-card" style="flex:1;text-align:center;padding:14px 8px"><div style="font-family:var(--font-display);font-weight:800;font-size:28px">'+st.volume+'</div><div style="font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:1px;color:var(--txt4);margin-top:3px">VOLUME KG</div></div>';
 }
 
 function renderProgBar(){
@@ -1451,11 +1487,11 @@ function lastDetailFor(exId){
   return null;
 }
 
-function rpeRow(exId,cur){
+function rpeRowCur(exId,cur){
   var html='';
   if(cur)html+='<div class="rpe-val">'+cur+' / 10</div>';
   html+='<div class="rpe-row">'
-    +[1,2,3,4,5,6,7,8,9,10].map(function(r){return '<div class="rpe-b'+((cur||'')==r?' on':'')+'" onclick="event.stopPropagation();saveWP(\''+exId+'\',\'rpe\','+r+')">'+r+'</div>';}).join('')
+    +[1,2,3,4,5,6,7,8,9,10].map(function(r){return '<div class="rpe-b'+((cur||'')==r?' on':'')+'" onclick="event.stopPropagation();wkCur(\''+exId+'\',\'rpe\','+r+')">'+r+'</div>';}).join('')
     +'</div>';
   return html;
 }
@@ -1465,40 +1501,69 @@ function infoBadges(ex){
   var restLbl='REPOS '+m+':'+(s<10?'0':'')+s;
   return '<div class="info-badges"><span class="info-badge">'+repsLbl+'</span><span class="info-badge">'+restLbl+'</span></div>';
 }
+function wkCur(exId,field,val){
+  if(!WKP[exId])WKP[exId]={};
+  if(!WKP[exId]._cur)WKP[exId]._cur={poids:'',reps:'',rpe:null};
+  WKP[exId]._cur[field]=field==='rpe'?parseInt(val):val;
+  if(field==='rpe')refreshExpand(exId);
+}
+function validerSerie(i,exId){
+  var s=CURWK;var ex=s&&s.exercices[i];if(!ex)return;
+  if(!WKP[exId])WKP[exId]={};
+  var cur=WKP[exId]._cur||{};
+  if(!cur.poids||!cur.reps){toast('Renseigne poids et reps');return;}
+  if(!WKP[exId].detail)WKP[exId].detail=[];
+  WKP[exId].detailOn=true;
+  WKP[exId].detail.push({poids:cur.poids,reps:cur.reps,rpe:cur.rpe});
+  WKP[exId]._cur={poids:'',reps:'',rpe:null};
+  var target=ex.sets||1;
+  if(WKP[exId].detail.length>=target)finalizeExercise(i,exId);
+  else refreshExpand(exId);
+}
+function delValidatedSerie(exId,ri){
+  if(!WKP[exId]||!WKP[exId].detail)return;
+  WKP[exId].detail.splice(ri,1);
+  refreshExpand(exId);
+}
+function finalizeExercise(i,exId){
+  savePerf(exId);
+  localStorage.setItem('ex_'+exId+'_'+WEEK,'1');
+  toast('Exercice terminé');
+  renderWk();
+  var s=CURWK;
+  if(s&&s.exercices.every(function(e){return localStorage.getItem('ex_'+e.id+'_'+WEEK)==='1';})){
+    if(localStorage.getItem('done_'+s.id+'_'+WEEK)!=='1')setTimeout(autoVal,800);
+  }
+}
 function renderExpandBody(i,ex,wp){
-  var detailOn=wp.detailOn;
+  var exId=ex.id;
   var rows=wp.detail||[];
-  var last=lastDetailFor(ex.id);
-  var html=infoBadges(ex);
+  var cur=wp._cur||{poids:'',reps:'',rpe:null};
+  var target=ex.sets||1;
+  var last=lastDetailFor(exId);
   var exNomEsc=(ex.exercice_nom||ex.nom||'').replace(/'/g,"\\'");
-  if(!detailOn){
-    html+='<div class="prow">'
-      +'<input class="pi" type="number" placeholder="'+(calcWt(ex)!==null?calcWt(ex)+' kg':'Poids kg')+'" value="'+(wp.poids||'')+'" onchange="saveWP(\''+ex.id+'\',\'poids\',this.value)" inputmode="decimal" step="0.5">'
-      +'<input class="pi" type="number" placeholder="'+(ex.max_reps?'Max reps':ex.reps)+'" value="'+(wp.reps||'')+'" onchange="saveWP(\''+ex.id+'\',\'reps\',this.value)" inputmode="numeric" style="max-width:80px">'
+  var html=infoBadges(ex);
+  html+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'
+    +'<span style="font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:1px;color:var(--txt4);text-transform:uppercase">SÉRIE '+Math.min(rows.length+1,target)+' / '+target+'</span>'
+    +'<span style="font-size:11px;color:var(--accent);cursor:pointer" onclick="event.stopPropagation();openCalc(\''+exNomEsc+'\')">Calculateur de charge &#8594;</span>'
+    +'</div>';
+  if(last&&!rows.length)html+='<div style="font-size:10.5px;color:var(--txt4);margin-bottom:8px">Dernière fois : '+last.detail.map(function(r){return r.reps+'@'+r.poids+'kg';}).join(' \u00b7 ')+'</div>';
+  rows.forEach(function(r,ri){
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">'
+      +'<span style="color:var(--txt4);font-family:var(--font-cond);font-weight:700;letter-spacing:.5px">SÉRIE '+(ri+1)+'</span>'
+      +'<span style="font-weight:700;color:var(--txt)">'+r.poids+'kg &times; '+r.reps+(r.rpe?' &middot; RPE '+r.rpe:'')+'</span>'
+      +'<button onclick="event.stopPropagation();delValidatedSerie(\''+exId+'\','+ri+')" style="background:none;border:none;color:var(--txt4);font-size:14px;cursor:pointer;padding:0 4px">&#10005;</button>'
+      +'</div>';
+  });
+  if(rows.length<target){
+    html+='<div class="prow" style="margin-top:8px">'
+      +'<input class="pi" type="number" placeholder="'+(calcWt(ex)!==null?calcWt(ex)+' kg':'Poids kg')+'" value="'+(cur.poids||'')+'" oninput="wkCur(\''+exId+'\',\'poids\',this.value)" inputmode="decimal" step="0.5">'
+      +'<input class="pi" type="number" placeholder="'+(ex.max_reps?'Max reps':ex.reps)+'" value="'+(cur.reps||'')+'" oninput="wkCur(\''+exId+'\',\'reps\',this.value)" inputmode="numeric" style="max-width:80px">'
       +'</div>'
-      +rpeRow(ex.id,wp.rpe)
-      +'<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">'
-      +'<span style="font-size:11px;color:var(--accent);cursor:pointer" onclick="event.stopPropagation();toggleDetail(\''+ex.id+'\')">+ Detailler les series (poids/reps different par serie)</span>'
-      +'<span style="font-size:11px;color:var(--accent);cursor:pointer;white-space:nowrap;margin-left:8px" onclick="event.stopPropagation();openCalc(\''+exNomEsc+'\')">Calculateur &#8594;</span>'
-      +'</div>';
+      +rpeRowCur(exId,cur.rpe)
+      +'<button class="btn btn-p" style="margin-top:8px" onclick="event.stopPropagation();validerSerie('+i+',\''+exId+'\')">Valider la série</button>';
   } else {
-    html+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'
-      +'<span style="font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:1px;color:var(--txt4);text-transform:uppercase">SÉRIE '+rows.length+' / '+(ex.sets||rows.length)+'</span>'
-      +'<span style="font-size:11px;color:var(--accent);cursor:pointer" onclick="event.stopPropagation();openCalc(\''+exNomEsc+'\')">Calculateur de charge &#8594;</span>'
-      +'</div>';
-    if(last)html+='<div style="font-size:10.5px;color:var(--txt4);margin-bottom:8px">Derniere fois : '+last.detail.map(function(r){return r.reps+'@'+r.poids+'kg';}).join(' \u00b7 ')+'</div>';
-    rows.forEach(function(row,ri){
-      html+='<div class="prow" style="margin-bottom:6px">'
-        +'<input class="pi" type="number" placeholder="reps" value="'+(row.reps||'')+'" oninput="setDetailRow(\''+ex.id+'\','+ri+',\'reps\',this.value)" inputmode="numeric" style="max-width:70px">'
-        +'<input class="pi" type="number" placeholder="kg" value="'+(row.poids||'')+'" oninput="setDetailRow(\''+ex.id+'\','+ri+',\'poids\',this.value)" inputmode="decimal" step="0.5">'
-        +'<button onclick="event.stopPropagation();delDetailRow(\''+ex.id+'\','+ri+')" style="background:none;border:none;color:var(--txt4);font-size:16px;cursor:pointer;padding:0 6px">&#10005;</button>'
-        +'</div>';
-    });
-    html+=rpeRow(ex.id,wp.rpe);
-    html+='<div style="display:flex;gap:8px;margin-top:4px">'
-      +'<button class="btn btn-s" style="margin:0;flex:1;padding:9px" onclick="event.stopPropagation();addDetailRow(\''+ex.id+'\')">+ Serie</button>'
-      +'<button class="btn btn-s" style="margin:0;flex:1;padding:9px;color:var(--txt3)" onclick="event.stopPropagation();toggleDetail(\''+ex.id+'\')">Annuler</button>'
-      +'</div>';
+    html+='<div style="text-align:center;color:var(--accent);font-family:var(--font-cond);font-weight:700;font-size:11px;letter-spacing:1px;padding:8px 0">TOUTES LES SÉRIES VALIDÉES</div>';
   }
   return html;
 }
@@ -1656,12 +1721,23 @@ function valSess(){
 }
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
+var STATS_FILTER='Tous';
+function setStatsFilter(f){STATS_FILTER=f;renderStats();}
+function exVolumeSeries(last){
+  if(!last)return {vol:null,series:null};
+  if(last.detail&&last.detail.length){
+    var vol=last.detail.reduce(function(a,r){return a+(parseFloat(r.poids)||0)*(parseInt(r.reps)||0);},0);
+    return {vol:Math.round(vol),series:last.detail.length};
+  }
+  var vol2=(parseFloat(last.poids)||0)*(parseInt(last.reps)||0)*(parseInt(last.sets)||1);
+  return {vol:Math.round(vol2),series:last.sets||null};
+}
 function renderStats(){
   loadPins();
   var el=document.getElementById('stats-c');
   var allEx=[];
   SEANCES.forEach(function(s){(s.exercices||[]).forEach(function(e){if(!allEx.find(function(x){return (x.exercice_nom||x.nom)===(e.exercice_nom||e.nom);}))allEx.push(e);});});
-  if(!allEx.length){el.innerHTML='<div style="text-align:center;color:var(--txt3);padding:50px 0;font-size:12px">Fais des seances pour voir tes perfs</div>';return;}
+  if(!allEx.length){el.innerHTML='<div style="text-align:center;color:var(--txt4);padding:50px 0;font-size:12px">Fais des seances pour voir tes perfs</div>';return;}
 
   var detailHtml='';
   if(CHARTEX){
@@ -1679,18 +1755,19 @@ function renderStats(){
         var path='M'+pts.map(function(p){return p.x+','+p.y;}).join(' L');
         var area=path+' L'+pts[pts.length-1].x+','+H+' L'+pts[0].x+','+H+' Z';
         chartHtml='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:95px;overflow:visible">'
-          +'<defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--green)" stop-opacity=".2"/><stop offset="100%" stop-color="var(--green)" stop-opacity="0"/></linearGradient></defs>'
+          +'<defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--accent)" stop-opacity=".2"/><stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>'
           +'<path d="'+area+'" fill="url(#cg)"/>'
-          +'<path d="'+path+'" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+          +'<path d="'+path+'" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
         pts.forEach(function(p,i){
-          chartHtml+='<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(i===pts.length-1?4:2.5)+'" fill="var(--green)"/>';
-          if(i===pts.length-1)chartHtml+='<text x="'+p.x+'" y="'+(p.y-9)+'" text-anchor="middle" fill="var(--green)" font-size="10" font-weight="bold">'+p.kg+'kg</text>';
+          chartHtml+='<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(i===pts.length-1?4:2.5)+'" fill="var(--accent)"/>';
+          if(i===pts.length-1)chartHtml+='<text x="'+p.x+'" y="'+(p.y-9)+'" text-anchor="middle" fill="var(--accent)" font-size="10" font-weight="bold">'+p.kg+'kg</text>';
         });
         chartHtml+='</svg>';
       } else {
-        chartHtml='<div style="text-align:center;color:var(--txt3);font-size:12px;padding:14px 0">2 seances minimum pour la courbe</div>';
+        chartHtml='<div style="text-align:center;color:var(--txt4);font-size:12px;padding:14px 0">2 seances minimum pour la courbe</div>';
       }
       detailHtml='<div class="stat-card">'
+        +'<button onclick="CHARTEX=null;renderStats()" style="background:none;border:none;color:var(--txt4);font-size:11px;cursor:pointer;padding:0;margin-bottom:8px">&#8592; Fermer</button>'
         +'<div class="stat-hdr"><div><div class="stat-t">'+(ex.exercice_nom||ex.nom)+'</div><div class="stat-m">'+(ex.muscle||'')+'</div></div>'
         +'<div style="text-align:right"><div class="stat-pr">'+(pr?pr+'kg':'\u2014')+'</div><div class="stat-prl">Record</div></div></div>'
         +chartHtml
@@ -1700,33 +1777,41 @@ function renderStats(){
     }
   }
 
-  function rowHtml(e){
+  function cardHtml(e){
     var nom=e.exercice_nom||e.nom;
     var perfs=PERF[e.id]||[];
     var last=perfs.length?perfs[0]:null;
+    var pr=perfs.length?Math.max.apply(null,perfs.map(function(p){return parseFloat(p.poids)||0;})):0;
     var pinned=!!PINS[nom];
-    var lastLabel='\u2014';
-    if(last){
-      lastLabel=(last.detail&&last.detail.length)?last.detail.map(function(r){return r.reps+'@'+r.poids+'kg';}).join(' \u00b7 '):(last.poids+'kg');
-    }
-    return '<div style="display:flex;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid var(--border);cursor:pointer">'
-      +'<div style="flex:1" onclick="setChEx(\''+e.id+'\')"><div style="font-family:var(--font-heading);font-weight:600;font-size:14px">'+nom+'</div>'
-      +'<div style="font-size:11px;color:var(--txt3);margin-top:2px">'+lastLabel+'</div></div>'
-      +'<button onclick="event.stopPropagation();togPin(\''+nom.replace(/'/g,"\\'")+'\')" style="background:none;border:none;cursor:pointer;color:'+(pinned?'var(--green)':'var(--txt3)')+'">'
-      +'<svg width="16" height="16" viewBox="0 0 24 24" fill="'+(pinned?'currentColor':'none')+'" stroke="currentColor" stroke-width="1.5"><path d="M12 17v5"></path><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path></svg>'
-      +'</button></div>';
+    var vs=exVolumeSeries(last);
+    return '<div class="card cross" style="position:relative;padding:14px" onclick="setChEx(\''+e.id+'\')">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2px">'
+      +'<div><div class="emuscle">'+(e.muscle||'')+'</div><div style="font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--txt);margin-top:2px">'+nom+'</div></div>'
+      +'<div style="text-align:right;flex-shrink:0;margin-left:8px">'
+      +'<div style="font-family:var(--font-display);font-size:26px;font-weight:800;color:var(--accent);line-height:1">'+(pr?pr:'\u2014')+'</div>'
+      +'<div style="font-family:var(--font-cond);font-size:9px;font-weight:700;color:var(--txt4);letter-spacing:1px">RECORD</div>'
+      +'<button onclick="event.stopPropagation();togPin(\''+nom.replace(/'/g,"\\'")+'\')" style="margin-top:6px;width:30px;height:30px;background:none;border:1px solid var(--border2);cursor:pointer;color:'+(pinned?'var(--accent)':'var(--txt4)')+'">'
+      +'<svg width="15" height="15" viewBox="0 0 24 24" fill="'+(pinned?'currentColor':'none')+'" stroke="currentColor" stroke-width="1.6"><path d="M12 17v5"></path><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path></svg>'
+      +'</button></div></div>'
+      +'<div style="display:flex;border-top:1px solid var(--border);margin-top:10px;padding-top:8px">'
+      +'<div style="flex:1"><div class="stat-k" style="font-size:10px">Dernière</div><div class="stat-v">'+(last?last.poids+'kg':'\u2014')+'</div></div>'
+      +'<div style="flex:1"><div class="stat-k" style="font-size:10px">Volume</div><div class="stat-v">'+(vs.vol!==null?vs.vol+'kg':'\u2014')+'</div></div>'
+      +'<div style="flex:1"><div class="stat-k" style="font-size:10px">Séries</div><div class="stat-v">'+(vs.series!==null?vs.series:'\u2014')+'</div></div>'
+      +'</div></div>';
   }
 
-  var pinnedEx=allEx.filter(function(e){return PINS[e.exercice_nom||e.nom];});
-  var listHtml='';
-  if(pinnedEx.length){
-    listHtml+='<div class="sec">Epingles</div>';
-    pinnedEx.forEach(function(e){listHtml+=rowHtml(e);});
-  }
-  listHtml+='<div class="sec">Tous les exercices</div>';
-  allEx.forEach(function(e){listHtml+=rowHtml(e);});
+  var muscles=Array.from(new Set(allEx.map(function(e){return e.muscle;}).filter(Boolean))).slice(0,3);
+  var filters=['Tous','Épinglés'].concat(muscles);
+  var filterHtml='<div class="fbar">'+filters.map(function(f){return '<button class="fbtn'+(STATS_FILTER===f?' on':'')+'" onclick="setStatsFilter(\''+f.replace(/'/g,"\\'")+'\')">'+f+'</button>';}).join('')+'</div>';
 
-  el.innerHTML=detailHtml+listHtml+'<button class="btn-ghost" style="margin-top:14px" onclick="openCalc(\'Général\')">Calculateur de charge</button>';
+  var shown=allEx.filter(function(e){
+    if(STATS_FILTER==='Tous')return true;
+    if(STATS_FILTER==='Épinglés')return !!PINS[e.exercice_nom||e.nom];
+    return e.muscle===STATS_FILTER;
+  });
+  var listHtml=shown.map(cardHtml).join('')||'<div style="text-align:center;color:var(--txt4);font-size:12px;padding:30px 0">Aucun exercice dans ce filtre</div>';
+
+  el.innerHTML=detailHtml+filterHtml+listHtml+'<button class="btn-ghost" style="margin-top:14px" onclick="openCalc(\'Général\')">Calculateur de charge</button>';
 }
 
 function setChEx(id){CHARTEX=id;renderStats();}
@@ -2153,13 +2238,12 @@ function renderChrono(){
     +'<div id="cf-disp" style="font-family:var(--font-display);font-weight:800;font-size:88px;letter-spacing:-2px;font-variant-numeric:tabular-nums;line-height:1">'+fmtCF(CF_rem)+'</div>'
     +'<div style="height:2px;background:var(--border2);margin:18px 0 4px"><div id="cf-bar" style="height:2px;background:var(--accent);width:'+(CF_rem/CF_dur*100)+'%"></div></div>'
     +'</div></div>'
-    +'<div class="lbl">Durée totale</div>'
-    +'<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px">'
-    +'<button onclick="adjCF(-60)" style="width:38px;height:38px;background:var(--card2);border:1px solid var(--border2);color:var(--txt2);font-size:16px;cursor:pointer">&#8722;</button>'
-    +'<div style="font-family:var(--font-display);font-size:15px;color:var(--txt2);min-width:64px;text-align:center" id="cf-durlbl">'+Math.round(CF_dur/60)+' min</div>'
-    +'<button onclick="adjCF(60)" style="width:38px;height:38px;background:var(--card2);border:1px solid var(--border2);color:var(--txt2);font-size:16px;cursor:pointer">&#43;</button>'
-    +'</div>'
-    +'<div class="chips" style="justify-content:center;margin-bottom:18px">'+presetsHtml+'</div>'
+    +'<div class="set-row" style="cursor:default;margin-bottom:12px"><div><div class="set-lbl">Durée totale</div><div class="set-sub">minutes</div></div>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<button onclick="adjCF(-60)" style="width:28px;height:28px;background:var(--card2);border:1px solid var(--border2);color:var(--txt2);font-size:15px;cursor:pointer">&#8722;</button>'
+    +'<button onclick="adjCF(60)" style="width:28px;height:28px;background:var(--card2);border:1px solid var(--border2);color:var(--txt2);font-size:15px;cursor:pointer">&#43;</button>'
+    +'</div></div>'
+    +'<div class="chips" style="margin-bottom:18px">'+presetsHtml+'</div>'
     +'<div style="display:flex;gap:8px;margin-bottom:10px">'
     +'<button class="btn btn-p" style="margin:0;flex:2" onclick="toggleCF()" id="cf-startbtn">'+(CF_run?'Pause':'Démarrer')+'</button>'
     +'<button class="btn btn-s" style="margin:0;flex:1" onclick="resetCF()">Reset</button>'
@@ -2214,7 +2298,7 @@ function updT(){
 // ── DONNÉES ÉTENDUES (chargement best-effort, fallback silencieux sur les données déjà en dur) ──
 var EX_FULL=null, WODBANK_NORM=null;
 function loadExFull(){
-  return fetch('data/exercices_musculation.json').then(function(r){return r.json();}).then(function(arr){
+  return fetch('exercices_musculation.json').then(function(r){return r.json();}).then(function(arr){
     EX_FULL=arr.map(function(e){return {n:e.nom,m:e.groupe_musculaire};});
   }).catch(function(){EX_FULL=null;});
 }
@@ -2228,7 +2312,7 @@ function normWod(w,section){
   return {id:w.id||(section+'-'+Math.random().toString(36).slice(2,8)),nom:w.nom||'WOD',format:format,materiel:materiel,lieu:w.lieu||'',section:section};
 }
 function loadWodBank(){
-  return fetch('data/wod_bank.json').then(function(r){return r.json();}).then(function(db){
+  return fetch('wod_bank.json').then(function(r){return r.json();}).then(function(db){
     var all=[];
     ['wods_hybrides','wods_monsieurwod','wods_supplementaires','wods_hero','wods_import_chrome'].forEach(function(sec){
       (db[sec]||[]).forEach(function(w){all.push(normWod(w,sec));});
@@ -2256,12 +2340,12 @@ function renderAccroche(){
   el.innerHTML='<div class="grain"></div>'
     +'<div style="position:absolute;inset:0;background:radial-gradient(120% 70% at 50% 8%, rgba(222,138,84,.13), transparent 60%)"></div>'
     +'<div style="position:relative;min-height:100dvh;display:flex;flex-direction:column;padding:calc(var(--st) + 24px) 20px calc(24px + var(--sb))">'
-    +'<div style="flex:1;display:flex;align-items:center;justify-content:center">'
-    +'<img src="assets/logo-laforge-alpha.png" alt="LaForge" style="max-width:318px;width:100%" onerror="this.style.display=\'none\'">'
+    +'<div style="flex:1.3;display:flex;align-items:center;justify-content:center;min-height:0">'
+    +'<img src="logo-laforge-alpha.png" alt="LaForge" style="max-width:280px;width:80%" onerror="this.style.display=\'none\'">'
     +'</div>'
-    +'<div style="text-align:center">'
-    +'<div style="font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing:.5px;text-transform:uppercase;color:var(--txt);margin-bottom:8px">Ton profil</div>'
-    +'<div style="font-size:14px;color:var(--txt3);margin-bottom:22px">Quelques infos pour personnaliser ton entraînement.</div>'
+    +'<div style="text-align:left">'
+    +'<div style="font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing:.5px;text-transform:uppercase;color:var(--txt);margin-bottom:8px;line-height:1">Ton profil</div>'
+    +'<div style="font-size:14px;color:var(--txt3);margin-bottom:22px;line-height:1.5">Quatre questions pour calibrer tes charges, tes fourchettes de reps et ton temps de repos.</div>'
     +'<button class="btn btn-p" style="margin-bottom:8px" onclick="startProfilOnb()">Commencer</button>'
     +'<button class="btn-ghost" onclick="skipProfil()">Plus tard — voir les réglages</button>'
     +'</div></div>';
