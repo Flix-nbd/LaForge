@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-title" content="LaForge">
 <meta name="theme-color" content="#0C0C0B">
 <title>LaForge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0C0C0B;          /* fond général, noir quasi neutre */
@@ -38,7 +41,6 @@
   --font-heading:var(--font-display);
   --st:env(safe-area-inset-top,44px);--sb:env(safe-area-inset-bottom,0px);
 }
-@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min-height:100dvh;overscroll-behavior:none}
 *{border-radius:0}
@@ -80,7 +82,8 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 .scroll{flex:1;overflow-y:auto;padding:16px 20px;padding-bottom:calc(90px + var(--sb))}
 .prog-bar{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding:8px 20px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:calc(var(--st) + 56px);z-index:99;flex-shrink:0}
 .prog-bar::-webkit-scrollbar{display:none}
-.pc{flex-shrink:0;padding:6px 11px;border-radius:0;cursor:pointer;white-space:nowrap;font-size:11px}
+.pc{flex-shrink:0;padding:6px 11px;border-radius:0;background:#131312;border:1px solid rgba(240,235,225,.16);color:var(--txt3);font-family:var(--font-cond);font-weight:700;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;white-space:nowrap;font-size:11px}
+.pc.on{background:var(--txt);border-color:var(--txt);color:var(--bg)}
 .card{background:transparent;border:1px solid var(--border2);border-radius:0;margin-bottom:7px;overflow:visible;cursor:pointer}
 .card:active{opacity:.85}
 .card.hl{border-color:var(--accent)}
@@ -170,7 +173,8 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 .tbar-w{height:2px;background:var(--border2);margin-bottom:14px;overflow:hidden}
 .tbar{height:2px;background:var(--accent)}
 .tpres{display:flex;gap:5px;justify-content:center;margin-bottom:8px}
-.tpre{padding:5px 11px;border-radius:0;cursor:pointer}
+.tpre{padding:5px 11px;border-radius:0;background:#131312;border:1px solid rgba(240,235,225,.16);color:var(--txt3);font-family:var(--font-cond);font-weight:700;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;font-size:11px}
+.tpre.on{background:var(--txt);border-color:var(--txt);color:var(--bg)}
 .tcust{display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:12px}
 .tcust label{font-size:11px;color:var(--txt4)}
 .tcust input{width:46px;background:var(--card2);border:1px solid var(--border2);border-radius:0;padding:5px 6px;font-size:16px;font-weight:700;color:var(--txt2);text-align:center;-webkit-appearance:none;outline:none}
@@ -227,7 +231,8 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 .stat-v{font-size:12px;font-weight:700;color:var(--txt)}
 .fbar{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}
 .fbar::-webkit-scrollbar{display:none}
-.fbtn{flex-shrink:0;padding:4px 10px;border-radius:0;white-space:nowrap;font-size:10px}
+.fbtn{flex-shrink:0;padding:4px 10px;border-radius:0;background:#131312;border:1px solid rgba(240,235,225,.16);color:var(--txt3);font-family:var(--font-cond);font-weight:700;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;white-space:nowrap;font-size:10px}
+.fbtn.on{background:var(--txt);border-color:var(--txt);color:var(--bg)}
 .pitem{display:flex;justify-content:space-between;align-items:center;background:var(--card2);border-radius:0;padding:8px 11px;margin-bottom:5px}
 .pdate{font-size:11px;color:var(--txt4)}
 .pval{font-size:12px;font-weight:900;color:var(--txt)}
@@ -250,7 +255,8 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 .wbstop{flex:1;padding:14px;border-radius:0;border:1px solid var(--border2);font-size:12px;font-weight:700;cursor:pointer;background:var(--card2);color:var(--txt2);font-family:var(--font-display)}
 .wtype-row{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}
 .wtype-row::-webkit-scrollbar{display:none}
-.wchip{flex-shrink:0;padding:6px 11px;border-radius:0;cursor:pointer}
+.wchip{flex-shrink:0;padding:6px 11px;border-radius:0;background:#131312;border:1px solid rgba(240,235,225,.16);color:var(--txt3);font-family:var(--font-cond);font-weight:700;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;font-size:11px}
+.wchip.on{background:var(--txt);border-color:var(--txt);color:var(--bg)}
 .set-s{margin-bottom:18px}
 .set-t{font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt4);margin-bottom:8px}
 .set-row{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border2);border-radius:0;padding:11px 14px;margin-bottom:6px;cursor:pointer}
