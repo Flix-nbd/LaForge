@@ -1321,16 +1321,10 @@ function wpLabel(entry,dayIdx){
   return extra?lbl+'+':lbl;
 }
 function weekStats(){
-  var now=new Date();
-  var dow=now.getDay();var diffToMon=dow===0?-6:1-dow;
-  var mon=new Date(now);mon.setHours(0,0,0,0);mon.setDate(now.getDate()+diffToMon);
-  var sun=new Date(mon);sun.setDate(mon.getDate()+6);sun.setHours(23,59,59,999);
   var nbFait=0,nbSeries=0,volume=0;
-  var doneSeances={};
   Object.keys(PERF).forEach(function(exId){
     (PERF[exId]||[]).forEach(function(p){
-      var d=new Date(p.date);
-      if(d<mon||d>sun)return;
+      if(p.week!==WEEK)return;
       if(p.detail&&p.detail.length){
         p.detail.forEach(function(row){
           nbSeries++;
@@ -1809,10 +1803,10 @@ function savePerf(exId){
   if(validDetail&&validDetail.length){
     var maxP=Math.max.apply(null,validDetail.map(function(r){return parseFloat(r.poids)||0;}));
     var totalReps=validDetail.reduce(function(a,r){return a+(parseInt(r.reps)||0);},0);
-    entry={user_id:USER.id,seance_exercice_id:exId,exercice_nom:ex.exercice_nom||ex.nom,poids:maxP,reps:totalReps,sets:validDetail.length,detail:validDetail.map(function(r){return {poids:parseFloat(r.poids)||0,reps:parseInt(r.reps)||0};}),rpe:p.rpe||null};
+    entry={user_id:USER.id,seance_exercice_id:exId,exercice_nom:ex.exercice_nom||ex.nom,poids:maxP,reps:totalReps,sets:validDetail.length,detail:validDetail.map(function(r){return {poids:parseFloat(r.poids)||0,reps:parseInt(r.reps)||0};}),rpe:p.rpe||null,week:WEEK};
   } else {
     if(!p.poids)return;
-    entry={user_id:USER.id,seance_exercice_id:exId,exercice_nom:ex.exercice_nom||ex.nom,poids:p.poids,reps:p.reps||ex.reps,sets:ex.sets,rpe:p.rpe||null};
+    entry={user_id:USER.id,seance_exercice_id:exId,exercice_nom:ex.exercice_nom||ex.nom,poids:p.poids,reps:p.reps||ex.reps,sets:ex.sets,rpe:p.rpe||null,week:WEEK};
   }
   sbP('performances',entry).then(function(){
     if(!PERF[exId])PERF[exId]=[];
