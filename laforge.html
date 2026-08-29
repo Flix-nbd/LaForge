@@ -1580,6 +1580,12 @@ function renderWk(){
     var bsLabelWk=bsGroup?'<div style="font-size:9px;font-weight:700;color:var(--green);letter-spacing:.8px;text-transform:uppercase;margin-bottom:1px">BISET</div>':'';
     html+='<div class="exc'+(done?' done':'')+'" id="ex-'+i+'" style="'+bsBorderWk+'">'
       +'<div class="exc-row" onclick="togEx('+i+')">'
+      +'<div style="display:flex;flex-direction:column;flex-shrink:0;margin-right:2px">'
+      +'<button onclick="event.stopPropagation();moveExInSession('+i+',-1)" '+(i===0?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+' aria-label="Monter">'
+      +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg></button>'
+      +'<button onclick="event.stopPropagation();moveExInSession('+i+',1)" '+(i===exos.length-1?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+' aria-label="Descendre">'
+      +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>'
+      +'</div>'
       +'<div class="exc-chk" onclick="event.stopPropagation();chkEx('+i+',\''+ex.id+'\')">'+( done?'&#10003;':'')+'</div>'
       +'<div class="exc-body">'
       +bsLabelWk
@@ -1814,6 +1820,15 @@ function unskipEx(i){
   var s=CURWK;if(!s||!s.exercices[i])return;
   localStorage.removeItem('skip_'+s.exercices[i].id+'_'+WEEK);
   renderWk();
+}
+function moveExInSession(i,dir){
+  var s=CURWK;if(!s)return;
+  var j=i+dir;
+  if(j<0||j>=s.exercices.length)return;
+  var tmp=s.exercices[i];s.exercices[i]=s.exercices[j];s.exercices[j]=tmp;
+  renderWk();
+  sbPt('seance_exercices',{ordre:i},'id=eq.'+s.exercices[i].id).catch(function(){});
+  sbPt('seance_exercices',{ordre:j},'id=eq.'+s.exercices[j].id).catch(function(){});
 }
 
 function revertSwapEx(i){
@@ -3293,6 +3308,10 @@ function renderCtorExl(){
   var html='';
   s.exercices.forEach(function(e,i){
     html+='<div class="exc" style="padding:11px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px">'
+      +'<div style="display:flex;flex-direction:column;flex-shrink:0">'
+      +'<button onclick="ctorMoveEx('+i+',-1)" '+(i===0?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg></button>'
+      +'<button onclick="ctorMoveEx('+i+',1)" '+(i===s.exercices.length-1?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>'
+      +'</div>'
       +'<div style="min-width:0;flex:1"><div class="emuscle">'+(e.muscle||'')+'</div><div class="en">'+e.nom+'</div></div>'
       +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
       +'<input class="exb-inp" type="number" value="'+(e.sets||3)+'" inputmode="numeric" style="width:38px" oninput="ctorSetExField('+i+',\'sets\',this.value)">'
@@ -3301,6 +3320,12 @@ function renderCtorExl(){
       +'<button class="exb-del" onclick="ctorDelEx('+i+')">&#10005;</button></div></div>';
   });
   el.innerHTML=html;
+}
+function ctorMoveEx(i,dir){
+  var s=CTOR_STATE.seances[CTORCFG_IDX];if(!s)return;
+  var j=i+dir;if(j<0||j>=s.exercices.length)return;
+  var tmp=s.exercices[i];s.exercices[i]=s.exercices[j];s.exercices[j]=tmp;
+  renderCtorExl();
 }
 function ctorSetExField(i,field,val){
   var e=CTOR_STATE.seances[CTORCFG_IDX].exercices[i];if(!e)return;
@@ -3581,6 +3606,10 @@ function renderAdhocExl(){
   var html='';
   s.exercices.forEach(function(e,i){
     html+='<div class="exc" style="padding:11px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px">'
+      +'<div style="display:flex;flex-direction:column;flex-shrink:0">'
+      +'<button onclick="adhocMoveEx('+i+',-1)" '+(i===0?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg></button>'
+      +'<button onclick="adhocMoveEx('+i+',1)" '+(i===s.exercices.length-1?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>'
+      +'</div>'
       +'<div style="min-width:0;flex:1"><div class="emuscle">'+(e.muscle||'')+'</div><div class="en">'+e.nom+'</div></div>'
       +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
       +'<input class="exb-inp" type="number" value="'+(e.sets||3)+'" inputmode="numeric" style="width:38px" oninput="adhocSetExField('+i+',\'sets\',this.value)">'
@@ -3589,6 +3618,12 @@ function renderAdhocExl(){
       +'<button class="exb-del" onclick="adhocDelEx('+i+')">&#10005;</button></div></div>';
   });
   el.innerHTML=html;
+}
+function adhocMoveEx(i,dir){
+  var s=ADHOC_STATE;if(!s)return;
+  var j=i+dir;if(j<0||j>=s.exercices.length)return;
+  var tmp=s.exercices[i];s.exercices[i]=s.exercices[j];s.exercices[j]=tmp;
+  renderAdhocExl();
 }
 function adhocSetExField(i,field,val){
   var e=ADHOC_STATE.exercices[i];if(!e)return;
