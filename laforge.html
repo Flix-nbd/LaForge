@@ -381,6 +381,30 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
   <div class="scroll" id="wt-c" style="padding-bottom:20px"></div>
 </div>
 
+<!-- HISTORIQUE -->
+<div class="screen" id="sc-hist">
+  <div class="hdr">
+    <div class="hdr-row"><div><div class="htitle">Historique</div><div class="hsub">Tout ce que tu as réellement fait</div></div></div>
+    <div class="fbar" id="hist-filters" style="margin-top:8px"></div>
+  </div>
+  <div class="scroll" id="hist-c"></div>
+</div>
+
+<!-- HISTORIQUE — DETAIL -->
+<div class="screen" id="sc-histdetail">
+  <div class="hdr">
+    <div class="hdr-row">
+      <button class="bk-btn" onclick="goNav('hist')">&#8592;</button>
+      <div style="flex:1;text-align:center">
+        <div class="htitle" id="hd-nom" style="font-size:17px"></div>
+        <div class="hsub" id="hd-sub"></div>
+      </div>
+      <div style="width:34px"></div>
+    </div>
+  </div>
+  <div class="scroll" id="hd-c"></div>
+</div>
+
 <!-- STATS -->
 <div class="screen" id="sc-stats">
   <div class="hdr">
@@ -587,6 +611,7 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 <nav class="nav" id="main-nav" style="display:none">
   <button class="nb active" id="nb-home" onclick="goNav('home')"><span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"></path></svg></span><span class="nl">Accueil</span></button>
   <button class="nb" id="nb-prog" onclick="goNav('prog')"><span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="0"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></span><span class="nl">Programme</span></button>
+  <button class="nb" id="nb-hist" onclick="goNav('hist')"><span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg></span><span class="nl">Séance</span></button>
   <button class="nb" id="nb-wod" onclick="goNav('wod')"><span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg></span><span class="nl">Chrono</span></button>
   <button class="nb" id="nb-stats" onclick="goNav('stats')"><span class="ni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg></span><span class="nl">Perf</span></button>
 </nav>
@@ -894,7 +919,7 @@ function saveWP2(){try{localStorage.setItem('weekplan',JSON.stringify(WEEKPLAN))
 function loadPins(){try{var d=JSON.parse(localStorage.getItem('pins'));if(d)PINS=d;}catch(e){}}
 function savePins(){try{localStorage.setItem('pins',JSON.stringify(PINS));}catch(e){}}
 function togPin(nom){PINS[nom]=!PINS[nom];savePins();renderStats();}
-var ACTPROG=null,CURWK=null,CHARTEX=null;
+var ACTPROG=null,CURWK=null,CHARTEX=null,SESSION_START=null,WOD_START=null;
 var ONB_STEP=1,CHOICE=null,NEW_PROG={nom:'',seances:[]},BUILD_IDX=0;
 var TI=null,TR=120,TT=120,TRUN=false;
 var WODS=[],AWOD=null,WINT=null,WRUN=false,WREM=0,WRD=1,WPHASE='work',SWTYPE='EMOM';
@@ -920,6 +945,7 @@ function goNav(id){
   else if(id==='stats')renderStats();
   else if(id==='set')renderSet();
   else if(id==='wod')renderChrono();
+  else if(id==='hist')renderHist();
 }
 
 function goHome(){document.getElementById('tfab').classList.remove('show');goNav('home');}
@@ -1445,11 +1471,11 @@ function renderHome(){
     var lightDone=localStorage.getItem('extra_light_'+WEEK+'_'+i);
     var extraSeanceDone=extraDoneFor(WEEK,i);
     var status=(e&&e.type==='seance'&&localStorage.getItem('done_'+e.seance_id+'_'+WEEK)==='1')?'done':(wodDone||lightDone||extraSeanceDone)?'done':(e&&e.type!=='repos')?'planned':'rest';
-    var dotColor=status==='done'?'var(--accent)':status==='planned'?'rgba(240,235,225,.35)':'transparent';
     wkHtml+='<div style="flex:1;text-align:center;cursor:pointer" onclick="openDayDetailHome('+i+')">'
       +'<div style="font-family:var(--font-cond);font-size:10.5px;font-weight:700;color:var(--txt4);margin-bottom:4px;text-transform:uppercase">'+DOW[i]+'</div>'
-      +'<div style="padding:8px 2px;font-size:9px;font-weight:700;border:1px solid '+(i===ti?'var(--accent-b)':'var(--border2)')+';background:'+(i===ti?'var(--card3)':'var(--card2)')+';color:'+(i===ti?'var(--txt)':'var(--txt3)')+'">'+wpLabel(e,i)+'</div>'
-      +'<div style="width:5px;height:5px;border-radius:50%;background:'+dotColor+';margin:4px auto 0"></div>'
+      +'<div style="position:relative;padding:8px 2px;font-size:9px;font-weight:700;border:1px solid '+(status==='done'?'var(--accent)':i===ti?'var(--accent-b)':'var(--border2)')+';background:'+(i===ti?'var(--card3)':'var(--card2)')+';color:'+(i===ti?'var(--txt)':'var(--txt3)')+'">'
+      +(status==='done'?'<div style="position:absolute;top:-6px;right:-6px;width:15px;height:15px;border-radius:50%;background:var(--accent);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:9px;line-height:1">&#10003;</div>':'')
+      +wpLabel(e,i)+'</div>'
       +'</div>';
   });
   document.getElementById('h-week').innerHTML=wkHtml;
@@ -1526,6 +1552,7 @@ function openWk(el){
   for(var i=0;i<SEANCES.length;i++){if(SEANCES[i].id===sid){CURWK=SEANCES[i];break;}}
   if(!CURWK)return;
   WKP={};
+  SESSION_START=Date.now();
   showSc('wk');
   document.getElementById('main-nav').style.display='none';
   document.getElementById('tfab').classList.add('show');
@@ -1877,8 +1904,12 @@ function savePerf(exId){
     entry={user_id:USER.id,seance_exercice_id:exId,exercice_nom:ex.exercice_nom||ex.nom,poids:p.poids,reps:p.reps||ex.reps,sets:ex.sets,rpe:p.rpe||null,week:WEEK};
   }
   sbP('performances',entry).then(function(){
+    var prevMax=(PERF[exId]||[]).length?Math.max.apply(null,PERF[exId].map(function(p){return parseFloat(p.poids)||0;})):0;
     if(!PERF[exId])PERF[exId]=[];
     PERF[exId].unshift(Object.assign({},entry,{date:new Date().toISOString()}));
+    if(prevMax>0&&entry.poids>prevMax){
+      setTimeout(function(){toast('\uD83D\uDD25 Nouveau PR — '+entry.exercice_nom+' '+entry.poids+'kg');},1500);
+    }
   }).catch(function(){});
 }
 
@@ -1893,6 +1924,7 @@ function autoVal(){
   });
   s.exercices.forEach(function(ex){if(!isSkipped(ex.id))localStorage.setItem('ex_'+ex.id+'_'+WEEK,'1');});
   localStorage.setItem('done_'+s.id+'_'+WEEK,'1');
+  setTimeout(function(){logSession(buildSeanceLogEntry(s));},60);
   var ss=SEANCES.filter(function(x){return x.prog_id===ACTPROG;});
   var idx=ss.findIndex(function(x){return x.id===s.id;});
   localStorage.setItem('li_'+ACTPROG,idx);
@@ -1928,6 +1960,7 @@ function valSess(){
   });
   s.exercices.forEach(function(ex){if(!isSkipped(ex.id))localStorage.setItem('ex_'+ex.id+'_'+WEEK,'1');});
   localStorage.setItem('done_'+s.id+'_'+WEEK,'1');
+  setTimeout(function(){logSession(buildSeanceLogEntry(s));},60);
   var ss2=SEANCES.filter(function(x){return x.prog_id===ACTPROG;});
   localStorage.setItem('li_'+ACTPROG,ss2.findIndex(function(x){return x.id===s.id;}));
   toast(s.nom+' validee !');renderWk();
@@ -3081,7 +3114,7 @@ function loadWodIntoChrono(norm){
   var raw=(WODBANK_RAW&&WODBANK_RAW[norm.id])||{};
   var mins=wodDureeMin(raw,norm.format);
   ACTIVE_WOD={id:norm.id,nom:norm.nom,format:norm.format,materiel:norm.materiel,desc:wodDescOf(raw)};
-  IV_STATE=null;
+  IV_STATE=null;WOD_START=Date.now();
   stopCF();
   CF_fmt=(norm.format==='EMOM')?'EMOM':(norm.format==='AMRAP')?'AMRAP':'For Time';
   CF_dur=mins*60;CF_rem=CF_dur;
@@ -3091,14 +3124,14 @@ function loadWodIntoChrono(norm){
 }
 function launchSimpleUserWod(u){
   ACTIVE_WOD={id:u.id,nom:u.nom,format:u.categorie.toUpperCase(),materiel:(u.exos||[]).map(function(e){return e.n;}).join(', '),desc:(u.exos||[]).map(function(e){return e.n+(e.r?' '+e.r:'');}).join(' · ')};
-  IV_STATE=null;
+  IV_STATE=null;WOD_START=Date.now();
   stopCF();
   CF_fmt='For Time';CF_dur=(u.dur||20)*60;CF_rem=CF_dur;
   document.getElementById('main-nav').style.display='flex';
   goNav('wod');
   toast(u.nom+' chargé dans le Chrono');
 }
-function clearActiveWod(){ACTIVE_WOD=null;ivStop();IV_STATE=null;renderChrono();}
+function clearActiveWod(){ACTIVE_WOD=null;ivStop();IV_STATE=null;WOD_START=null;renderChrono();}
 function completeActiveWod(){
   if(!ACTIVE_WOD)return;
   var ti=targetDay();
@@ -3113,8 +3146,10 @@ function completeActiveWod(){
     try{localStorage.setItem('seance_finbloc_done_'+FINBLOC_ACTIVE_SEANCE+'_'+WEEK,'1');}catch(e){}
     FINBLOC_ACTIVE_SEANCE=null;
   }
+  var dureeMin=WOD_START?Math.max(1,Math.round((Date.now()-WOD_START)/60000)):null;
+  logSession({type:'wod',nom:ACTIVE_WOD.nom,dureeMin:dureeMin,volume:0,series:0,exercices:[],wodInfo:{nom:ACTIVE_WOD.nom,format:ACTIVE_WOD.format,materiel:ACTIVE_WOD.materiel,desc:ACTIVE_WOD.desc}});
   toast(ACTIVE_WOD.nom+' marqué comme fait — '+DOWFULL[ti]);
-  ACTIVE_WOD=null;ivStop();IV_STATE=null;ADD_TARGET_DAY=null;
+  ACTIVE_WOD=null;ivStop();IV_STATE=null;ADD_TARGET_DAY=null;WOD_START=null;
   renderChrono();
 }
 
@@ -3122,7 +3157,7 @@ function completeActiveWod(){
 var IV_STATE=null;
 function launchIntervalWod(u){
   ACTIVE_WOD={id:u.id,nom:u.nom,format:u.categorie.toUpperCase(),materiel:(u.exos||[]).map(function(e){return e.n;}).join(', '),desc:(u.exos||[]).map(function(e){return e.n+(e.r?' '+e.r:'');}).join(' · ')};
-  stopCF();
+  stopCF();WOD_START=Date.now();
   IV_STATE={round:1,totalRounds:u.rounds,phase:'work',rem:u.work,workDur:u.work,restDur:u.rest,running:false,interval:null,phaseEndTs:null};
   document.getElementById('main-nav').style.display='flex';
   goNav('wod');
@@ -3826,6 +3861,110 @@ function openDayDetailHome(dayIdx){
   document.getElementById('modal-c').innerHTML=html;
   openModal();
 }
+
+// ── HISTORIQUE (journal de toutes les séances réellement faites) ────────
+function loadSessionLog(){try{return JSON.parse(localStorage.getItem('session_log')||'[]');}catch(e){return [];}}
+function saveSessionLog(l){try{localStorage.setItem('session_log',JSON.stringify(l));}catch(e){}}
+function logSession(entry){
+  var log=loadSessionLog();
+  entry.id='sl_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  entry.date=new Date().toISOString();
+  log.unshift(entry);
+  if(log.length>300)log=log.slice(0,300);
+  saveSessionLog(log);
+}
+function buildSeanceLogEntry(s){
+  var exercices=[],volume=0,series=0;
+  s.exercices.forEach(function(ex){
+    if(isSkipped(ex.id))return;
+    var last=(PERF[ex.id]||[])[0];
+    if(!last)return;
+    var detail=(last.detail&&last.detail.length)?last.detail:[{poids:last.poids,reps:last.reps}];
+    exercices.push({nom:ex.exercice_nom||ex.nom,muscle:ex.muscle||'',detail:detail,rpe:last.rpe||null});
+    detail.forEach(function(r){volume+=(parseFloat(r.poids)||0)*(parseFloat(r.reps)||0);series++;});
+  });
+  var prog=PROGS.find(function(p){return p.id===s.prog_id;});
+  var type=(prog&&prog.adhoc)?'libre':'seance';
+  var dureeMin=SESSION_START?Math.max(1,Math.round((Date.now()-SESSION_START)/60000)):null;
+  SESSION_START=null;
+  return {type:type,nom:s.nom,dureeMin:dureeMin,volume:Math.round(volume),series:series,exercices:exercices,finBloc:s.finBloc||null};
+}
+function fmtHistDate(iso){
+  var d=new Date(iso);
+  var mois=['JANV','FÉVR','MARS','AVR','MAI','JUIN','JUIL','AOÛT','SEPT','OCT','NOV','DÉC'];
+  return d.getDate()+' '+mois[d.getMonth()];
+}
+var HIST_FILTER='Tous';
+function setHistFilter(f){HIST_FILTER=f;renderHist();}
+function renderHist(){
+  var log=loadSessionLog();
+  var filters=['Tous','Muscu','WOD','Libre'];
+  document.getElementById('hist-filters').innerHTML=filters.map(function(f){
+    return '<button class="fbtn'+(HIST_FILTER===f?' on':'')+'" onclick="setHistFilter(\''+f+'\')">'+f+'</button>';
+  }).join('');
+  var typeMap={'Muscu':'seance','WOD':'wod','Libre':'libre'};
+  var filtered=log.filter(function(e){return HIST_FILTER==='Tous'||e.type===typeMap[HIST_FILTER];});
+  var el=document.getElementById('hist-c');
+  if(!filtered.length){
+    el.innerHTML='<div style="text-align:center;color:var(--txt4);font-size:12px;padding:40px 0">Aucune séance enregistrée pour l\'instant.</div>';
+    return;
+  }
+  var html='';
+  filtered.forEach(function(e,i){
+    var idx=log.indexOf(e);
+    var badge=e.type==='wod'?'WOD':e.type==='libre'?'LIBRE':'MUSCU';
+    html+='<div class="card" style="padding:13px 14px" onclick="openHistDetail('+idx+')">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">'
+      +'<div style="font-family:var(--font-cond);font-size:10px;font-weight:700;color:var(--txt4);letter-spacing:1px">'+fmtHistDate(e.date)+'</div>'
+      +'<span class="cbadge" style="font-size:9px">'+badge+'</span>'
+      +'</div>'
+      +'<div class="ctitle" style="font-size:19px;margin-bottom:4px">'+e.nom+'</div>'
+      +'<div style="display:flex;gap:14px;font-size:11.5px;color:var(--txt4)">'
+      +(e.dureeMin?'<span>'+e.dureeMin+' min</span>':'')
+      +(e.volume?'<span>'+Math.round(e.volume)+' kg</span>':'')
+      +(e.series?'<span>'+e.series+' séries</span>':'')
+      +'</div></div>';
+  });
+  el.innerHTML=html;
+}
+function openHistDetail(idx){
+  var log=loadSessionLog();
+  var e=log[idx];if(!e)return;
+  HIST_CUR=idx;
+  showSc('histdetail');
+  document.getElementById('hd-nom').textContent=e.nom;
+  document.getElementById('hd-sub').textContent=fmtHistDate(e.date)+(e.dureeMin?' · '+e.dureeMin+' min':'');
+  var html='<div class="gridcards" style="margin-bottom:16px">'
+    +(e.volume?'<div class="stat-card" style="text-align:center;padding:14px 8px"><div style="font-family:var(--font-display);font-weight:800;font-size:24px">'+Math.round(e.volume)+'</div><div style="font-family:var(--font-cond);font-size:9px;font-weight:700;color:var(--txt4);margin-top:2px">VOLUME KG</div></div>':'')
+    +(e.series?'<div class="stat-card" style="text-align:center;padding:14px 8px"><div style="font-family:var(--font-display);font-weight:800;font-size:24px">'+e.series+'</div><div style="font-family:var(--font-cond);font-size:9px;font-weight:700;color:var(--txt4);margin-top:2px">SÉRIES</div></div>':'')
+    +'</div>';
+  if(e.exercices&&e.exercices.length){
+    e.exercices.forEach(function(ex){
+      html+='<div class="exc" style="padding:11px 13px;margin-bottom:6px">'
+        +(ex.muscle?'<div class="emuscle">'+ex.muscle+'</div>':'')
+        +'<div class="en" style="margin-bottom:6px">'+ex.nom+'</div>';
+      (ex.detail||[]).forEach(function(r,ri){
+        html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid var(--border);font-size:12.5px">'
+          +'<span style="color:var(--txt4)">Série '+(ri+1)+'</span>'
+          +'<span style="color:var(--txt2)">'+r.poids+'kg &times; '+r.reps+(ex.rpe?' &middot; RPE '+ex.rpe:'')+'</span></div>';
+      });
+      html+='</div>';
+    });
+  }
+  if(e.wodInfo){
+    html+='<div class="card" style="padding:14px;border-color:var(--accent-b)">'
+      +'<div class="wbadge" style="color:var(--accent);border-color:var(--accent-b);background:var(--accent-bg);margin-bottom:6px">'+(e.wodInfo.format||'WOD')+'</div>'
+      +'<div style="font-family:var(--font-display);font-size:19px;font-weight:700;margin-bottom:4px">'+e.wodInfo.nom+'</div>'
+      +(e.wodInfo.materiel?'<div style="font-size:12px;color:var(--txt4);margin-bottom:6px">'+e.wodInfo.materiel+'</div>':'')
+      +(e.wodInfo.desc?'<div style="font-size:12.5px;color:var(--txt3);line-height:1.5">'+e.wodInfo.desc+'</div>':'')
+      +'</div>';
+  }
+  if(e.finBloc){
+    html+='<div class="sec">Fin de séance</div><div class="card" style="padding:12px;font-size:13px">'+finBlocSummary(e.finBloc)+'</div>';
+  }
+  document.getElementById('hd-c').innerHTML=html;
+}
+var HIST_CUR=null;
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 function initMain(){
