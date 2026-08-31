@@ -387,6 +387,21 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
   <div class="scroll" id="wt-c" style="padding-bottom:20px"></div>
 </div>
 
+<!-- J'AI X MINUTES -->
+<div class="screen" id="sc-xmin">
+  <div class="hdr">
+    <div class="hdr-row">
+      <button class="bk-btn" onclick="showSc('wodbank')">&#8592;</button>
+      <div style="flex:1;text-align:center">
+        <div class="htitle" style="font-size:17px">&#9889; J'ai X minutes</div>
+        <div class="hsub">Dis-nous ton temps et ton matériel</div>
+      </div>
+      <div style="width:34px"></div>
+    </div>
+  </div>
+  <div class="scroll" id="xmin-c"></div>
+</div>
+
 <!-- HISTORIQUE -->
 <div class="screen" id="sc-hist">
   <div class="hdr">
@@ -2968,7 +2983,8 @@ function renderWodBankList(){
     return true;
   }).slice(0,120);
   var fmts=wodCategories();
-  var html='<div class="srch-w"><span class="srch-ic">&#128269;</span><input class="srch-i" placeholder="Rechercher un WOD..." oninput="wbSearch(this.value)"></div>'
+  var html='<button class="btn btn-p" style="margin-bottom:12px" onclick="openXmin()">&#9889; J\'ai X minutes</button>'
+    +'<div class="srch-w"><span class="srch-ic">&#128269;</span><input class="srch-i" placeholder="Rechercher un WOD..." oninput="wbSearch(this.value)"></div>'
     +'<div class="fbar">'+fmts.map(function(f){return '<button class="fbtn'+(WB_FMT===f?' on':'')+'" onclick="wbSetFmt(\''+f+'\')">'+f+'</button>';}).join('')+'</div>'
     +'<button class="btn-ghost" style="border-style:dashed;margin-bottom:12px" onclick="openCreateWod()">+ Créer un WOD</button>';
   if(!WODBANK_NORM&&!loadUserWods().length){
@@ -3943,7 +3959,7 @@ function renderHist(){
   filtered.forEach(function(e,i){
     var idx=log.indexOf(e);
     var badge=e.type==='wod'?'WOD':e.type==='libre'?'LIBRE':'MUSCU';
-    html+='<div class="card" style="padding:13px 14px" onclick="openHistDetail('+idx+')">'
+    html+='<div class="card" style="padding:13px 14px;position:relative" onclick="openHistDetail('+idx+')">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">'
       +'<div style="font-family:var(--font-cond);font-size:10px;font-weight:700;color:var(--txt4);letter-spacing:1px">'+fmtHistDate(e.date)+'</div>'
       +'<span class="cbadge" style="font-size:9px">'+badge+'</span>'
@@ -3953,7 +3969,9 @@ function renderHist(){
       +(e.dureeMin?'<span>'+e.dureeMin+' min</span>':'')
       +(e.volume?'<span>'+Math.round(e.volume)+' kg</span>':'')
       +(e.series?'<span>'+e.series+' séries</span>':'')
-      +'</div></div>';
+      +'</div>'
+      +(e.notes?'<div style="position:absolute;right:12px;bottom:11px;width:22px;height:22px;border:1px solid var(--accent-b);background:var(--accent-bg);display:flex;align-items:center;justify-content:center" title="Note attachée"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h13l3 3v15H4z"></path><path d="M9 8h7M9 12h7M9 16h4"></path></svg></div>':'')
+      +'</div>';
   });
   el.innerHTML=html;
 }
@@ -4053,6 +4071,79 @@ function wkSaveNote(){
   sbPt('seances',{notes:val},'id=eq.'+s.id).catch(function(){});
   closeModal();renderWk();
   toast('Note enregistrée');
+}
+
+// ── "J'AI X MINUTES" — trouver un WOD adapté au temps/matériel dispo ────
+var XMIN_STATE={minutes:20,materiel:'Tout',format:'Tous'};
+var XMIN_DUR=[10,15,20,30,45,60];
+var XMIN_MAT={
+  'Tout':null,
+  'Aucun':['sans materiel','poids du corps','aucun'],
+  'Haltères':['haltere'],
+  'Barre':['barre'],
+  'Kettlebell':['kettlebell'],
+  'Machines':['machine','rameur','velo','assault bike','skierg']
+};
+function openXmin(){
+  if(!WODBANK_NORM){toast('Chargement...');loadWodBank().then(function(){showSc('xmin');renderXmin();});return;}
+  showSc('xmin');renderXmin();
+}
+function xminSetMin(m){XMIN_STATE.minutes=m;renderXmin();}
+function xminSetMat(m){XMIN_STATE.materiel=m;renderXmin();}
+function xminSetFmt(f){XMIN_STATE.format=f;renderXmin();}
+function xminMatOk(w){
+  var kws=XMIN_MAT[XMIN_STATE.materiel];
+  if(!kws)return true;
+  var mat=norm(w.materiel||'');
+  if(XMIN_STATE.materiel==='Aucun')return !mat||kws.some(function(k){return mat.indexOf(k)>=0;});
+  return kws.some(function(k){return mat.indexOf(k)>=0;});
+}
+function xminResults(){
+  var list=allWodsNorm();
+  var userWods=loadUserWods();
+  return list.map(function(w){
+    var dur;
+    if(w.isUser){
+      var u=userWods.find(function(x){return x.id===w.id;});
+      dur=u?(u.structureType==='rounds'?Math.round(u.rounds*(u.work+u.rest)/60):(u.dur||20)):20;
+    } else {
+      var raw=(WODBANK_RAW&&WODBANK_RAW[w.id])||{};
+      dur=wodDureeMin(raw,w.format);
+    }
+    return {w:w,dur:dur,diff:Math.abs(dur-XMIN_STATE.minutes)};
+  }).filter(function(x){
+    if(XMIN_STATE.format!=='Tous'&&x.w.format!==XMIN_STATE.format)return false;
+    if(!xminMatOk(x.w))return false;
+    return x.diff<=10;
+  }).sort(function(a,b){return a.diff-b.diff;}).slice(0,8);
+}
+function renderXmin(){
+  var html='<div class="lbl" style="margin-top:0">Durée</div>'
+    +'<div class="chips" style="margin-bottom:16px">'+XMIN_DUR.map(function(m){return '<button class="chip'+(XMIN_STATE.minutes===m?' on':'')+'" onclick="xminSetMin('+m+')">'+m+' min</button>';}).join('')+'</div>'
+    +'<div class="lbl">Matériel</div>'
+    +'<div class="chips" style="margin-bottom:16px">'+Object.keys(XMIN_MAT).map(function(m){return '<button class="chip'+(XMIN_STATE.materiel===m?' on':'')+'" onclick="xminSetMat(\''+m+'\')">'+m+'</button>';}).join('')+'</div>'
+    +'<div class="lbl">Format</div>'
+    +'<div class="chips" style="margin-bottom:20px">'+['Tous','EMOM','AMRAP','FOR TIME'].map(function(f){return '<button class="chip'+(XMIN_STATE.format===f?' on':'')+'" onclick="xminSetFmt(\''+f+'\')">'+f+'</button>';}).join('')+'</div>';
+  var results=xminResults();
+  XMIN_RESULTS=results;
+  html+='<div class="sec" style="margin-top:0">'+results.length+' WOD trouvé'+(results.length>1?'s':'')+'</div>';
+  if(!results.length){
+    html+='<div style="text-align:center;color:var(--txt4);font-size:12px;padding:20px 0">Aucun résultat — élargis le matériel ou le format.</div>';
+  } else {
+    results.forEach(function(r,ri){
+      html+='<div class="wod-card" onclick="xminPick('+ri+')">'
+        +'<div class="wbadge" style="color:var(--accent);border-color:var(--accent-b);background:var(--accent-bg)">'+r.w.format+'</div>'
+        +'<div style="font-family:var(--font-display);font-size:20px;font-weight:700;margin-bottom:4px">'+r.w.nom+'</div>'
+        +'<div style="display:flex;gap:10px;font-size:12px;color:var(--txt4)"><span>~'+r.dur+' min</span>'+(r.w.materiel?'<span>'+r.w.materiel+'</span>':'')+'</div>'
+        +'</div>';
+    });
+  }
+  document.getElementById('xmin-c').innerHTML=html;
+}
+var XMIN_RESULTS=[];
+function xminPick(ri){
+  var r=XMIN_RESULTS[ri];if(!r)return;
+  openWodDetail(r.w,'wodbank');
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
