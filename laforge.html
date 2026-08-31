@@ -1604,6 +1604,24 @@ function calcWt(ex){
 }
 
 function isSkipped(exId){return localStorage.getItem('skip_'+exId+'_'+WEEK)==='1';}
+function openExMenu(i){
+  var s=CURWK;if(!s||!s.exercices[i])return;
+  var ex=s.exercices[i];
+  var html='<div class="mtitle">'+(ex.exercice_nom||ex.nom)+'</div>'
+    +'<div class="choice" onclick="closeModal();openSwapEx('+i+')"><div class="ct">Remplacer l\'exercice</div><div class="cs">Uniquement pour cette séance</div></div>';
+  if(ex._nom_orig){
+    html+='<div class="choice" onclick="closeModal();revertSwapEx('+i+')"><div class="ct">Annuler le remplacement</div><div class="cs">Revenir à '+ex._nom_orig+'</div></div>';
+  }
+  if(i>0){
+    html+='<div class="choice" onclick="closeModal();moveExInSession('+i+',-1)"><div class="ct">Monter</div><div class="cs">Le remonter dans la liste</div></div>';
+  }
+  if(i<s.exercices.length-1){
+    html+='<div class="choice" onclick="closeModal();moveExInSession('+i+',1)"><div class="ct">Descendre</div><div class="cs">Le descendre dans la liste</div></div>';
+  }
+  html+='<div class="choice" style="border-color:rgba(193,84,63,.35)" onclick="closeModal();skipExInSession('+i+')"><div class="ct" style="color:var(--red)">Retirer de cette séance</div><div class="cs">Pas de matos, pas le temps... revient la prochaine fois</div></div>';
+  document.getElementById('modal-c').innerHTML=html;
+  openModal();
+}
 function renderWk(){
   var s=CURWK;if(!s)return;
   var scrollEl=document.querySelector('#sc-wk .scroll');
@@ -1645,25 +1663,15 @@ function renderWk(){
     var bsLabelWk=bsGroup?'<div style="font-size:9px;font-weight:700;color:var(--green);letter-spacing:.8px;text-transform:uppercase;margin-bottom:1px">BISET</div>':'';
     html+='<div class="exc'+(done?' done':'')+'" id="ex-'+i+'" style="'+bsBorderWk+'">'
       +'<div class="exc-row" onclick="togEx('+i+')">'
-      +'<div style="display:flex;flex-direction:column;flex-shrink:0;margin-right:2px">'
-      +'<button onclick="event.stopPropagation();moveExInSession('+i+',-1)" '+(i===0?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+' aria-label="Monter">'
-      +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg></button>'
-      +'<button onclick="event.stopPropagation();moveExInSession('+i+',1)" '+(i===exos.length-1?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+' aria-label="Descendre">'
-      +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>'
-      +'</div>'
       +'<div class="exc-chk" onclick="event.stopPropagation();chkEx('+i+',\''+ex.id+'\')">'+( done?'&#10003;':'')+'</div>'
       +'<div class="exc-body">'
       +bsLabelWk
       +(ex.muscle?'<div class="emuscle">'+ex.muscle+'</div>':'')
       +'<div class="en">'+(ex.exercice_nom||ex.nom)+'</div>'
-      +(ex._nom_orig?'<div class="emeta" style="color:var(--green);cursor:pointer" onclick="event.stopPropagation();revertSwapEx('+i+')">remplace '+ex._nom_orig+' \u21ba</div>':'')
       +'<div class="emeta">'+ex.sets+'x'+reps+'</div>'
       +'</div>'
-      +'<button class="btn-icon-swap" onclick="event.stopPropagation();openSwapEx('+i+')" aria-label="Changer d\'exercice">'
-      +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"></path><path d="M3 11v-1a4 4 0 0 1 4-4h14"></path><path d="m7 22-4-4 4-4"></path><path d="M21 13v1a4 4 0 0 1-4 4H3"></path></svg>'
-      +'</button>'
-      +'<button class="btn-icon-swap" onclick="event.stopPropagation();skipExInSession('+i+')" aria-label="Retirer de cette séance" style="margin-left:4px">'
-      +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>'
+      +'<button class="btn-icon-swap" onclick="event.stopPropagation();openExMenu('+i+')" aria-label="Modifier">'
+      +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>'
       +'</button>'
       +'<div class="ewt">'+wtHtml+'</div>'
       +'</div>'
