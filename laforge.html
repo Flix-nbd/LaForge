@@ -319,11 +319,6 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
       </div>
     </div>
     <div class="hsub" id="h-date" style="opacity:.7;text-align:left;margin-top:6px"></div>
-    <div style="display:flex;justify-content:center;gap:22px;margin-top:12px">
-      <button onclick="goNav('prog')" style="background:none;border:none;color:var(--txt3);font-family:var(--font-cond);font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;padding:2px 0">Programme</button>
-      <button onclick="goNav('hist')" style="background:none;border:none;color:var(--txt3);font-family:var(--font-cond);font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;padding:2px 0">Historique</button>
-      <button onclick="goNav('stats')" style="background:none;border:none;color:var(--txt3);font-family:var(--font-cond);font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;padding:2px 0">Perf</button>
-    </div>
   </div>
   <div class="scroll">
     <div id="h-cards"></div>
@@ -361,7 +356,7 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 <!-- PROGRAMME -->
 <div class="screen" id="sc-prog">
   <div class="hdr">
-    <div class="hdr-row"><div><div class="htitle">Programme</div><div class="hsub" id="prog-sub"></div></div></div>
+    <div class="hdr-row"><div style="flex:1;text-align:center"><div class="htitle">Programme</div><div class="hsub" id="prog-sub"></div></div></div>
   </div>
   <div class="scroll" id="prog-c"></div>
 </div>
@@ -410,7 +405,7 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 <!-- HISTORIQUE -->
 <div class="screen" id="sc-hist">
   <div class="hdr">
-    <div class="hdr-row"><div><div class="htitle">Historique</div><div class="hsub">Tout ce que tu as réellement fait</div></div></div>
+    <div class="hdr-row"><div style="flex:1;text-align:center"><div class="htitle">Historique</div><div class="hsub">Tout ce que tu as réellement fait</div></div></div>
     <div class="fbar" id="hist-filters" style="margin-top:8px"></div>
   </div>
   <div class="scroll" id="hist-c"></div>
@@ -434,7 +429,7 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 <!-- STATS -->
 <div class="screen" id="sc-stats">
   <div class="hdr">
-    <div class="hdr-row"><div><div class="htitle">Perf</div><div class="hsub">Recap de tes performances - epingle les exos a suivre</div></div></div>
+    <div class="hdr-row"><div style="flex:1;text-align:center"><div class="htitle">Perf</div><div class="hsub">Recap de tes performances - epingle les exos a suivre</div></div></div>
   </div>
   <div class="scroll" id="stats-c"></div>
 </div>
