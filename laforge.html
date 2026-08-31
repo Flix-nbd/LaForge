@@ -265,6 +265,12 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 .sdiv{height:1px;background:var(--border);margin:12px 0}
 .toast{position:fixed;top:56px;left:50%;transform:translateX(-50%) translateY(-8px);background:var(--txt);border:none;color:var(--bg);padding:9px 18px;border-radius:0;font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:0;transition:opacity .25s;pointer-events:none;z-index:999;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.pr-toast{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;align-items:center;gap:12px;padding:calc(var(--st) + 14px) 20px 16px;background:linear-gradient(180deg,var(--accent),#C97540);color:#0C0C0B;box-shadow:0 4px 24px rgba(222,138,84,.4);transform:translateY(-100%);transition:transform .35s cubic-bezier(.2,.9,.3,1.3);pointer-events:none}
+.pr-toast.show{transform:translateY(0)}
+.pr-toast-icon{font-size:30px;line-height:1;flex-shrink:0}
+.pr-toast-txt{flex:1;min-width:0}
+.pr-toast-lbl{font-family:var(--font-cond);font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;opacity:.85}
+.pr-toast-main{font-family:var(--font-display);font-size:20px;font-weight:800;line-height:1.15;margin-top:1px}
 /* écrans additionnels — Forge épurée */
 .stepper{display:flex;align-items:center;justify-content:center;gap:0;border:1px solid var(--border2);background:var(--card)}
 .stepper button{width:54px;height:64px;flex-shrink:0;background:var(--card2);border:none;color:var(--txt2);font-size:20px;cursor:pointer}
@@ -657,6 +663,7 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="pr-toast" id="pr-toast"></div>
 
 <script>
 var LS_KEY='laforge_db';
@@ -928,6 +935,15 @@ function saveL(){try{localStorage.setItem('pgx',JSON.stringify({week:WEEK,act:AC
 function loadL(){try{var d=JSON.parse(localStorage.getItem('pgx'));if(d){WEEK=d.week||1;ACTPROG=d.act;}}catch(e){}}
 
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
+function prToast(nom,poids){
+  var el=document.getElementById('pr-toast');
+  el.innerHTML='<div class="pr-toast-icon">&#128293;</div><div class="pr-toast-txt"><div class="pr-toast-lbl">Nouveau record</div><div class="pr-toast-main">'+nom+' — '+poids+' kg</div></div>';
+  el.classList.add('show');
+  if(navigator.vibrate)navigator.vibrate([80,40,80]);
+  clearTimeout(PR_TOAST_TO);
+  PR_TOAST_TO=setTimeout(function(){el.classList.remove('show');},4000);
+}
+var PR_TOAST_TO=null;
 function showSc(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});document.getElementById('sc-'+id).classList.add('active');}
 function openModal(){document.getElementById('mov').classList.add('show');}
 function closeModal(){document.getElementById('mov').classList.remove('show');}
@@ -1908,7 +1924,7 @@ function savePerf(exId){
     if(!PERF[exId])PERF[exId]=[];
     PERF[exId].unshift(Object.assign({},entry,{date:new Date().toISOString()}));
     if(prevMax>0&&entry.poids>prevMax){
-      setTimeout(function(){toast('\uD83D\uDD25 Nouveau PR — '+entry.exercice_nom+' '+entry.poids+'kg');},1500);
+      setTimeout(function(){prToast(entry.exercice_nom,entry.poids);},1500);
     }
   }).catch(function(){});
 }
@@ -2046,14 +2062,21 @@ function renderStats(){
       +'</div></div>';
   }
 
-  var muscles=Array.from(new Set(allEx.map(function(e){return e.muscle;}).filter(Boolean))).slice(0,3);
-  var filters=['Tous','Épinglés'].concat(muscles);
+  var MUSCLE_GROUPS={
+    'Pectoraux':['Pectoraux'],
+    'Dos':['Dos'],
+    'Épaules':['Épaules'],
+    'Bras':['Triceps','Biceps'],
+    'Jambes':['Quadriceps','Ischio-jambiers','Fessiers','Mollets']
+  };
+  var filters=['Tous','Épinglés'].concat(Object.keys(MUSCLE_GROUPS));
   var filterHtml='<div class="fbar">'+filters.map(function(f){return '<button class="fbtn'+(STATS_FILTER===f?' on':'')+'" onclick="setStatsFilter(\''+f.replace(/'/g,"\\'")+'\')">'+f+'</button>';}).join('')+'</div>';
 
   var shown=allEx.filter(function(e){
     if(STATS_FILTER==='Tous')return true;
     if(STATS_FILTER==='Épinglés')return !!PINS[e.exercice_nom||e.nom];
-    return e.muscle===STATS_FILTER;
+    var group=MUSCLE_GROUPS[STATS_FILTER];
+    return group?group.indexOf(e.muscle)>=0:e.muscle===STATS_FILTER;
   });
   var listHtml=shown.map(cardHtml).join('')||'<div style="text-align:center;color:var(--txt4);font-size:12px;padding:30px 0">Aucun exercice dans ce filtre</div>';
 
