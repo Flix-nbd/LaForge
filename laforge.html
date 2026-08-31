@@ -2058,9 +2058,12 @@ function renderBlocBody(i,ex,wp){
 function blocValiderSerie(i,exId){
   if(!WKP[exId])WKP[exId]={};
   var wp=WKP[exId];
-  if(!wp.blocs||!wp.blocs.length){toast('Choisis d\'abord un bloc');return;}
-  var lastBloc=wp.blocs[wp.blocs.length-1];
-  if(lastBloc.kind==='emom'){toast('Termine d\'abord le bloc EMOM en cours');return;}
+  if(!wp.blocs)wp.blocs=[];
+  var lastBloc=wp.blocs.length?wp.blocs[wp.blocs.length-1]:null;
+  if(!lastBloc||lastBloc.kind==='emom'){
+    lastBloc={kind:'series',label:'Bloc '+(wp.blocs.length+1),series:[]};
+    wp.blocs.push(lastBloc);
+  }
   var cur=wp._cur||{};
   if(cur.reps===''||cur.reps===undefined){toast('Renseigne au moins les reps');return;}
   lastBloc.series.push({poids:cur.poids||0,reps:cur.reps,rpe:cur.rpe});
@@ -2098,7 +2101,9 @@ function blocEmomAdjCfg(k,d,min,max){
 }
 function blocEmomCreate(){
   var exId=BLOC_EMOM_TARGET;var wp=WKP[exId];if(!wp||!wp.blocs)return;
-  wp.blocs.push({kind:'emom',label:'EMOM '+BLOC_EMOM_CFG.duree+' min',emomData:{duree:BLOC_EMOM_CFG.duree,objectif:BLOC_EMOM_CFG.objectif,log:{},validated:false}});
+  var log={};
+  for(var m=1;m<=BLOC_EMOM_CFG.duree;m++)log[m]=BLOC_EMOM_CFG.objectif;
+  wp.blocs.push({kind:'emom',label:'EMOM '+BLOC_EMOM_CFG.duree+' min',emomData:{duree:BLOC_EMOM_CFG.duree,objectif:BLOC_EMOM_CFG.objectif,log:log,validated:false}});
   closeModal();
   refreshExpand(exId);
 }
@@ -2405,21 +2410,45 @@ function renderStats(){
     var nom=e.exercice_nom||e.nom;
     var perfs=PERF[e.id]||[];
     var last=perfs.length?perfs[0]:null;
-    var pr=perfs.length?Math.max.apply(null,perfs.map(function(p){return parseFloat(p.poids)||0;})):0;
+    var isPdc=!!pdcNames[nom];
+    var maxPoids=0,maxReps=0;
+    perfs.forEach(function(p){
+      maxPoids=Math.max(maxPoids,parseFloat(p.poids)||0);
+      if(p.detail&&p.detail.length)p.detail.forEach(function(r){maxReps=Math.max(maxReps,parseInt(r.reps)||0);});
+      else maxReps=Math.max(maxReps,parseInt(p.reps)||0);
+    });
+    var recordVal,recordLbl;
+    if(maxPoids>0){recordVal=maxPoids;recordLbl='RECORD KG';}
+    else if(maxReps>0){recordVal=maxReps;recordLbl='MAX REPS';}
+    else{recordVal=0;recordLbl='RECORD';}
     var pinned=!!PINS[nom];
     var vs=exVolumeSeries(last);
+    var totalReps=0;
+    if(last){
+      if(last.detail&&last.detail.length)last.detail.forEach(function(r){totalReps+=parseInt(r.reps)||0;});
+      else totalReps=(parseInt(last.reps)||0)*(parseInt(last.sets)||1);
+    }
+    var lastSum='\u2014';
+    if(last){
+      if(last.detail&&last.detail.length){
+        lastSum=last.detail.map(function(r){return (r.poids?r.poids+'kg\u00d7':'')+r.reps;}).join(', ');
+      } else {
+        lastSum=(last.poids?last.poids+'kg\u00d7':'')+(last.reps||'');
+      }
+    }
+    var showKgVolume=maxPoids>0;
     return '<div class="card cross" style="position:relative;padding:14px" onclick="setChEx(\''+e.id+'\')">'
       +'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2px">'
-      +'<div><div class="emuscle">'+(e.muscle||'')+'</div><div style="font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--txt);margin-top:2px">'+nom+'</div></div>'
+      +'<div><div class="emuscle">'+(e.muscle||'')+(isPdc?' \u00b7 PDC':'')+'</div><div style="font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--txt);margin-top:2px">'+nom+'</div></div>'
       +'<div style="text-align:right;flex-shrink:0;margin-left:8px">'
-      +'<div style="font-family:var(--font-display);font-size:26px;font-weight:800;color:var(--accent);line-height:1">'+(pr?pr:'\u2014')+'</div>'
-      +'<div style="font-family:var(--font-cond);font-size:9px;font-weight:700;color:var(--txt4);letter-spacing:1px">RECORD</div>'
+      +'<div style="font-family:var(--font-display);font-size:26px;font-weight:800;color:var(--accent);line-height:1">'+(recordVal?recordVal:'\u2014')+'</div>'
+      +'<div style="font-family:var(--font-cond);font-size:9px;font-weight:700;color:var(--txt4);letter-spacing:1px">'+recordLbl+'</div>'
       +'<button onclick="event.stopPropagation();togPin(\''+nom.replace(/'/g,"\\'")+'\')" style="margin-top:6px;width:30px;height:30px;background:none;border:1px solid var(--border2);cursor:pointer;color:'+(pinned?'var(--accent)':'var(--txt4)')+'">'
       +'<svg width="15" height="15" viewBox="0 0 24 24" fill="'+(pinned?'currentColor':'none')+'" stroke="currentColor" stroke-width="1.6"><path d="M12 17v5"></path><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path></svg>'
       +'</button></div></div>'
-      +'<div style="display:flex;border-top:1px solid var(--border);margin-top:10px;padding-top:8px">'
-      +'<div style="flex:1"><div class="stat-k" style="font-size:10px">Dernière</div><div class="stat-v">'+(last?last.poids+'kg':'\u2014')+'</div></div>'
-      +'<div style="flex:1"><div class="stat-k" style="font-size:10px">Volume</div><div class="stat-v">'+(vs.vol!==null?vs.vol+'kg':'\u2014')+'</div></div>'
+      +'<div style="font-size:11.5px;color:var(--txt3);margin-bottom:8px">Dernière fois : '+lastSum+'</div>'
+      +'<div style="display:flex;border-top:1px solid var(--border);padding-top:8px">'
+      +'<div style="flex:1"><div class="stat-k" style="font-size:10px">'+(showKgVolume?'Volume':'Total reps')+'</div><div class="stat-v">'+(showKgVolume?(vs.vol!==null?vs.vol+'kg':'\u2014'):(last?totalReps:'\u2014'))+'</div></div>'
       +'<div style="flex:1"><div class="stat-k" style="font-size:10px">Séries</div><div class="stat-v">'+(vs.series!==null?vs.series:'\u2014')+'</div></div>'
       +'</div></div>';
   }
@@ -4466,8 +4495,7 @@ var HIST_CUR=null;
 function openWkAddMenu(){
   var s=CURWK;if(!s)return;
   document.getElementById('modal-c').innerHTML='<div class="mtitle">Ajouter à la séance</div>'
-    +'<div class="choice" onclick="closeModal();wkOpenAddEx()"><div class="ct">Exercice</div><div class="cs">Chercher dans la base</div></div>'
-    +'<div class="choice" onclick="closeModal();openEmomConfig()"><div class="ct">EMOM</div><div class="cs">Ex. Tractions — objectif reps/minute</div></div>'
+    +'<div class="choice" onclick="closeModal();wkOpenAddEx()"><div class="ct">Exercice</div><div class="cs">Chercher dans la base — active le mode blocs (PDC) pour un EMOM</div></div>'
     +'<div class="choice" onclick="closeModal();openFinBlocForSeance(\'A\')"><div class="ct">WOD</div><div class="cs">Depuis la banque, ou crée le tien</div></div>'
     +'<div class="choice" onclick="closeModal();openFinBlocForSeance(\'B\')"><div class="ct">Cardio</div><div class="cs">Rameur, vélo, ski — durée et intensité</div></div>'
     +'<div class="choice" onclick="closeModal();openWkNote()"><div class="ct">Note</div><div class="cs">'+(s.notes?'Modifier la note':'Ajouter une note libre')+'</div></div>';
