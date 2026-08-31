@@ -1840,25 +1840,61 @@ function refreshExpand(exId){
 
 function togEx(i){var el=document.getElementById('ex-'+i);if(el)el.classList.toggle('open');}
 
+var SWAP_SAMEMUSC=true, SWAP_EQ=[];
 function openSwapEx(i){
   var s=CURWK;if(!s||!s.exercices[i])return;
+  SWAP_SAMEMUSC=true;SWAP_EQ=[];
+  var curMuscle=s.exercices[i].muscle||'';
+  var eqList=['Poids de corps / sans matériel','Haltères','Barre','Machine','Poulie','Élastique','Kettlebell'];
   document.getElementById('modal-c').innerHTML='<div class="mtitle">Remplacer l\'exercice</div>'
     +'<div style="font-size:11px;color:var(--txt3);margin-bottom:9px">Uniquement pour cette seance \u2014 ton programme ne change pas.</div>'
+    +(curMuscle?('<div class="chips" style="margin-bottom:8px" id="swap-musc-chips">'
+      +'<button class="chip on" id="swap-musc-same" onclick="swapToggleMuscle(true,'+i+')">'+curMuscle+' uniquement</button>'
+      +'<button class="chip" id="swap-musc-all" onclick="swapToggleMuscle(false,'+i+')">Tous les muscles</button>'
+      +'</div>'):'')
+    +(EX_FULL?('<div class="lbl" style="margin-top:0">Matériel disponible <span style="color:var(--txt4);text-transform:none;font-weight:600">· optionnel</span></div>'
+      +'<div class="chips" style="margin-bottom:10px" id="swap-eq-chips">'
+      +eqList.map(function(eq){return '<button class="chip" data-eq="'+eq.replace(/"/g,'&quot;')+'" onclick="swapToggleEq(this,\''+i+'\')">'+eq+'</button>';}).join('')
+      +'</div>'):'')
     +'<div class="srch-w"><span class="srch-ic">&#128269;</span>'
     +'<input class="srch-i" id="srch" placeholder="Rechercher un exercice..." oninput="filterSwapEx(this.value,'+i+')"></div>'
     +'<div class="srch-res" id="srch-res"></div>';
   filterSwapEx('',i);openModal();
 }
-
+function swapToggleMuscle(same,i){
+  SWAP_SAMEMUSC=same;
+  var b1=document.getElementById('swap-musc-same'),b2=document.getElementById('swap-musc-all');
+  if(b1)b1.classList.toggle('on',same);
+  if(b2)b2.classList.toggle('on',!same);
+  filterSwapEx(document.getElementById('srch').value,i);
+}
+function swapToggleEq(btn,i){
+  var eq=btn.getAttribute('data-eq');
+  var idx=SWAP_EQ.indexOf(eq);
+  if(idx>=0){SWAP_EQ.splice(idx,1);btn.classList.remove('on');}
+  else{SWAP_EQ.push(eq);btn.classList.add('on');}
+  filterSwapEx(document.getElementById('srch').value,i);
+}
 function filterSwapEx(val,i){
   var src=EX_FULL||EX;
+  var s=CURWK;
+  var curMuscle=(s&&s.exercices[i]&&s.exercices[i].muscle)||'';
   var n=norm(val);
-  var res=src.filter(function(e){return norm(e.n).indexOf(n)>=0||norm(e.m).indexOf(n)>=0;}).slice(0,20);
+  var res=src.filter(function(e){
+    if(n&&norm(e.n).indexOf(n)<0&&norm(e.m).indexOf(n)<0)return false;
+    if(SWAP_SAMEMUSC&&curMuscle&&e.m!==curMuscle)return false;
+    if(SWAP_EQ.length&&EX_FULL){
+      var eq=e.eq||[];
+      if(!SWAP_EQ.some(function(x){return eq.indexOf(x)>=0;}))return false;
+    }
+    return true;
+  }).slice(0,25);
   var html='';
+  if(!res.length)html='<div style="text-align:center;color:var(--txt4);font-size:12px;padding:16px 0">Aucun résultat \u2014 élargis le muscle ou le matériel.</div>';
   res.forEach(function(e){
     var nn=e.n.replace(/'/g,"\\'");var mm=(e.m||'').replace(/'/g,"\\'");
     html+='<div class="srch-item" onclick="swapExFn('+i+',\''+nn+'\',\''+mm+'\')">'
-      +'<div class="snom">'+e.n+'</div><div class="smus">'+(e.m||'')+'</div></div>';
+      +'<div class="snom">'+e.n+'</div><div class="smus">'+(e.m||'')+(e.eq&&e.eq.length?' · '+e.eq.join(', '):'')+'</div></div>';
   });
   document.getElementById('srch-res').innerHTML=html;
 }
@@ -2638,7 +2674,7 @@ function updT(){
 var EX_FULL=null, WODBANK_NORM=null, WODBANK_RAW=null;
 function loadExFull(){
   return fetch('exercices_musculation.json').then(function(r){return r.json();}).then(function(arr){
-    EX_FULL=arr.map(function(e){return {n:e.nom,m:e.groupe_musculaire};});
+    EX_FULL=arr.map(function(e){return {n:e.nom,m:e.groupe_musculaire,eq:e.equipement||[]};});
   }).catch(function(){EX_FULL=null;});
 }
 function normWod(w,section){
@@ -4077,12 +4113,13 @@ function wkSaveNote(){
 var XMIN_STATE={minutes:20,materiel:'Tout',format:'Tous'};
 var XMIN_DUR=[10,15,20,30,45,60];
 var XMIN_MAT={
-  'Tout':null,
-  'Aucun':['sans materiel','poids du corps','aucun'],
-  'Haltères':['haltere'],
-  'Barre':['barre'],
-  'Kettlebell':['kettlebell'],
-  'Machines':['machine','rameur','velo','assault bike','skierg']
+  'Tout':{inc:null,exc:[]},
+  'Aucun':{inc:['sans materiel','poids du corps','aucun'],exc:[]},
+  'Haltères':{inc:['haltere'],exc:[]},
+  'Barre':{inc:['barre'],exc:['traction']},
+  'Barre de traction':{inc:['traction','pull-up','pull up'],exc:[]},
+  'Kettlebell':{inc:['kettlebell'],exc:[]},
+  'Machines':{inc:['machine','rameur','velo','assault bike','skierg'],exc:[]}
 };
 function openXmin(){
   if(!WODBANK_NORM){toast('Chargement...');loadWodBank().then(function(){showSc('xmin');renderXmin();});return;}
@@ -4092,11 +4129,12 @@ function xminSetMin(m){XMIN_STATE.minutes=m;renderXmin();}
 function xminSetMat(m){XMIN_STATE.materiel=m;renderXmin();}
 function xminSetFmt(f){XMIN_STATE.format=f;renderXmin();}
 function xminMatOk(w){
-  var kws=XMIN_MAT[XMIN_STATE.materiel];
-  if(!kws)return true;
+  var rule=XMIN_MAT[XMIN_STATE.materiel];
+  if(!rule||!rule.inc)return true;
   var mat=norm(w.materiel||'');
-  if(XMIN_STATE.materiel==='Aucun')return !mat||kws.some(function(k){return mat.indexOf(k)>=0;});
-  return kws.some(function(k){return mat.indexOf(k)>=0;});
+  if(rule.exc.some(function(k){return mat.indexOf(k)>=0;}))return false;
+  if(XMIN_STATE.materiel==='Aucun')return !mat||rule.inc.some(function(k){return mat.indexOf(k)>=0;});
+  return rule.inc.some(function(k){return mat.indexOf(k)>=0;});
 }
 function xminResults(){
   var list=allWodsNorm();
