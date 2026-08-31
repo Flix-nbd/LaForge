@@ -564,7 +564,10 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
     </div>
   </div>
   <div class="scroll" id="wd-c" style="padding-bottom:110px"></div>
-  <div class="vbar"><button class="btn btn-p" id="wd-action-btn" onclick="wodDetailAction()">Lancer le chrono</button></div>
+  <div class="vbar" style="display:flex;flex-direction:column;gap:8px">
+    <button class="btn btn-p" id="wd-action-btn" style="margin:0" onclick="wodDetailAction()">Lancer le chrono</button>
+    <button class="btn-ghost" id="wd-addseance-btn" onclick="addWodToSeance()">+ Ajouter à une séance</button>
+  </div>
 </div>
 
 <!-- AJOUTER UNE SEANCE (choix du type) -->
@@ -1587,7 +1590,17 @@ function openWk(el){
   showSc('wk');
   document.getElementById('main-nav').style.display='none';
   document.getElementById('tfab').classList.add('show');
-  renderWk();
+  migrateFinBlocToItem(CURWK).then(renderWk);
+}
+function migrateFinBlocToItem(s){
+  if(!s.finBloc)return Promise.resolve();
+  var fb=s.finBloc;
+  var nom=fb.type==='A'?(fb.wodNom||'WOD'):fb.type==='B'?'Ergo':'Rounds ergo';
+  return sbP('seance_exercices',{seance_id:s.id,user_id:USER.id,type:'wod',exercice_nom:nom,muscle:'',wodBloc:fb,ordre:s.exercices.length}).then(function(arr){
+    s.exercices.push(arr[0]);
+    s.finBloc=null;
+    return sbPt('seances',{finBloc:null},'id=eq.'+s.id);
+  }).catch(function(){});
 }
 
 function calcWt(ex){
@@ -1607,10 +1620,19 @@ function isSkipped(exId){return localStorage.getItem('skip_'+exId+'_'+WEEK)==='1
 function openExMenu(i){
   var s=CURWK;if(!s||!s.exercices[i])return;
   var ex=s.exercices[i];
-  var html='<div class="mtitle">'+(ex.exercice_nom||ex.nom)+'</div>'
-    +'<div class="choice" onclick="closeModal();openSwapEx('+i+')"><div class="ct">Remplacer l\'exercice</div><div class="cs">Uniquement pour cette séance</div></div>';
-  if(ex._nom_orig){
-    html+='<div class="choice" onclick="closeModal();revertSwapEx('+i+')"><div class="ct">Annuler le remplacement</div><div class="cs">Revenir à '+ex._nom_orig+'</div></div>';
+  var html='<div class="mtitle">'+(ex.exercice_nom||ex.nom)+'</div>';
+  if(ex.type==='wod'){
+    html+='<div class="choice" onclick="closeModal();openWodItemConfig('+i+')"><div class="ct">Configurer le bloc</div><div class="cs">WOD banque, ergo ou rounds</div></div>';
+    if(ex.wodBloc&&ex.wodBloc.type==='A'&&ex.wodBloc.wodId){
+      html+='<div class="choice" onclick="closeModal();wodItemDetail('+i+')"><div class="ct">Voir le détail / Lancer</div><div class="cs">Ouvre le Chrono</div></div>';
+    }
+    var done=localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1';
+    if(!done)html+='<div class="choice" onclick="closeModal();markWodItemDone('+i+')"><div class="ct">Marquer comme fait</div><div class="cs">Déjà réalisé, sans passer par le Chrono</div></div>';
+  } else {
+    html+='<div class="choice" onclick="closeModal();openSwapEx('+i+')"><div class="ct">Remplacer l\'exercice</div><div class="cs">Uniquement pour cette séance</div></div>';
+    if(ex._nom_orig){
+      html+='<div class="choice" onclick="closeModal();revertSwapEx('+i+')"><div class="ct">Annuler le remplacement</div><div class="cs">Revenir à '+ex._nom_orig+'</div></div>';
+    }
   }
   if(i>0){
     html+='<div class="choice" onclick="closeModal();moveExInSession('+i+',-1)"><div class="ct">Monter</div><div class="cs">Le remonter dans la liste</div></div>';
@@ -1629,7 +1651,7 @@ function renderWk(){
   document.getElementById('wk-t').textContent=s.nom;
   var exos=s.exercices||[];
   var activeExos=exos.filter(function(e){return !isSkipped(e.id);});
-  document.getElementById('wk-s').textContent=activeExos.length+' exercices · S'+WEEK;
+  document.getElementById('wk-s').textContent=activeExos.length+' éléments · S'+WEEK;
   var dc=activeExos.filter(function(e){return localStorage.getItem('ex_'+e.id+'_'+WEEK)==='1';}).length;
   var pct=activeExos.length?Math.round(dc/activeExos.length*100):0;
   document.getElementById('wk-ring').setAttribute('stroke-dashoffset',81.7-(pct/100)*81.7);
@@ -1654,6 +1676,22 @@ function renderWk(){
       return;
     }
     var done=localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1';
+    if(ex.type==='wod'){
+      html+='<div class="exc'+(done?' done':'')+'" id="ex-'+i+'" style="border-left:3px solid var(--accent)">'
+        +'<div class="exc-row" onclick="togEx('+i+')">'
+        +'<div class="exc-chk" onclick="event.stopPropagation();chkEx('+i+',\''+ex.id+'\')">'+(done?'&#10003;':'')+'</div>'
+        +'<div class="exc-body">'
+        +'<div class="emuscle" style="color:var(--accent)">WOD</div>'
+        +'<div class="en">'+(ex.exercice_nom||ex.nom)+'</div>'
+        +'<div class="emeta">'+finBlocSummary(ex.wodBloc)+'</div>'
+        +'</div>'
+        +'<button class="btn-icon-swap" onclick="event.stopPropagation();openExMenu('+i+')" aria-label="Modifier">'
+        +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>'
+        +'</button>'
+        +'</div>'
+        +'<div class="exc-expand"><div id="ed-'+i+'">'+renderWodItemBody(i,ex)+'</div></div></div>';
+      return;
+    }
     var wt=calcWt(ex);
     var wp=WKP[ex.id]||{};
     var reps=ex.max_reps?'Max':ex.reps+' reps';
@@ -1679,45 +1717,50 @@ function renderWk(){
       +'<div id="ed-'+i+'">'+renderExpandBody(i,ex,wp)+'</div>'
       +'</div></div>';
   });
-  var finBlocDone=localStorage.getItem('seance_finbloc_done_'+s.id+'_'+WEEK)==='1';
-  html+='<div class="sec">Fin de séance</div>'
-    +'<div class="card cross" style="position:relative;padding:14px'+(finBlocDone?';border-color:var(--accent-b)':'')+'">'
-    +(s.finBloc?(
-      '<div style="font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:4px">'+finBlocSummary(s.finBloc)+(finBlocDone?' <span style="color:var(--accent);font-size:12px">&#10003; Fait</span>':'')+'</div>'
-      +'<div style="display:flex;gap:8px;margin-top:8px">'
-      +'<button class="btn-s btn-sm" style="flex:1" onclick="openFinBlocForSeance()">Configurer</button>'
-      +(s.finBloc.type==='A'&&s.finBloc.wodId?'<button class="btn-s btn-sm" style="flex:1" onclick="seanceWodDetail()">Voir le détail</button>':'')
-      +'</div>'
-    ):(
-      '<div style="font-size:12.5px;color:var(--txt4);margin-bottom:8px">Aucun bloc de fin de séance pour l\'instant.</div>'
-      +'<button class="btn-ghost" style="border-style:dashed" onclick="openFinBlocForSeance()">+ Ajouter un bloc de fin de séance</button>'
-    ))
-    +'</div>';
   html+='<div id="mob-c" style="margin-top:16px"></div>';
   document.getElementById('wk-c').innerHTML=html;
   renderMobSection();
   if(scrollEl)scrollEl.scrollTop=scrollTop;
 }
-var FINBLOC_ACTIVE_SEANCE=null;
-function seanceWodDetail(){
-  var s=CURWK;if(!s||!s.finBloc||s.finBloc.type!=='A')return;
-  var wodId=s.finBloc.wodId;
-  FINBLOC_ACTIVE_SEANCE=s.id;
+var FINBLOC_ACTIVE_SEANCE=null, FINBLOC_ACTIVE_ITEM=null;
+function renderWodItemBody(i,ex){
+  var fb=ex.wodBloc||{};
+  var done=localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1';
+  var html='<div style="font-size:13px;color:var(--txt2);margin-bottom:10px">'+finBlocSummary(fb)+(done?' <span style="color:var(--accent)">&#10003; Fait</span>':'')+'</div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="btn-s btn-sm" style="flex:1" onclick="event.stopPropagation();openWodItemConfig('+i+')">Configurer</button>';
+  if(fb.type==='A'&&fb.wodId){
+    html+='<button class="btn-s btn-sm" style="flex:1" onclick="event.stopPropagation();wodItemDetail('+i+')">Voir le détail</button>';
+  }
+  html+='</div>';
+  if(!done)html+='<button class="btn-s btn-sm" style="margin-top:8px;width:100%" onclick="event.stopPropagation();markWodItemDone('+i+')">Marquer comme fait</button>';
+  return html;
+}
+function openWodItemConfig(i){
+  var s=CURWK;if(!s||!s.exercices[i])return;
+  openFinBlocFor({kind:'live-item',seance:s,idx:i});
+}
+function wodItemDetail(i){
+  var s=CURWK;if(!s||!s.exercices[i])return;
+  var ex=s.exercices[i];
+  if(!ex.wodBloc||ex.wodBloc.type!=='A')return;
+  var wodId=ex.wodBloc.wodId;
+  FINBLOC_ACTIVE_SEANCE=s.id;FINBLOC_ACTIVE_ITEM=ex.id;
   function go(){
-    var norm=(WODBANK_NORM||[]).find(function(w){return w.id===wodId;})||{id:wodId,nom:s.finBloc.wodNom,format:'FOR TIME',materiel:''};
+    var norm=(WODBANK_NORM||[]).find(function(w){return w.id===wodId;})||{id:wodId,nom:ex.wodBloc.wodNom,format:'FOR TIME',materiel:''};
     openWodDetail(norm,'wk');
   }
   if(WODBANK_NORM)go();else{toast('Chargement...');loadWodBank().then(go);}
 }
-function launchSeanceWod(){
-  var s=CURWK;if(!s||!s.finBloc||s.finBloc.type!=='A')return;
-  var wodId=s.finBloc.wodId;
-  function go(){
-    var raw=(WODBANK_RAW&&WODBANK_RAW[wodId])||{};
-    var norm=(WODBANK_NORM||[]).find(function(w){return w.id===wodId;})||{id:wodId,nom:s.finBloc.wodNom,format:'FOR TIME',materiel:''};
-    loadWodIntoChrono(norm);
+function markWodItemDone(i){
+  var s=CURWK;if(!s||!s.exercices[i])return;
+  var ex=s.exercices[i];
+  localStorage.setItem('ex_'+ex.id+'_'+WEEK,'1');
+  toast(ex.exercice_nom+' marqué comme fait');
+  renderWk();
+  if(s.exercices.filter(function(e){return !isSkipped(e.id);}).every(function(e){return localStorage.getItem('ex_'+e.id+'_'+WEEK)==='1';})){
+    if(localStorage.getItem('done_'+s.id+'_'+WEEK)!=='1')setTimeout(autoVal,800);
   }
-  if(WODBANK_NORM)go();else loadWodBank().then(go);
 }
 
 function lastDetailFor(exId){
@@ -3092,6 +3135,8 @@ function renderWodDetailCommon(norm){
 function updateWdActionBtn(){
   var btn=document.getElementById('wd-action-btn');if(!btn)return;
   btn.textContent=WD_MODE==='select'?'Choisir ce WOD':'Lancer le chrono';
+  var addBtn=document.getElementById('wd-addseance-btn');
+  if(addBtn)addBtn.style.display=WD_MODE==='select'?'none':'block';
 }
 function wodUserDetailHtml(u){
   if(!u)return '<div style="color:var(--txt4);font-size:12.5px">WOD introuvable.</div>';
@@ -3127,6 +3172,39 @@ function wodDetailLaunch(){
   if(WD_CUR.userWod&&WD_CUR.userWod.structureType==='rounds')launchIntervalWod(WD_CUR.userWod);
   else if(WD_CUR.userWod)launchSimpleUserWod(WD_CUR.userWod);
   else loadWodIntoChrono(WD_CUR.norm);
+}
+function addWodToSeance(){
+  if(!WD_CUR)return;
+  var fb={type:'A',wodId:WD_CUR.norm.id,wodNom:WD_CUR.norm.nom};
+  if(CURWK){
+    addWodItemToSeance(CURWK,fb);
+    wodDetailBack();
+    return;
+  }
+  var opts=SEANCES.slice().sort(function(a,b){return (a.prog_id===ACTPROG?0:1)-(b.prog_id===ACTPROG?0:1);});
+  if(!opts.length){toast('Aucune séance disponible — crée-en une d\'abord');return;}
+  var html='<div class="mtitle">Ajouter à quelle séance ?</div>';
+  opts.forEach(function(s){
+    html+='<div class="choice" onclick="pickSeanceForWod(\''+s.id+'\')"><div class="ct">'+s.nom+'</div></div>';
+  });
+  document.getElementById('modal-c').innerHTML=html;
+  openModal();
+}
+function pickSeanceForWod(sid){
+  closeModal();
+  var s=SEANCES.find(function(x){return x.id===sid;});
+  if(!s||!WD_CUR)return;
+  var fb={type:'A',wodId:WD_CUR.norm.id,wodNom:WD_CUR.norm.nom};
+  addWodItemToSeance(s,fb);
+}
+function addWodItemToSeance(s,fb){
+  var nom=fb.wodNom||'WOD';
+  if(!s.exercices)s.exercices=[];
+  sbP('seance_exercices',{seance_id:s.id,user_id:USER.id,type:'wod',exercice_nom:nom,muscle:'',wodBloc:fb,ordre:s.exercices.length}).then(function(arr){
+    s.exercices.push(arr[0]);
+    toast(nom+' ajouté à '+s.nom);
+    if(CURWK&&CURWK.id===s.id)renderWk();
+  }).catch(function(){toast('Erreur - réessaie');});
 }
 
 // ── WOD PERSO — CRÉATION ──────────────────────────────────────────────────
@@ -3220,7 +3298,7 @@ function launchSimpleUserWod(u){
   goNav('wod');
   toast(u.nom+' chargé dans le Chrono');
 }
-function clearActiveWod(){ACTIVE_WOD=null;ivStop();IV_STATE=null;WOD_START=null;renderChrono();}
+function clearActiveWod(){ACTIVE_WOD=null;ivStop();IV_STATE=null;WOD_START=null;FINBLOC_ACTIVE_ITEM=null;FINBLOC_ACTIVE_SEANCE=null;renderChrono();}
 function completeActiveWod(){
   if(!ACTIVE_WOD)return;
   var ti=targetDay();
@@ -3231,6 +3309,10 @@ function completeActiveWod(){
     saveWP2();
   }
   try{localStorage.setItem('wod_done_'+WEEK+'_'+ti,ACTIVE_WOD.nom);}catch(e){}
+  if(FINBLOC_ACTIVE_ITEM){
+    try{localStorage.setItem('ex_'+FINBLOC_ACTIVE_ITEM+'_'+WEEK,'1');}catch(e){}
+    FINBLOC_ACTIVE_ITEM=null;
+  }
   if(FINBLOC_ACTIVE_SEANCE){
     try{localStorage.setItem('seance_finbloc_done_'+FINBLOC_ACTIVE_SEANCE+'_'+WEEK,'1');}catch(e){}
     FINBLOC_ACTIVE_SEANCE=null;
@@ -3498,13 +3580,17 @@ var FB_TAB='A', FB_TARGET=null, FB_STATE={minutes:20,intensite:'calme',rounds:5,
 function openFinBloc(){ // contexte constructeur (rétro-compat)
   openFinBlocFor({kind:'ctor',idx:CTORCFG_IDX});
 }
-function openFinBlocForSeance(initTab){ // contexte séance en cours réelle
+function openFinBlocForSeance(initTab){ // contexte séance en cours réelle — nouvel item
   if(!CURWK)return;
-  openFinBlocFor({kind:'live',seance:CURWK},initTab);
+  openFinBlocFor({kind:'live-new',seance:CURWK},initTab);
 }
 function openFinBlocFor(target,initTab){
   FB_TARGET=target;FB_TAB='A';
-  var existing=(target.kind==='ctor')?CTOR_STATE.seances[target.idx].finBloc:(target.kind==='adhoc')?ADHOC_STATE.finBloc:target.seance.finBloc;
+  var existing=(target.kind==='ctor')?CTOR_STATE.seances[target.idx].finBloc
+    :(target.kind==='adhoc')?ADHOC_STATE.finBloc
+    :(target.kind==='live-item')?target.seance.exercices[target.idx].wodBloc
+    :(target.kind==='live-new')?null
+    :target.seance.finBloc;
   if(existing){
     FB_STATE=Object.assign({minutes:20,intensite:'calme',rounds:5,effort:3,repos:1,machine:'ram',wodId:null,wodNom:null},existing);
     FB_TAB=existing.type||'A';
@@ -3515,7 +3601,7 @@ function openFinBlocFor(target,initTab){
   showSc('finbloc');renderFinBloc();
 }
 function fbBack(){
-  if(FB_TARGET&&FB_TARGET.kind==='live'){showSc('wk');renderWk();}
+  if(FB_TARGET&&(FB_TARGET.kind==='live'||FB_TARGET.kind==='live-item'||FB_TARGET.kind==='live-new')){showSc('wk');renderWk();}
   else if(FB_TARGET&&FB_TARGET.kind==='adhoc'){showSc('adhoc');renderAdhoc();}
   else{showSc('ctorcfg');renderCtorCfg();}
 }
@@ -3621,6 +3707,20 @@ function fbAdd(){
     if(!ADHOC_STATE)return;
     ADHOC_STATE.finBloc=fb;ADHOC_STATE.finBlocOn=true;
     showSc('adhoc');renderAdhoc();
+  } else if(FB_TARGET.kind==='live-item'){
+    var seance=FB_TARGET.seance,item=seance.exercices[FB_TARGET.idx];if(!item)return;
+    item.wodBloc=fb;
+    var nom2=fb.type==='A'?(fb.wodNom||'WOD'):fb.type==='B'?'Ergo':'Rounds ergo';
+    item.exercice_nom=nom2;
+    sbPt('seance_exercices',{wodBloc:fb,exercice_nom:nom2},'id=eq.'+item.id).catch(function(){});
+    showSc('wk');renderWk();
+  } else if(FB_TARGET.kind==='live-new'){
+    var seance2=FB_TARGET.seance;if(!seance2)return;
+    var nom3=fb.type==='A'?(fb.wodNom||'WOD'):fb.type==='B'?'Ergo':'Rounds ergo';
+    sbP('seance_exercices',{seance_id:seance2.id,user_id:USER.id,type:'wod',exercice_nom:nom3,muscle:'',wodBloc:fb,ordre:seance2.exercices.length}).then(function(arr){
+      seance2.exercices.push(arr[0]);
+      showSc('wk');renderWk();
+    }).catch(function(){toast('Erreur - réessaie');});
   } else {
     var live=FB_TARGET.seance;if(!live)return;
     live.finBloc=fb;
@@ -3964,9 +4064,15 @@ function logSession(entry){
   saveSessionLog(log);
 }
 function buildSeanceLogEntry(s){
-  var exercices=[],volume=0,series=0;
+  var exercices=[],wodItems=[],volume=0,series=0;
   s.exercices.forEach(function(ex){
     if(isSkipped(ex.id))return;
+    if(ex.type==='wod'){
+      if(localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1'){
+        wodItems.push({nom:ex.exercice_nom,resume:finBlocSummary(ex.wodBloc)});
+      }
+      return;
+    }
     var last=(PERF[ex.id]||[])[0];
     if(!last)return;
     var detail=(last.detail&&last.detail.length)?last.detail:[{poids:last.poids,reps:last.reps}];
@@ -3977,7 +4083,7 @@ function buildSeanceLogEntry(s){
   var type=(prog&&prog.adhoc)?'libre':'seance';
   var dureeMin=SESSION_START?Math.max(1,Math.round((Date.now()-SESSION_START)/60000)):null;
   SESSION_START=null;
-  return {type:type,nom:s.nom,dureeMin:dureeMin,volume:Math.round(volume),series:series,exercices:exercices,finBloc:s.finBloc||null,notes:s.notes||null};
+  return {type:type,nom:s.nom,dureeMin:dureeMin,volume:Math.round(volume),series:series,exercices:exercices,wodItems:wodItems,finBloc:s.finBloc||null,notes:s.notes||null};
 }
 function fmtHistDate(iso){
   var d=new Date(iso);
@@ -4041,6 +4147,14 @@ function openHistDetail(idx){
           +'<span style="color:var(--txt2)">'+r.poids+'kg &times; '+r.reps+(ex.rpe?' &middot; RPE '+ex.rpe:'')+'</span></div>';
       });
       html+='</div>';
+    });
+  }
+  if(e.wodItems&&e.wodItems.length){
+    e.wodItems.forEach(function(w){
+      html+='<div class="card" style="padding:13px;border-color:var(--accent-b);margin-bottom:6px">'
+        +'<div class="wbadge" style="color:var(--accent);border-color:var(--accent-b);background:var(--accent-bg);margin-bottom:5px">WOD</div>'
+        +'<div style="font-family:var(--font-display);font-size:17px;font-weight:700;margin-bottom:2px">'+w.nom+'</div>'
+        +'<div style="font-size:12.5px;color:var(--txt4)">'+w.resume+'</div></div>';
     });
   }
   if(e.wodInfo){
