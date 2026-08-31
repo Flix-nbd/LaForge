@@ -4353,21 +4353,21 @@ function buildSeanceLogEntry(s){
     if(isSkipped(ex.id))return;
     if(ex.type==='wod'){
       if(localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1'){
-        wodItems.push({nom:ex.exercice_nom,resume:finBlocSummary(ex.wodBloc)});
+        wodItems.push({nom:ex.exercice_nom,resume:finBlocSummary(ex.wodBloc),wodBloc:ex.wodBloc||null});
       }
       return;
     }
     if(ex.type==='emom'){
       if(localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1'){
         var total=0;if(ex.emomLog)for(var mk in ex.emomLog)total+=(parseInt(ex.emomLog[mk])||0);
-        emomItems.push({nom:ex.exercice_nom,duree:(ex.emomConfig&&ex.emomConfig.duree)||10,total:total,detail:ex.emomLog||{}});
+        emomItems.push({nom:ex.exercice_nom,duree:(ex.emomConfig&&ex.emomConfig.duree)||10,objectif:(ex.emomConfig&&ex.emomConfig.objectif)||5,mouvement:(ex.emomConfig&&ex.emomConfig.mouvement)||'',total:total,detail:ex.emomLog||{}});
       }
       return;
     }
     var last=(PERF[ex.id]||[])[0];
     if(!last)return;
     var detail=(last.detail&&last.detail.length)?last.detail:[{poids:last.poids,reps:last.reps}];
-    exercices.push({nom:ex.exercice_nom||ex.nom,muscle:ex.muscle||'',detail:detail,blocs:last.blocs||null,rpe:last.rpe||null});
+    exercices.push({nom:ex.exercice_nom||ex.nom,muscle:ex.muscle||'',detail:detail,blocs:last.blocs||null,rpe:last.rpe||null,sets:ex.sets||3,reps:ex.reps||10,max_reps:ex.max_reps||false,blocMode:ex.blocMode||false});
     detail.forEach(function(r){volume+=(parseFloat(r.poids)||0)*(parseFloat(r.reps)||0);series++;});
   });
   var prog=PROGS.find(function(p){return p.id===s.prog_id;});
@@ -4375,6 +4375,48 @@ function buildSeanceLogEntry(s){
   var dureeMin=SESSION_START?Math.max(1,Math.round((Date.now()-SESSION_START)/60000)):null;
   SESSION_START=null;
   return {type:type,nom:s.nom,dureeMin:dureeMin,volume:Math.round(volume),series:series,exercices:exercices,wodItems:wodItems,emomItems:emomItems,finBloc:s.finBloc||null,notes:s.notes||null};
+}
+function refaireExercice(exi){
+  if(!CURWK){toast('Ouvre une séance d\'abord');return;}
+  var log=loadSessionLog();var e=log[HIST_CUR];if(!e||!e.exercices||!e.exercices[exi])return;
+  var src=e.exercices[exi];
+  var s=CURWK;
+  sbP('seance_exercices',{seance_id:s.id,user_id:USER.id,exercice_nom:src.nom,muscle:src.muscle||'',sets:src.sets||3,reps:src.reps||10,max_reps:src.max_reps||false,blocMode:src.blocMode||false,progression_type:'poids',progression_valeur:2.5,progression_frequence:1,ordre:s.exercices.length}).then(function(arr){
+    s.exercices.push(arr[0]);
+    toast(src.nom+' ajouté à la séance');
+    document.getElementById('main-nav').style.display='none';
+    showSc('wk');renderWk();
+  }).catch(function(){toast('Erreur - réessaie');});
+}
+function refaireWod(wi){
+  if(!CURWK){toast('Ouvre une séance d\'abord');return;}
+  var log=loadSessionLog();var e=log[HIST_CUR];if(!e||!e.wodItems||!e.wodItems[wi])return;
+  var src=e.wodItems[wi];if(!src.wodBloc)return;
+  var s=CURWK;
+  var nom=src.wodBloc.type==='A'?(src.wodBloc.wodNom||'WOD'):src.wodBloc.type==='B'?'Ergo':'Rounds ergo';
+  sbP('seance_exercices',{seance_id:s.id,user_id:USER.id,type:'wod',exercice_nom:nom,muscle:'',wodBloc:src.wodBloc,ordre:s.exercices.length}).then(function(arr){
+    s.exercices.push(arr[0]);
+    toast(nom+' ajouté à la séance');
+    document.getElementById('main-nav').style.display='none';
+    showSc('wk');renderWk();
+  }).catch(function(){toast('Erreur - réessaie');});
+}
+function refaireEmom(emi){
+  if(!CURWK){toast('Ouvre une séance d\'abord');return;}
+  var log=loadSessionLog();var e=log[HIST_CUR];if(!e||!e.emomItems||!e.emomItems[emi])return;
+  var src=e.emomItems[emi];
+  var s=CURWK;
+  var mvt=src.mouvement||src.nom.replace(/^EMOM\s*/,'');
+  var nom='EMOM '+mvt;
+  var objectif=src.objectif||5;
+  var preLog={};
+  for(var m=1;m<=(src.duree||10);m++)preLog[m]=objectif;
+  sbP('seance_exercices',{seance_id:s.id,user_id:USER.id,type:'emom',exercice_nom:nom,muscle:'',emomConfig:{duree:src.duree,mouvement:mvt,objectif:objectif},emomLog:preLog,ordre:s.exercices.length}).then(function(arr){
+    s.exercices.push(arr[0]);
+    toast(nom+' ajouté à la séance');
+    document.getElementById('main-nav').style.display='none';
+    showSc('wk');renderWk();
+  }).catch(function(){toast('Erreur - réessaie');});
 }
 function fmtHistDate(iso){
   var d=new Date(iso);
@@ -4428,10 +4470,12 @@ function openHistDetail(idx){
     +(e.series?'<div class="stat-card" style="text-align:center;padding:14px 8px"><div style="font-family:var(--font-display);font-weight:800;font-size:24px">'+e.series+'</div><div style="font-family:var(--font-cond);font-size:9px;font-weight:700;color:var(--txt4);margin-top:2px">SÉRIES</div></div>':'')
     +'</div>';
   if(e.exercices&&e.exercices.length){
-    e.exercices.forEach(function(ex){
+    e.exercices.forEach(function(ex,exi){
       html+='<div class="exc" style="padding:11px 13px;margin-bottom:6px">'
-        +(ex.muscle?'<div class="emuscle">'+ex.muscle+'</div>':'')
-        +'<div class="en" style="margin-bottom:6px">'+ex.nom+'</div>';
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
+        +'<div style="min-width:0">'+(ex.muscle?'<div class="emuscle">'+ex.muscle+'</div>':'')+'<div class="en">'+ex.nom+'</div></div>'
+        +'<button class="btn-s btn-sm" style="flex-shrink:0" onclick="event.stopPropagation();refaireExercice('+exi+')">&#8635; Refaire</button>'
+        +'</div>';
       if(ex.blocs&&ex.blocs.length){
         ex.blocs.forEach(function(bloc){
           html+='<div style="font-family:var(--font-cond);font-size:9.5px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-top:8px;margin-bottom:2px">'+bloc.label+'</div>';
@@ -4458,17 +4502,23 @@ function openHistDetail(idx){
     });
   }
   if(e.wodItems&&e.wodItems.length){
-    e.wodItems.forEach(function(w){
+    e.wodItems.forEach(function(w,wi){
       html+='<div class="card" style="padding:13px;border-color:var(--accent-b);margin-bottom:6px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
         +'<div class="wbadge" style="color:var(--accent);border-color:var(--accent-b);background:var(--accent-bg);margin-bottom:5px">WOD</div>'
+        +(w.wodBloc?'<button class="btn-s btn-sm" onclick="event.stopPropagation();refaireWod('+wi+')">&#8635; Refaire</button>':'')
+        +'</div>'
         +'<div style="font-family:var(--font-display);font-size:17px;font-weight:700;margin-bottom:2px">'+w.nom+'</div>'
         +'<div style="font-size:12.5px;color:var(--txt4)">'+w.resume+'</div></div>';
     });
   }
   if(e.emomItems&&e.emomItems.length){
-    e.emomItems.forEach(function(em){
+    e.emomItems.forEach(function(em,emi){
       html+='<div class="card" style="padding:13px;border-color:var(--accent-b);margin-bottom:6px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
         +'<div class="wbadge" style="color:var(--accent);border-color:var(--accent-b);background:var(--accent-bg);margin-bottom:5px">EMOM</div>'
+        +'<button class="btn-s btn-sm" onclick="event.stopPropagation();refaireEmom('+emi+')">&#8635; Refaire</button>'
+        +'</div>'
         +'<div style="font-family:var(--font-display);font-size:17px;font-weight:700;margin-bottom:2px">'+em.nom+'</div>'
         +'<div style="font-size:12.5px;color:var(--txt4)">'+em.duree+' min &middot; '+em.total+' reps</div></div>';
     });
