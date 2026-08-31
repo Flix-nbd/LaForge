@@ -1606,6 +1606,12 @@ function renderWk(){
   if(isDone){vb.textContent='Validee - Suivante \u2192';vb.style.background='var(--card2)';vb.style.color='var(--done)';vb.style.border='1.5px solid rgba(34,197,94,.3)';}
   else{vb.textContent='Valider '+s.nom;vb.style.background='var(--green)';vb.style.color='#000';vb.style.border='none';}
   var html='';
+  html+='<button class="btn-ghost" style="border-style:dashed;margin-bottom:12px" onclick="openWkAddMenu()">+ Ajouter (exercice, WOD, cardio, note)</button>';
+  if(s.notes){
+    html+='<div class="card" style="padding:11px 13px;margin-bottom:10px;border-color:var(--accent-b)" onclick="openWkNote()">'
+      +'<div style="font-family:var(--font-cond);font-size:9px;font-weight:700;color:var(--accent);letter-spacing:1px;margin-bottom:3px">NOTE</div>'
+      +'<div style="font-size:12.5px;color:var(--txt2)">'+s.notes+'</div></div>';
+  }
   exos.forEach(function(ex,i){
     if(isSkipped(ex.id)){
       html+='<div class="exc" id="ex-'+i+'" style="opacity:.4;padding:11px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px">'
@@ -3432,11 +3438,11 @@ var FB_TAB='A', FB_TARGET=null, FB_STATE={minutes:20,intensite:'calme',rounds:5,
 function openFinBloc(){ // contexte constructeur (rétro-compat)
   openFinBlocFor({kind:'ctor',idx:CTORCFG_IDX});
 }
-function openFinBlocForSeance(){ // contexte séance en cours réelle
+function openFinBlocForSeance(initTab){ // contexte séance en cours réelle
   if(!CURWK)return;
-  openFinBlocFor({kind:'live',seance:CURWK});
+  openFinBlocFor({kind:'live',seance:CURWK},initTab);
 }
-function openFinBlocFor(target){
+function openFinBlocFor(target,initTab){
   FB_TARGET=target;FB_TAB='A';
   var existing=(target.kind==='ctor')?CTOR_STATE.seances[target.idx].finBloc:(target.kind==='adhoc')?ADHOC_STATE.finBloc:target.seance.finBloc;
   if(existing){
@@ -3445,6 +3451,7 @@ function openFinBlocFor(target){
   } else {
     FB_STATE={minutes:20,intensite:'calme',rounds:5,effort:3,repos:1,machine:'ram',wodId:null,wodNom:null};
   }
+  if(initTab)FB_TAB=initTab;
   showSc('finbloc');renderFinBloc();
 }
 function fbBack(){
@@ -3910,7 +3917,7 @@ function buildSeanceLogEntry(s){
   var type=(prog&&prog.adhoc)?'libre':'seance';
   var dureeMin=SESSION_START?Math.max(1,Math.round((Date.now()-SESSION_START)/60000)):null;
   SESSION_START=null;
-  return {type:type,nom:s.nom,dureeMin:dureeMin,volume:Math.round(volume),series:series,exercices:exercices,finBloc:s.finBloc||null};
+  return {type:type,nom:s.nom,dureeMin:dureeMin,volume:Math.round(volume),series:series,exercices:exercices,finBloc:s.finBloc||null,notes:s.notes||null};
 }
 function fmtHistDate(iso){
   var d=new Date(iso);
@@ -3985,9 +3992,68 @@ function openHistDetail(idx){
   if(e.finBloc){
     html+='<div class="sec">Fin de séance</div><div class="card" style="padding:12px;font-size:13px">'+finBlocSummary(e.finBloc)+'</div>';
   }
+  if(e.notes){
+    html+='<div class="sec">Note</div><div class="card" style="padding:12px;font-size:12.5px;color:var(--txt2)">'+e.notes+'</div>';
+  }
   document.getElementById('hd-c').innerHTML=html;
 }
 var HIST_CUR=null;
+
+// ── + AJOUTER DEPUIS LA SÉANCE EN COURS (exercice, WOD, cardio, note) ────
+function openWkAddMenu(){
+  var s=CURWK;if(!s)return;
+  document.getElementById('modal-c').innerHTML='<div class="mtitle">Ajouter à la séance</div>'
+    +'<div class="choice" onclick="closeModal();wkOpenAddEx()"><div class="ct">Exercice</div><div class="cs">Chercher dans la base</div></div>'
+    +'<div class="choice" onclick="closeModal();openFinBlocForSeance(\'A\')"><div class="ct">WOD</div><div class="cs">Depuis la banque, ou crée le tien</div></div>'
+    +'<div class="choice" onclick="closeModal();openFinBlocForSeance(\'B\')"><div class="ct">Cardio</div><div class="cs">Rameur, vélo, ski — durée et intensité</div></div>'
+    +'<div class="choice" onclick="closeModal();openWkNote()"><div class="ct">Note</div><div class="cs">'+(s.notes?'Modifier la note':'Ajouter une note libre')+'</div></div>';
+  openModal();
+}
+function wkOpenAddEx(){
+  document.getElementById('modal-c').innerHTML='<div class="mtitle">Chercher un exercice</div>'
+    +'<div class="srch-w"><span class="srch-ic">&#128269;</span>'
+    +'<input class="srch-i" placeholder="Rechercher..." oninput="wkFilterEx(this.value)"></div>'
+    +'<div class="srch-res" id="srch-res"></div>';
+  wkFilterEx('');openModal();
+}
+function wkFilterEx(val){
+  var src=EX_FULL||EX;
+  var n=norm(val);
+  var res=src.filter(function(e){return norm(e.n).indexOf(n)>=0||norm(e.m).indexOf(n)>=0;}).slice(0,25);
+  var html='';
+  res.forEach(function(e){
+    var nn=e.n.replace(/'/g,"\\'");var mm=(e.m||'').replace(/'/g,"\\'");
+    html+='<div class="srch-item" onclick="wkAddExFn(\''+nn+'\',\''+mm+'\')">'
+      +'<div class="snom">'+e.n+'</div><div class="smus">'+(e.m||'')+'</div></div>';
+  });
+  document.getElementById('srch-res').innerHTML=html;
+}
+function wkAddExFn(nom,muscle){
+  var s=CURWK;if(!s)return;
+  closeModal();
+  toast('Ajout en cours...');
+  var ordre=s.exercices.length;
+  sbP('seance_exercices',{seance_id:s.id,user_id:USER.id,exercice_nom:nom,muscle:muscle||'',sets:3,reps:10,max_reps:false,progression_type:'poids',progression_valeur:2.5,progression_frequence:1,ordre:ordre}).then(function(arr){
+    s.exercices.push(arr[0]);
+    renderWk();
+    toast(nom+' ajouté à la séance');
+  }).catch(function(){toast('Erreur - réessaie');});
+}
+function openWkNote(){
+  var s=CURWK;if(!s)return;
+  document.getElementById('modal-c').innerHTML='<div class="mtitle">Note de séance</div>'
+    +'<textarea class="inp" id="wk-note-ta" rows="4" style="resize:vertical;margin-bottom:14px" placeholder="Ex. Douleur légère à l\'épaule, ai réduit les charges...">'+(s.notes||'')+'</textarea>'
+    +'<button class="btn btn-p" onclick="wkSaveNote()">Enregistrer</button>';
+  openModal();
+}
+function wkSaveNote(){
+  var s=CURWK;if(!s)return;
+  var val=(document.getElementById('wk-note-ta')||{value:''}).value.trim();
+  s.notes=val;
+  sbPt('seances',{notes:val},'id=eq.'+s.id).catch(function(){});
+  closeModal();renderWk();
+  toast('Note enregistrée');
+}
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 function initMain(){
