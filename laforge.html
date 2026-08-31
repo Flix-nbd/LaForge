@@ -1628,11 +1628,15 @@ function openExMenu(i){
     }
     var done=localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1';
     if(!done)html+='<div class="choice" onclick="closeModal();markWodItemDone('+i+')"><div class="ct">Marquer comme fait</div><div class="cs">Déjà réalisé, sans passer par le Chrono</div></div>';
+  } else if(ex.type==='emom'){
+    var doneEmom=localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1';
+    if(doneEmom)html+='<div class="choice" onclick="closeModal();unmarkDone(\''+ex.id+'\')"><div class="ct">Reprendre la saisie</div><div class="cs">Revenir sur les minutes déjà validées</div></div>';
   } else {
     html+='<div class="choice" onclick="closeModal();openSwapEx('+i+')"><div class="ct">Remplacer l\'exercice</div><div class="cs">Uniquement pour cette séance</div></div>';
     if(ex._nom_orig){
       html+='<div class="choice" onclick="closeModal();revertSwapEx('+i+')"><div class="ct">Annuler le remplacement</div><div class="cs">Revenir à '+ex._nom_orig+'</div></div>';
     }
+    html+='<div class="choice" onclick="closeModal();toggleBlocMode('+i+')"><div class="ct">'+(ex.blocMode?'Désactiver le mode blocs':'Mode blocs (PDC)')+'</div><div class="cs">'+(ex.blocMode?'Revenir aux séries classiques':'Pyramide, séries libres, plusieurs formats à la suite')+'</div></div>';
   }
   if(i>0){
     html+='<div class="choice" onclick="closeModal();moveExInSession('+i+',-1)"><div class="ct">Monter</div><div class="cs">Le remonter dans la liste</div></div>';
@@ -1690,6 +1694,24 @@ function renderWk(){
         +'</button>'
         +'</div>'
         +'<div class="exc-expand"><div id="ed-'+i+'">'+renderWodItemBody(i,ex)+'</div></div></div>';
+      return;
+    }
+    if(ex.type==='emom'){
+      var emomDone=done;
+      var emomTotal=0;if(ex.emomLog)for(var mk in ex.emomLog)emomTotal+=(parseInt(ex.emomLog[mk])||0);
+      html+='<div class="exc'+(emomDone?' done':'')+'" id="ex-'+i+'" style="border-left:3px solid var(--accent)">'
+        +'<div class="exc-row" onclick="togEx('+i+')">'
+        +'<div class="exc-chk" onclick="event.stopPropagation();chkEx('+i+',\''+ex.id+'\')">'+(emomDone?'&#10003;':'')+'</div>'
+        +'<div class="exc-body">'
+        +'<div class="emuscle" style="color:var(--accent)">EMOM</div>'
+        +'<div class="en">'+(ex.exercice_nom||ex.nom)+'</div>'
+        +'<div class="emeta">'+((ex.emomConfig&&ex.emomConfig.duree)||10)+' min'+(emomDone?' &middot; '+emomTotal+' reps':'')+'</div>'
+        +'</div>'
+        +'<button class="btn-icon-swap" onclick="event.stopPropagation();openExMenu('+i+')" aria-label="Modifier">'
+        +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>'
+        +'</button>'
+        +'</div>'
+        +'<div class="exc-expand"><div id="ed-'+i+'">'+renderEmomItemBody(i,ex)+'</div></div></div>';
       return;
     }
     var wt=calcWt(ex);
@@ -1752,11 +1774,85 @@ function wodItemDetail(i){
   }
   if(WODBANK_NORM)go();else{toast('Chargement...');loadWodBank().then(go);}
 }
+function unmarkDone(exId){
+  localStorage.removeItem('ex_'+exId+'_'+WEEK);
+  renderWk();
+}
 function markWodItemDone(i){
   var s=CURWK;if(!s||!s.exercices[i])return;
   var ex=s.exercices[i];
   localStorage.setItem('ex_'+ex.id+'_'+WEEK,'1');
   toast(ex.exercice_nom+' marqué comme fait');
+  renderWk();
+  if(s.exercices.filter(function(e){return !isSkipped(e.id);}).every(function(e){return localStorage.getItem('ex_'+e.id+'_'+WEEK)==='1';})){
+    if(localStorage.getItem('done_'+s.id+'_'+WEEK)!=='1')setTimeout(autoVal,800);
+  }
+}
+
+// ── EMOM (saisie minute par minute, total calculé automatiquement) ──────
+var EMOM_CFG={duree:10,objectif:5};
+function openEmomConfig(){
+  EMOM_CFG={duree:10,objectif:5};
+  document.getElementById('modal-c').innerHTML='<div class="mtitle">EMOM</div>'
+    +'<div class="lbl" style="margin-top:0">Mouvement</div><input class="inp" id="emom-mvt" placeholder="Ex. Tractions" style="margin-bottom:16px">'
+    +'<div class="lbl">Durée (minutes)</div>'
+    +'<div class="numstep" style="margin-bottom:16px"><button onclick="emomAdjCfg(\'duree\',-1,1,60)">&#8722;</button><div class="numstep-val" id="emom-duree-val">10</div><button onclick="emomAdjCfg(\'duree\',1,1,60)">&#43;</button></div>'
+    +'<div class="lbl">Objectif reps / minute</div>'
+    +'<div class="numstep" style="margin-bottom:18px"><button onclick="emomAdjCfg(\'objectif\',-1,1,50)">&#8722;</button><div class="numstep-val" id="emom-objectif-val">5</div><button onclick="emomAdjCfg(\'objectif\',1,1,50)">&#43;</button></div>'
+    +'<button class="btn btn-p" onclick="emomCreate()">Créer l\'EMOM</button>';
+  openModal();
+}
+function emomAdjCfg(k,d,min,max){
+  EMOM_CFG[k]=Math.max(min,Math.min(max,EMOM_CFG[k]+d));
+  var el=document.getElementById('emom-'+k+'-val');if(el)el.textContent=EMOM_CFG[k];
+}
+function emomCreate(){
+  var mvt=(document.getElementById('emom-mvt')||{value:''}).value.trim();
+  if(!mvt){toast('Indique le mouvement');return;}
+  var s=CURWK;if(!s)return;
+  var nom='EMOM '+mvt;
+  closeModal();
+  sbP('seance_exercices',{seance_id:s.id,user_id:USER.id,type:'emom',exercice_nom:nom,muscle:'',emomConfig:{duree:EMOM_CFG.duree,mouvement:mvt,objectif:EMOM_CFG.objectif},emomLog:{},ordre:s.exercices.length}).then(function(arr){
+    s.exercices.push(arr[0]);
+    renderWk();
+    toast(nom+' ajouté');
+  }).catch(function(){toast('Erreur - réessaie');});
+}
+function renderEmomItemBody(i,ex){
+  var cfg=ex.emomConfig||{duree:10,mouvement:'',objectif:5};
+  var log=ex.emomLog||{};
+  var done=localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1';
+  var total=0;for(var k in log)total+=(parseInt(log[k])||0);
+  var html='<div style="font-size:12.5px;color:var(--txt4);margin-bottom:10px">'+cfg.duree+' min &middot; objectif '+cfg.objectif+' reps/min</div>';
+  if(done){
+    html+='<div class="card cross" style="position:relative;padding:14px;text-align:center;border-color:var(--accent-b)">'
+      +'<div style="font-family:var(--font-display);font-size:32px;font-weight:800">'+total+'</div>'
+      +'<div style="font-family:var(--font-cond);font-size:10px;color:var(--txt4);letter-spacing:1px">REPS TOTAL</div></div>';
+  } else {
+    for(var m=1;m<=cfg.duree;m++){
+      html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px" onclick="event.stopPropagation()">'
+        +'<span style="width:56px;flex-shrink:0;font-size:11px;color:var(--txt4);font-family:var(--font-cond);font-weight:700">MIN '+m+'</span>'
+        +'<input class="pi" type="number" inputmode="numeric" value="'+(log[m]!==undefined?log[m]:cfg.objectif)+'" oninput="emomSetMin('+i+','+m+',this.value)" style="max-width:70px">'
+        +'</div>';
+    }
+    html+='<button class="btn btn-p" style="margin-top:8px" onclick="event.stopPropagation();emomValidate('+i+')">Valider l\'EMOM</button>';
+  }
+  return html;
+}
+function emomSetMin(i,m,val){
+  var s=CURWK;if(!s||!s.exercices[i])return;
+  var ex=s.exercices[i];
+  if(!ex.emomLog)ex.emomLog={};
+  ex.emomLog[m]=parseInt(val)||0;
+}
+function emomValidate(i){
+  var s=CURWK;if(!s||!s.exercices[i])return;
+  var ex=s.exercices[i];
+  var log=ex.emomLog||{};
+  var total=0;for(var k in log)total+=(parseInt(log[k])||0);
+  sbPt('seance_exercices',{emomLog:log},'id=eq.'+ex.id).catch(function(){});
+  localStorage.setItem('ex_'+ex.id+'_'+WEEK,'1');
+  toast(ex.exercice_nom+' — '+total+' reps');
   renderWk();
   if(s.exercices.filter(function(e){return !isSkipped(e.id);}).every(function(e){return localStorage.getItem('ex_'+e.id+'_'+WEEK)==='1';})){
     if(localStorage.getItem('done_'+s.id+'_'+WEEK)!=='1')setTimeout(autoVal,800);
@@ -1821,6 +1917,7 @@ function renderExpandBody(i,ex,wp){
   var exId=ex.id;
   if(!WKP[exId])WKP[exId]={};
   wp=WKP[exId];
+  if(ex.blocMode)return renderBlocBody(i,ex,wp);
   var rows=wp.detail||[];
   if(!wp._cur)wp._cur={poids:'',reps:'',rpe:null};
   var cur=wp._cur;
@@ -1887,6 +1984,87 @@ function refreshExpand(exId){
       break;
     }
   }
+}
+
+// ── MODE BLOCS (liberté totale des séries — PDC / PDC lesté) ────────────
+function toggleBlocMode(i){
+  var s=CURWK;if(!s||!s.exercices[i])return;
+  var ex=s.exercices[i];
+  ex.blocMode=!ex.blocMode;
+  sbPt('seance_exercices',{blocMode:ex.blocMode},'id=eq.'+ex.id).catch(function(){});
+  toast(ex.blocMode?'Mode blocs activé':'Mode blocs désactivé');
+  renderWk();
+}
+function renderBlocBody(i,ex,wp){
+  var exId=ex.id;
+  if(!wp.blocs||!wp.blocs.length)wp.blocs=[{label:'Bloc 1',series:[]}];
+  if(!wp._cur)wp._cur={poids:'',reps:'',rpe:null};
+  var cur=wp._cur;
+  var done=localStorage.getItem('ex_'+exId+'_'+WEEK)==='1';
+  var last=lastDetailFor(exId);
+  var html=infoBadges(ex);
+  if(last)html+='<div style="font-size:10.5px;color:var(--txt4);margin-bottom:8px">Dernière fois : '+last.detail.map(function(r){return r.reps+'@'+r.poids+'kg';}).join(' \u00b7 ')+'</div>';
+  if(done){
+    html+='<div style="text-align:center;color:var(--accent);font-family:var(--font-cond);font-weight:700;font-size:11px;letter-spacing:1px;padding:8px 0">EXERCICE TERMINÉ</div>';
+    return html;
+  }
+  wp.blocs.forEach(function(bloc,bi){
+    html+='<div style="border-left:2px solid var(--accent-b);padding-left:10px;margin-bottom:12px">'
+      +'<div style="font-family:var(--font-cond);font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">'+bloc.label+'</div>';
+    if(!bloc.series.length)html+='<div style="font-size:11px;color:var(--txt4)">Aucune série pour l\'instant</div>';
+    bloc.series.forEach(function(r,ri){
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);font-size:12.5px">'
+        +'<span style="color:var(--txt4)">Série '+(ri+1)+'</span>'
+        +'<span style="color:var(--txt2)">'+(r.poids?r.poids+'kg &times; ':'')+r.reps+(r.rpe?' &middot; RPE '+r.rpe:'')+'</span>'
+        +'<button onclick="event.stopPropagation();blocDelSerie(\''+exId+'\','+bi+','+ri+')" style="background:none;border:none;color:var(--txt4);font-size:13px;cursor:pointer;padding:0 4px">&#10005;</button>'
+        +'</div>';
+    });
+    html+='</div>';
+  });
+  html+='<div class="prow" style="margin-top:8px">'
+    +'<input class="pi" type="number" placeholder="Poids kg (vide si PDC)" value="'+(cur.poids||'')+'" oninput="wkCur(\''+exId+'\',\'poids\',this.value)" inputmode="decimal" step="0.5">'
+    +'<input class="pi" type="number" placeholder="Reps" value="'+(cur.reps||'')+'" oninput="wkCur(\''+exId+'\',\'reps\',this.value)" inputmode="numeric" style="max-width:80px">'
+    +'</div>'
+    +rpeRowCur(exId,cur.rpe)
+    +'<div style="display:flex;gap:8px;margin-top:8px">'
+    +'<button class="btn btn-p" style="margin:0;flex:2" onclick="event.stopPropagation();blocValiderSerie('+i+',\''+exId+'\')">Valider la série</button>'
+    +'<button class="btn-s btn-sm" style="flex:1" onclick="event.stopPropagation();blocNouveau(\''+exId+'\')">+ Bloc</button>'
+    +'</div>'
+    +'<button class="btn-s btn-sm" style="width:100%;margin-top:8px" onclick="event.stopPropagation();blocTerminer('+i+',\''+exId+'\')">Terminer l\'exercice</button>';
+  return html;
+}
+function blocValiderSerie(i,exId){
+  if(!WKP[exId])WKP[exId]={};
+  var wp=WKP[exId];
+  if(!wp.blocs||!wp.blocs.length)wp.blocs=[{label:'Bloc 1',series:[]}];
+  var cur=wp._cur||{};
+  if(cur.reps===''||cur.reps===undefined){toast('Renseigne au moins les reps');return;}
+  wp.blocs[wp.blocs.length-1].series.push({poids:cur.poids||0,reps:cur.reps,rpe:cur.rpe});
+  wp._cur={poids:cur.poids,reps:'',rpe:cur.rpe};
+  refreshExpand(exId);
+}
+function blocNouveau(exId){
+  if(!WKP[exId])WKP[exId]={};
+  var wp=WKP[exId];
+  if(!wp.blocs)wp.blocs=[];
+  var label=prompt('Nom du bloc (ex. Pyramide, 4x6, Libre)','Bloc '+(wp.blocs.length+1));
+  if(label===null)return;
+  wp.blocs.push({label:label.trim()||('Bloc '+(wp.blocs.length+1)),series:[]});
+  refreshExpand(exId);
+}
+function blocDelSerie(exId,bi,ri){
+  var wp=WKP[exId];if(!wp||!wp.blocs||!wp.blocs[bi])return;
+  wp.blocs[bi].series.splice(ri,1);
+  refreshExpand(exId);
+}
+function blocTerminer(i,exId){
+  var wp=WKP[exId];if(!wp||!wp.blocs)return;
+  var totalSeries=wp.blocs.reduce(function(a,b){return a+b.series.length;},0);
+  if(!totalSeries){toast('Ajoute au moins une série');return;}
+  wp.detail=[];
+  wp.blocs.forEach(function(b){b.series.forEach(function(r){wp.detail.push(r);});});
+  wp.detailOn=true;
+  finalizeExercise(i,exId);
 }
 
 function togEx(i){var el=document.getElementById('ex-'+i);if(el)el.classList.toggle('open');}
@@ -2022,7 +2200,7 @@ function savePerf(exId){
   if(validDetail&&validDetail.length){
     var maxP=Math.max.apply(null,validDetail.map(function(r){return parseFloat(r.poids)||0;}));
     var totalReps=validDetail.reduce(function(a,r){return a+(parseInt(r.reps)||0);},0);
-    entry={user_id:USER.id,seance_exercice_id:exId,exercice_nom:ex.exercice_nom||ex.nom,poids:maxP,reps:totalReps,sets:validDetail.length,detail:validDetail.map(function(r){return {poids:parseFloat(r.poids)||0,reps:parseInt(r.reps)||0};}),rpe:p.rpe||null,week:WEEK};
+    entry={user_id:USER.id,seance_exercice_id:exId,exercice_nom:ex.exercice_nom||ex.nom,poids:maxP,reps:totalReps,sets:validDetail.length,detail:validDetail.map(function(r){return {poids:parseFloat(r.poids)||0,reps:parseInt(r.reps)||0,rpe:r.rpe||null};}),blocs:p.blocs||null,rpe:p.rpe||null,week:WEEK};
   } else {
     if(!p.poids)return;
     entry={user_id:USER.id,seance_exercice_id:exId,exercice_nom:ex.exercice_nom||ex.nom,poids:p.poids,reps:p.reps||ex.reps,sets:ex.sets,rpe:p.rpe||null,week:WEEK};
@@ -4064,7 +4242,7 @@ function logSession(entry){
   saveSessionLog(log);
 }
 function buildSeanceLogEntry(s){
-  var exercices=[],wodItems=[],volume=0,series=0;
+  var exercices=[],wodItems=[],emomItems=[],volume=0,series=0;
   s.exercices.forEach(function(ex){
     if(isSkipped(ex.id))return;
     if(ex.type==='wod'){
@@ -4073,17 +4251,24 @@ function buildSeanceLogEntry(s){
       }
       return;
     }
+    if(ex.type==='emom'){
+      if(localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1'){
+        var total=0;if(ex.emomLog)for(var mk in ex.emomLog)total+=(parseInt(ex.emomLog[mk])||0);
+        emomItems.push({nom:ex.exercice_nom,duree:(ex.emomConfig&&ex.emomConfig.duree)||10,total:total,detail:ex.emomLog||{}});
+      }
+      return;
+    }
     var last=(PERF[ex.id]||[])[0];
     if(!last)return;
     var detail=(last.detail&&last.detail.length)?last.detail:[{poids:last.poids,reps:last.reps}];
-    exercices.push({nom:ex.exercice_nom||ex.nom,muscle:ex.muscle||'',detail:detail,rpe:last.rpe||null});
+    exercices.push({nom:ex.exercice_nom||ex.nom,muscle:ex.muscle||'',detail:detail,blocs:last.blocs||null,rpe:last.rpe||null});
     detail.forEach(function(r){volume+=(parseFloat(r.poids)||0)*(parseFloat(r.reps)||0);series++;});
   });
   var prog=PROGS.find(function(p){return p.id===s.prog_id;});
   var type=(prog&&prog.adhoc)?'libre':'seance';
   var dureeMin=SESSION_START?Math.max(1,Math.round((Date.now()-SESSION_START)/60000)):null;
   SESSION_START=null;
-  return {type:type,nom:s.nom,dureeMin:dureeMin,volume:Math.round(volume),series:series,exercices:exercices,wodItems:wodItems,finBloc:s.finBloc||null,notes:s.notes||null};
+  return {type:type,nom:s.nom,dureeMin:dureeMin,volume:Math.round(volume),series:series,exercices:exercices,wodItems:wodItems,emomItems:emomItems,finBloc:s.finBloc||null,notes:s.notes||null};
 }
 function fmtHistDate(iso){
   var d=new Date(iso);
@@ -4141,11 +4326,22 @@ function openHistDetail(idx){
       html+='<div class="exc" style="padding:11px 13px;margin-bottom:6px">'
         +(ex.muscle?'<div class="emuscle">'+ex.muscle+'</div>':'')
         +'<div class="en" style="margin-bottom:6px">'+ex.nom+'</div>';
-      (ex.detail||[]).forEach(function(r,ri){
-        html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid var(--border);font-size:12.5px">'
-          +'<span style="color:var(--txt4)">Série '+(ri+1)+'</span>'
-          +'<span style="color:var(--txt2)">'+r.poids+'kg &times; '+r.reps+(ex.rpe?' &middot; RPE '+ex.rpe:'')+'</span></div>';
-      });
+      if(ex.blocs&&ex.blocs.length){
+        ex.blocs.forEach(function(bloc){
+          html+='<div style="font-family:var(--font-cond);font-size:9.5px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-top:8px;margin-bottom:2px">'+bloc.label+'</div>';
+          bloc.series.forEach(function(r,ri){
+            html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid var(--border);font-size:12.5px">'
+              +'<span style="color:var(--txt4)">Série '+(ri+1)+'</span>'
+              +'<span style="color:var(--txt2)">'+(r.poids?r.poids+'kg &times; ':'')+r.reps+(r.rpe?' &middot; RPE '+r.rpe:'')+'</span></div>';
+          });
+        });
+      } else {
+        (ex.detail||[]).forEach(function(r,ri){
+          html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid var(--border);font-size:12.5px">'
+            +'<span style="color:var(--txt4)">Série '+(ri+1)+'</span>'
+            +'<span style="color:var(--txt2)">'+r.poids+'kg &times; '+r.reps+(ex.rpe?' &middot; RPE '+ex.rpe:'')+'</span></div>';
+        });
+      }
       html+='</div>';
     });
   }
@@ -4155,6 +4351,14 @@ function openHistDetail(idx){
         +'<div class="wbadge" style="color:var(--accent);border-color:var(--accent-b);background:var(--accent-bg);margin-bottom:5px">WOD</div>'
         +'<div style="font-family:var(--font-display);font-size:17px;font-weight:700;margin-bottom:2px">'+w.nom+'</div>'
         +'<div style="font-size:12.5px;color:var(--txt4)">'+w.resume+'</div></div>';
+    });
+  }
+  if(e.emomItems&&e.emomItems.length){
+    e.emomItems.forEach(function(em){
+      html+='<div class="card" style="padding:13px;border-color:var(--accent-b);margin-bottom:6px">'
+        +'<div class="wbadge" style="color:var(--accent);border-color:var(--accent-b);background:var(--accent-bg);margin-bottom:5px">EMOM</div>'
+        +'<div style="font-family:var(--font-display);font-size:17px;font-weight:700;margin-bottom:2px">'+em.nom+'</div>'
+        +'<div style="font-size:12.5px;color:var(--txt4)">'+em.duree+' min &middot; '+em.total+' reps</div></div>';
     });
   }
   if(e.wodInfo){
@@ -4180,6 +4384,7 @@ function openWkAddMenu(){
   var s=CURWK;if(!s)return;
   document.getElementById('modal-c').innerHTML='<div class="mtitle">Ajouter à la séance</div>'
     +'<div class="choice" onclick="closeModal();wkOpenAddEx()"><div class="ct">Exercice</div><div class="cs">Chercher dans la base</div></div>'
+    +'<div class="choice" onclick="closeModal();openEmomConfig()"><div class="ct">EMOM</div><div class="cs">Ex. Tractions — objectif reps/minute</div></div>'
     +'<div class="choice" onclick="closeModal();openFinBlocForSeance(\'A\')"><div class="ct">WOD</div><div class="cs">Depuis la banque, ou crée le tien</div></div>'
     +'<div class="choice" onclick="closeModal();openFinBlocForSeance(\'B\')"><div class="ct">Cardio</div><div class="cs">Rameur, vélo, ski — durée et intensité</div></div>'
     +'<div class="choice" onclick="closeModal();openWkNote()"><div class="ct">Note</div><div class="cs">'+(s.notes?'Modifier la note':'Ajouter une note libre')+'</div></div>';
