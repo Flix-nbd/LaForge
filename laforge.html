@@ -1220,7 +1220,6 @@ function escapeHtml(s){
   });
 }
 function norm(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
-function fmtT(s){return (s<10?'0':'')+Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60;}
 
 var MOBILITE=[
   {name:'Pigeon au sol',dur:'45s/cote',zone:'Fessier + hanche'},
@@ -1444,7 +1443,6 @@ function togPin(nom){PINS[nom]=!PINS[nom];savePins();renderStats();}
 var ACTPROG=null,CURWK=null,CHARTEX=null,SESSION_START=null,WOD_START=null;
 var ONB_STEP=1,CHOICE=null,NEW_PROG={nom:'',seances:[]},BUILD_IDX=0;
 var TI=null,TR=120,TT=120,TRUN=false;
-var WODS=[],AWOD=null,WINT=null,WRUN=false,WREM=0,WRD=1,WPHASE='work',SWTYPE='EMOM';
 
 function saveL(){try{kvSetItem('pgx',JSON.stringify({week:WEEK,act:ACTPROG}));}catch(e){}}
 function loadL(){try{var d=JSON.parse(kvGetItem('pgx'));if(d){WEEK=d.week||1;ACTPROG=d.act;}}catch(e){}}
@@ -1471,14 +1469,18 @@ function checkWeekRollover(){
   var lastD=new Date(last+'T00:00:00');
   var curD=new Date(curMonday+'T00:00:00');
   var weeksPassed=Math.round((curD-lastD)/(7*86400000));
-  kvSetItem('week_anchor_monday',curMonday);
-  if(weeksPassed>0){
-    var prevWeek=WEEK;
-    WEEK=Math.min(20,WEEK+weeksPassed);
-    saveL();
-    return checkProgCompletion(prevWeek,WEEK);
+  if(weeksPassed<=0){
+    // L'horloge/le fuseau de l'appareil est temporairement en arriere par
+    // rapport a l'ancre memorisee (changement de fuseau, heure fausse...).
+    // On n'y touche pas : deplacer l'ancre ici risquerait de faire compter
+    // deux fois le meme vrai passage a lundi la prochaine fois.
+    return false;
   }
-  return false;
+  kvSetItem('week_anchor_monday',curMonday);
+  var prevWeek=WEEK;
+  WEEK=Math.min(20,WEEK+weeksPassed);
+  saveL();
+  return checkProgCompletion(prevWeek,WEEK);
 }
 
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
@@ -2522,11 +2524,15 @@ function submitWodResult(){
     result.score=parseInt((document.getElementById('wr-score')||{value:''}).value)||0;
   }
   closeModal();
-  if(WR_CB)WR_CB(result);
+  // WR_CB remis a null avant l'appel : un double-clic rapide sur "Enregistrer"
+  // (avant que la modale ait fini de se fermer) ne doit declencher la
+  // validation qu'une seule fois — sinon finishWodCompletion() tourne deux
+  // fois et plante sur ACTIVE_WOD deja remis a null par le premier passage.
+  if(WR_CB){var cb=WR_CB;WR_CB=null;cb(result);}
 }
 function skipWodResult(){
   closeModal();
-  if(WR_CB)WR_CB(null);
+  if(WR_CB){var cb=WR_CB;WR_CB=null;cb(null);}
 }
 function wodResultDisplay(result){
   if(!result)return 'Fait';
@@ -2561,24 +2567,13 @@ function logPR(){
 function getPRCount(week){try{return parseInt(kvGetItem('pr_count_'+week)||'0');}catch(e){return 0;}}
 // Copie server-side (best-effort) d'une seance/PR dans le fil d'activite —
 // c'est cette table que les amis voient (RLS : soi-meme + amis acceptes).
-function pushActivityFeed(type,titre,detail){
+function pushActivityFeed(type,titre,detail,weekOverride){
   if(!USER)return;
-  sbP('activity_feed',{user_id:USER.id,type:type,titre:titre,detail:detail||null,week:WEEK}).catch(function(){});
+  sbP('activity_feed',{user_id:USER.id,type:type,titre:titre,detail:detail||null,week:(weekOverride!=null?weekOverride:WEEK)}).catch(function(){});
 }
 
 // ── EMOM (saisie minute par minute, total calculé automatiquement) ──────
 var EMOM_CFG={duree:10,objectif:5};
-function openEmomConfig(){
-  EMOM_CFG={duree:10,objectif:5};
-  document.getElementById('modal-c').innerHTML='<div class="mtitle">EMOM</div>'
-    +'<div class="lbl" style="margin-top:0">Mouvement</div><input class="inp" id="emom-mvt" placeholder="Ex. Tractions" style="margin-bottom:16px">'
-    +'<div class="lbl">Durée (minutes)</div>'
-    +'<div class="numstep" style="margin-bottom:16px"><button onclick="emomAdjCfg(\'duree\',-1,1,60)">&#8722;</button><div class="numstep-val" id="emom-duree-val">10</div><button onclick="emomAdjCfg(\'duree\',1,1,60)">&#43;</button></div>'
-    +'<div class="lbl">Objectif reps / minute</div>'
-    +'<div class="numstep" style="margin-bottom:18px"><button onclick="emomAdjCfg(\'objectif\',-1,1,50)">&#8722;</button><div class="numstep-val" id="emom-objectif-val">5</div><button onclick="emomAdjCfg(\'objectif\',1,1,50)">&#43;</button></div>'
-    +'<button class="btn btn-p" onclick="emomCreate()">Créer l\'EMOM</button>';
-  openModal();
-}
 function emomAdjCfg(k,d,min,max){
   EMOM_CFG[k]=Math.max(min,Math.min(max,EMOM_CFG[k]+d));
   var el=document.getElementById('emom-'+k+'-val');if(el)el.textContent=EMOM_CFG[k];
@@ -2730,27 +2725,6 @@ function renderExpandBody(i,ex,wp){
   return html;
 }
 
-function toggleDetail(exId){
-  if(!WKP[exId])WKP[exId]={};
-  WKP[exId].detailOn=!WKP[exId].detailOn;
-  if(WKP[exId].detailOn&&(!WKP[exId].detail||!WKP[exId].detail.length))WKP[exId].detail=[{poids:'',reps:''}];
-  refreshExpand(exId);
-}
-function addDetailRow(exId){
-  if(!WKP[exId])WKP[exId]={};
-  if(!WKP[exId].detail)WKP[exId].detail=[];
-  WKP[exId].detail.push({poids:'',reps:''});
-  refreshExpand(exId);
-}
-function delDetailRow(exId,ri){
-  if(!WKP[exId]||!WKP[exId].detail)return;
-  WKP[exId].detail.splice(ri,1);
-  refreshExpand(exId);
-}
-function setDetailRow(exId,ri,field,val){
-  if(!WKP[exId]||!WKP[exId].detail||!WKP[exId].detail[ri])return;
-  WKP[exId].detail[ri][field]=val;
-}
 function refreshExpand(exId){
   var s=CURWK;if(!s)return;
   for(var i=0;i<s.exercices.length;i++){
@@ -3098,12 +3072,6 @@ function chkEx(i,exId){
   }
 }
 
-function saveWP(exId,field,val){
-  if(!WKP[exId])WKP[exId]={};
-  WKP[exId][field]=field==='rpe'?parseInt(val):(field==='reps'?parseInt(val):parseFloat(val));
-  if(field==='rpe')renderWk();
-}
-
 function savePerf(exId){
   var p=WKP[exId]||{};var ex=null;
   if(CURWK)for(var j=0;j<CURWK.exercices.length;j++){if(CURWK.exercices[j].id===exId){ex=CURWK.exercices[j];break;}}
@@ -3141,10 +3109,11 @@ function autoVal(){
   });
   s.exercices.forEach(function(ex){if(!isSkipped(ex.id))kvSetItem('ex_'+ex.id+'_'+WEEK,'1');});
   kvSetItem('done_'+s.id+'_'+WEEK,'1');
+  var capturedWeek=WEEK;
   setTimeout(function(){
-    var logEntry=buildSeanceLogEntry(s);
-    logSession(logEntry);
-    pushActivityFeed('seance',s.nom,{dureeMin:logEntry.dureeMin,volume:logEntry.volume,series:logEntry.series});
+    var logEntry=buildSeanceLogEntry(s,capturedWeek);
+    logSession(logEntry,capturedWeek);
+    pushActivityFeed('seance',s.nom,{dureeMin:logEntry.dureeMin,volume:logEntry.volume,series:logEntry.series},capturedWeek);
   },60);
   var ss=SEANCES.filter(function(x){return x.prog_id===ACTPROG;});
   var idx=ss.findIndex(function(x){return x.id===s.id;});
@@ -3167,10 +3136,11 @@ function valSess(){
   });
   s.exercices.forEach(function(ex){if(!isSkipped(ex.id))kvSetItem('ex_'+ex.id+'_'+WEEK,'1');});
   kvSetItem('done_'+s.id+'_'+WEEK,'1');
+  var capturedWeek=WEEK;
   setTimeout(function(){
-    var logEntry=buildSeanceLogEntry(s);
-    logSession(logEntry);
-    pushActivityFeed('seance',s.nom,{dureeMin:logEntry.dureeMin,volume:logEntry.volume,series:logEntry.series});
+    var logEntry=buildSeanceLogEntry(s,capturedWeek);
+    logSession(logEntry,capturedWeek);
+    pushActivityFeed('seance',s.nom,{dureeMin:logEntry.dureeMin,volume:logEntry.volume,series:logEntry.series},capturedWeek);
   },60);
   var ss2=SEANCES.filter(function(x){return x.prog_id===ACTPROG;});
   kvSetItem('li_'+ACTPROG,ss2.findIndex(function(x){return x.id===s.id;}));
@@ -3337,46 +3307,6 @@ function renderStats(){
 
 function setChEx(id){CHARTEX=id;renderStats();}
 
-function renderHistList(){
-  var allPerf=[];
-  Object.keys(PERF).forEach(function(exId){
-    (PERF[exId]||[]).forEach(function(p){
-      var seance=null,ex=null;
-      for(var i=0;i<SEANCES.length;i++){
-        var found=(SEANCES[i].exercices||[]).find(function(e){return e.id===exId;});
-        if(found){seance=SEANCES[i];ex=found;break;}
-      }
-      allPerf.push({date:p.date,poids:p.poids,reps:p.reps,seanceNom:seance?seance.nom:'Seance',exNom:ex?(ex.exercice_nom||ex.nom):(p.exercice_nom||'Exercice')});
-    });
-  });
-  if(!allPerf.length)return '';
-  allPerf.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
-  var groups={},order=[];
-  allPerf.forEach(function(p){
-    var day=new Date(p.date).toISOString().slice(0,10);
-    var key=day+'|'+p.seanceNom;
-    if(!groups[key]){groups[key]=[];order.push(key);}
-    groups[key].push(p);
-  });
-  var html='<div class="sec">Historique des seances</div>';
-  order.forEach(function(key){
-    var items=groups[key];
-    var d=new Date(items[0].date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-    html+='<div class="card" style="padding:13px;margin-bottom:8px">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">'
-      +'<div style="font-family:var(--font-heading);font-weight:600;font-size:15px">'+items[0].seanceNom+'</div>'
-      +'<div style="font-size:10px;color:var(--txt3);text-transform:capitalize">'+d+'</div>'
-      +'</div>';
-    items.forEach(function(p){
-      html+='<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0">'
-        +'<span style="color:var(--txt3)">'+p.exNom+'</span>'
-        +'<span style="font-weight:700">'+(p.poids?p.poids+'kg':'')+(p.poids&&p.reps?' x ':'')+(p.reps||'')+(p.reps&&!p.poids?' reps':'')+'</span>'
-        +'</div>';
-    });
-    html+='</div>';
-  });
-  return html;
-}
 
 // ── SETTINGS ──────────────────────────────────────────────────────────────────
 function niveauLabel(k){return k==='deb'?'Débutant':k==='av'?'Avancé':k==='int'?'Intermédiaire':'—';}
@@ -3613,187 +3543,6 @@ function resetCyc(pid){
     kvRemoveItem('done_'+s.id+'_'+WEEK);
   });
   toast('Cycle reinitialise');renderHome();
-}
-
-// ── WOD ───────────────────────────────────────────────────────────────────────
-var DEF_WODS=[
-  {id:'cindy',nom:'Cindy',type:'AMRAP',dur:20,work:0,rest:0,rounds:null,desc:'AMRAP 20 min : 5 tractions · 10 pompes · 15 squats',exos:[{n:'Tractions',r:'5'},{n:'Pompes',r:'10'},{n:'Squat',r:'15'}]},
-  {id:'tabata',nom:'Tabata Classic',type:'Tabata',dur:4,work:20,rest:10,rounds:8,desc:'8 rounds x 20s effort / 10s repos',exos:[{n:'Burpees',r:'Max'},{n:'Squat jump',r:'Max'}]},
-  {id:'emom',nom:'EMOM 10 min',type:'EMOM',dur:10,work:50,rest:10,rounds:10,desc:'Toutes les minutes pendant 10 min',exos:[{n:'Tractions / Tirage',r:'10'}]},
-  {id:'21159',nom:'21-15-9',type:'For Time',dur:15,work:0,rest:0,rounds:3,desc:'Pour le temps : 21-15-9 de Thruster + Tractions',exos:[{n:'Thruster',r:'21/15/9'},{n:'Tractions',r:'21/15/9'}]},
-  {id:'hiit',nom:'HIIT 12 min',type:'HIIT',dur:12,work:30,rest:30,rounds:4,desc:'4 rounds : 30s effort / 30s repos',exos:[{n:'Sprint / Rameur',r:'Max'}]},
-  {id:'circuit',nom:'Circuit Full Body',type:'Circuit',dur:20,work:45,rest:15,rounds:3,desc:'3 rounds · 6 exercices · 45s effort / 15s repos',exos:[{n:'Burpees',r:'Max'},{n:'Squat jump',r:'Max'},{n:'Pompes',r:'Max'},{n:'Mountain climber',r:'Max'},{n:'Fentes sautees',r:'Max'},{n:'Gainage',r:'Tenu'}]},
-];
-var WCOLS={EMOM:'#22C55E',AMRAP:'#3B82F6',Tabata:'#EF4444','For Time':'#F59E0B',HIIT:'#A78BFA',Circuit:'#EC4899'};
-var WRUN_DATA={rem:0,run:false,round:1,phase:'work',int:null};
-
-function renderWodList(){
-  var uWods=JSON.parse(kvGetItem('uw')||'[]');
-  WODS=DEF_WODS.concat(uWods);
-  var html='<div class="sec">WODs disponibles</div>';
-  WODS.forEach(function(w,i){
-    var col=WCOLS[w.type]||'#22C55E';
-    html+='<div class="wod-card" onclick="openWodSess('+i+')">'
-      +'<div class="wbadge" style="color:'+col+';border-color:'+col+';background:'+col+'22">'+w.type+'</div>'
-      +'<div style="font-size:13px;font-weight:900;color:var(--txt);margin-bottom:4px">'+w.nom+'</div>'
-      +'<div style="font-size:11px;color:var(--txt3)">'+w.desc+'</div>'
-      +'<div style="margin-top:5px;font-size:10px;color:var(--txt3)">'+w.dur+' min · '+( w.exos?w.exos.length:0)+' exercice'+(( w.exos&&w.exos.length>1)?'s':'')+(w.rounds?' · '+w.rounds+' rounds':'')+'</div>'
-      +'</div>';
-  });
-  document.getElementById('wod-list').innerHTML=html;
-}
-
-function openWodSess(i){
-  AWOD=WODS[i];
-  stopWod();
-  WRUN_DATA={rem:0,run:false,round:1,phase:'work',int:null};
-  var w=AWOD;
-  if(w.type==='AMRAP'||w.type==='For Time')WRUN_DATA.rem=w.dur*60;
-  else if(w.type==='Tabata')WRUN_DATA.rem=w.work||20;
-  else if(w.type==='EMOM')WRUN_DATA.rem=60;
-  else WRUN_DATA.rem=w.work||30;
-  document.getElementById('wt-n').textContent=w.nom;
-  document.getElementById('wt-tp').textContent=w.type;
-  showSc('wt');
-  document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('active');});
-  document.getElementById('nb-wod').classList.add('active');
-  renderWodTimer();
-}
-
-function renderWodTimer(){
-  var w=AWOD;if(!w)return;
-  var d=WRUN_DATA;
-  var m=Math.floor(d.rem/60),s=d.rem%60;
-  var ts=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
-  var col=WCOLS[w.type]||'#22C55E';
-  var isR=d.phase==='rest';
-  var status='';
-  if(w.type==='EMOM'&&w.exos){
-    var ei2=w.exos.length>1?(d.round-1)%w.exos.length:0;
-    status='Round '+d.round+(w.rounds?'/'+w.rounds:'')+' - '+w.exos[ei2].n;
-  } else if(w.type==='Tabata')status=isR?'REPOS':'EFFORT - Round '+d.round+(w.rounds?'/'+w.rounds:'');
-  else if(w.type==='AMRAP')status='AMRAP - va le plus loin';
-  else if(w.type==='For Time')status='Pour le temps - Round '+d.round;
-  else status=isR?'REPOS':'EFFORT - Round '+d.round+(w.rounds?'/'+w.rounds:'');
-  var exHtml='';
-  if(w.exos)w.exos.forEach(function(e,idx){
-    var isAct=w.type==='EMOM'&&w.exos.length>1&&idx===(d.round-1)%w.exos.length;
-    exHtml+='<div class="wexitem" style="'+(isAct?'background:var(--accent-bg);border-radius:0;padding:5px 7px;':'')+'">'
-      +'<div class="wexnum" style="'+(isAct?'background:var(--green);color:var(--bg);':'')+'">'+( idx+1)+'</div>'
-      +'<div><div class="wexname">'+e.n+'</div><div class="wexreps">'+e.r+'</div></div></div>';
-  });
-  document.getElementById('wt-c').innerHTML=
-    '<div class="wod-tw">'
-    +'<div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:'+(isR?'var(--red)':col)+';margin-bottom:6px">'+status+'</div>'
-    +'<div class="wbig'+(isR?' rest':'')+'" id="wbig">'+ts+'</div>'
-    +'</div>'
-    +'<div class="wexlist"><div style="font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Exercices</div>'+exHtml+'</div>'
-    +'<div class="wctrl">'
-    +'<button class="wbstop" onclick="stopWod();goNav(\'wod\')">&#8617; Stop</button>'
-    +'<button class="wbgo" id="wgo" onclick="togWod()">'+( d.run?'⏸ Pause':'▶ Demarrer')+'</button>'
-    +'</div>';
-}
-
-function togWod(){WRUN_DATA.run?pauseWod():startWod();}
-
-function startWod(){
-  if(WRUN_DATA.rem<=0){var w=AWOD;WRUN_DATA.rem=(w.type==='AMRAP'||w.type==='For Time')?w.dur*60:(w.work||20);}
-  WRUN_DATA.run=true;
-  var wgo=document.getElementById('wgo');if(wgo)wgo.textContent='⏸ Pause';
-  WRUN_DATA.int=setInterval(function(){
-    WRUN_DATA.rem--;
-    var m2=Math.floor(WRUN_DATA.rem/60),s2=WRUN_DATA.rem%60;
-    var ts2=(m2<10?'0':'')+m2+':'+(s2<10?'0':'')+s2;
-    var wb=document.getElementById('wbig');if(wb)wb.textContent=ts2;
-    var fab=document.getElementById('tfab');if(fab)fab.textContent=ts2;
-    if(WRUN_DATA.rem<=0){
-      var w2=AWOD;
-      if(w2.type==='AMRAP'||w2.type==='For Time'){
-        stopWod();if(navigator.vibrate)navigator.vibrate([400,200,400]);toast('WOD termine !');return;
-      }
-      if(navigator.vibrate)navigator.vibrate([200,100,200]);
-      if(w2.type==='Tabata'){
-        if(WRUN_DATA.phase==='work'){WRUN_DATA.phase='rest';WRUN_DATA.rem=w2.rest||10;}
-        else{WRUN_DATA.phase='work';WRUN_DATA.rem=w2.work||20;WRUN_DATA.round++;if(w2.rounds&&WRUN_DATA.round>w2.rounds){stopWod();toast('Tabata termine !');return;}}
-      } else if(w2.type==='EMOM'){
-        WRUN_DATA.round++;if(w2.rounds&&WRUN_DATA.round>w2.rounds){stopWod();toast('EMOM termine !');return;}
-        WRUN_DATA.rem=60;
-      } else {
-        if(WRUN_DATA.phase==='work'){WRUN_DATA.phase='rest';WRUN_DATA.rem=w2.rest||15;}
-        else{WRUN_DATA.phase='work';WRUN_DATA.rem=w2.work||30;WRUN_DATA.round++;if(w2.rounds&&WRUN_DATA.round>w2.rounds){stopWod();toast('Circuit termine !');return;}}
-      }
-      renderWodTimer();
-      var wgo2=document.getElementById('wgo');if(wgo2)wgo2.textContent='⏸ Pause';
-    }
-  },1000);
-}
-
-function pauseWod(){
-  clearInterval(WRUN_DATA.int);WRUN_DATA.run=false;
-  var wgo=document.getElementById('wgo');if(wgo)wgo.textContent='▶ Reprendre';
-}
-
-function stopWod(){
-  clearInterval(WRUN_DATA.int);WRUN_DATA.run=false;
-  var fab=document.getElementById('tfab');if(fab)fab.textContent='RPS';
-}
-
-function openCWod(){
-  var CWTYPE='EMOM';
-  document.getElementById('modal-c').innerHTML='<div class="mtitle">Creer un WOD</div>'
-    +'<div class="lbl">Nom</div><input class="inp" id="wn" placeholder="Mon WOD..." style="margin-bottom:9px">'
-    +'<div class="lbl">Type</div>'
-    +'<div class="wtype-row" id="wtr">'
-    +['EMOM','AMRAP','Tabata','For Time','HIIT','Circuit'].map(function(t){return '<button class="wchip'+(t==='EMOM'?' on':'')+'" onclick="selWT(\''+t+'\')">'+t+'</button>';}).join('')
-    +'</div>'
-    +'<div id="wtp"></div>'
-    +'<div class="lbl">Exercices</div>'
-    +'<div id="wel"></div>'
-    +'<button class="btn btn-s" style="margin-bottom:10px" onclick="addWEx()">+ Exercice</button>'
-    +'<button class="btn btn-p" onclick="saveWod()">Creer ce WOD</button>';
-  selWT('EMOM');openModal();
-}
-
-function selWT(t){
-  document.querySelectorAll('.wchip').forEach(function(b){b.classList.toggle('on',b.textContent===t);});
-  var el=document.getElementById('wtp');if(!el)return;
-  var html='';
-  if(t==='AMRAP'){html='<div class="lbl">Duree (min)</div><input class="inp" type="number" id="w-dur" value="20" inputmode="numeric" style="margin-bottom:9px">';}
-  else if(t==='For Time'){html='<div style="display:flex;gap:7px;margin-bottom:9px"><div style="flex:1"><div class="lbl">Duree max (min)</div><input class="inp" type="number" id="w-dur" value="20" inputmode="numeric"></div><div style="flex:1"><div class="lbl">Rounds</div><input class="inp" type="number" id="w-rounds" value="3" inputmode="numeric"></div></div>';}
-  else if(t==='Tabata'){html='<div style="display:flex;gap:5px;margin-bottom:9px"><div style="flex:1"><div class="lbl">Effort (s)</div><input class="inp" type="number" id="w-work" value="20" inputmode="numeric"></div><div style="flex:1"><div class="lbl">Repos (s)</div><input class="inp" type="number" id="w-rest" value="10" inputmode="numeric"></div><div style="flex:1"><div class="lbl">Rounds</div><input class="inp" type="number" id="w-rounds" value="8" inputmode="numeric"></div></div>';}
-  else if(t==='EMOM'){html='<div class="lbl">Duree (min)</div><input class="inp" type="number" id="w-dur" value="10" inputmode="numeric" style="margin-bottom:9px">';}
-  else{html='<div style="display:flex;gap:5px;margin-bottom:9px"><div style="flex:1"><div class="lbl">Effort (s)</div><input class="inp" type="number" id="w-work" value="40" inputmode="numeric"></div><div style="flex:1"><div class="lbl">Repos (s)</div><input class="inp" type="number" id="w-rest" value="20" inputmode="numeric"></div><div style="flex:1"><div class="lbl">Rounds</div><input class="inp" type="number" id="w-rounds" value="4" inputmode="numeric"></div></div>';}
-  el.innerHTML=html;
-}
-
-function addWEx(){
-  var el=document.getElementById('wel');if(!el)return;
-  var d=document.createElement('div');
-  d.style.cssText='display:flex;gap:5px;margin-bottom:5px;align-items:center';
-  d.innerHTML='<input class="inp wex-n" placeholder="Exercice..." style="flex:2"><input class="inp wex-r" placeholder="Reps" style="flex:1"><button onclick="this.parentNode.remove()" style="background:none;border:none;color:var(--txt3);font-size:16px;cursor:pointer;flex-shrink:0">x</button>';
-  el.appendChild(d);
-}
-
-function saveWod(){
-  var nom=(document.getElementById('wn')||{value:''}).value.trim();
-  if(!nom){toast('Donne un nom');return;}
-  var wtype=document.querySelector('.wchip.on');var tp=wtype?wtype.textContent:'EMOM';
-  var exEls=document.querySelectorAll('#wel > div');
-  var exos=[];
-  exEls.forEach(function(el){
-    var n=(el.querySelector('.wex-n')||{value:''}).value.trim();
-    var r=(el.querySelector('.wex-r')||{value:''}).value.trim();
-    if(n)exos.push({n:n,r:r||'Max'});
-  });
-  if(!exos.length){toast('Ajoute au moins un exercice');return;}
-  var getV=function(id,def){var el=document.getElementById(id);return el?parseInt(el.value)||def:def;};
-  var wod={id:Date.now().toString(),nom:nom,type:tp,
-    work:getV('w-work',40),rest:getV('w-rest',20),
-    dur:getV('w-dur',20),rounds:getV('w-rounds',0)||null,
-    exos:exos,desc:exos.map(function(e){return e.n+' x '+e.r;}).join(' · ')};
-  var saved=JSON.parse(kvGetItem('uw')||'[]');
-  saved.push(wod);kvSetItem('uw',JSON.stringify(saved));
-  closeModal();renderWodList();toast(nom+' cree !');
 }
 
 // ── TIMER (minuteur de repos) ───────────────────────────────────────────────
@@ -5326,27 +5075,28 @@ function openDayDetailHome(dayIdx){
 // ── HISTORIQUE (journal de toutes les séances réellement faites) ────────
 function loadSessionLog(){try{return JSON.parse(kvGetItem('session_log')||'[]');}catch(e){return [];}}
 function saveSessionLog(l){try{kvSetItem('session_log',JSON.stringify(l));}catch(e){}}
-function logSession(entry){
+function logSession(entry,weekOverride){
   var log=loadSessionLog();
   entry.id='sl_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
   entry.date=new Date().toISOString();
-  entry.week=WEEK;
+  entry.week=(weekOverride!=null?weekOverride:WEEK);
   log.unshift(entry);
   if(log.length>300)log=log.slice(0,300);
   saveSessionLog(log);
 }
-function buildSeanceLogEntry(s){
+function buildSeanceLogEntry(s,weekOverride){
+  var wk=(weekOverride!=null?weekOverride:WEEK);
   var exercices=[],wodItems=[],emomItems=[],volume=0,series=0;
   s.exercices.forEach(function(ex){
     if(isSkipped(ex.id))return;
     if(ex.type==='wod'){
-      if(kvGetItem('ex_'+ex.id+'_'+WEEK)==='1'){
+      if(kvGetItem('ex_'+ex.id+'_'+wk)==='1'){
         wodItems.push({nom:ex.exercice_nom,resume:finBlocSummary(ex.wodBloc),wodBloc:ex.wodBloc||null,wodResult:ex.wodResult||null});
       }
       return;
     }
     if(ex.type==='emom'){
-      if(kvGetItem('ex_'+ex.id+'_'+WEEK)==='1'){
+      if(kvGetItem('ex_'+ex.id+'_'+wk)==='1'){
         var total=0;if(ex.emomLog)for(var mk in ex.emomLog)total+=(parseInt(ex.emomLog[mk])||0);
         emomItems.push({nom:ex.exercice_nom,duree:(ex.emomConfig&&ex.emomConfig.duree)||10,objectif:(ex.emomConfig&&ex.emomConfig.objectif)||5,mouvement:(ex.emomConfig&&ex.emomConfig.mouvement)||'',total:total,detail:ex.emomLog||{}});
       }
