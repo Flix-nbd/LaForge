@@ -461,6 +461,18 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
   <div class="scroll" id="hd-c"></div>
 </div>
 
+<!-- FIL D'ACTIVITE (amis) -->
+<div class="screen" id="sc-feed">
+  <div class="hdr">
+    <div class="hdr-row">
+      <button class="bk-btn" onclick="goNav('set')">&#8592;</button>
+      <div style="flex:1;text-align:center"><div class="htitle">Fil d'activité</div><div class="hsub">Séances et PR de toi et tes amis</div></div>
+      <div style="width:34px"></div>
+    </div>
+  </div>
+  <div class="scroll" id="feed-c"></div>
+</div>
+
 <!-- STATS -->
 <div class="screen" id="sc-stats">
   <div class="hdr">
@@ -973,6 +985,69 @@ function cancelFriendRequest(id){
 function removeFriend(id){
   if(!confirm('Retirer cet ami ?'))return;
   sbD('friendships','id=eq.'+id).then(function(){return loadFriendData();}).then(renderSet).catch(function(){toast('Erreur - reessaie');});
+}
+
+// ── FIL D'ACTIVITE (seances + PR — soi-meme + amis, via RLS sur activity_feed) ──
+var ACTIVITY_FEED=[];
+function loadActivityFeed(){
+  return sbG('activity_feed','order=created_at.desc&limit=50').then(function(rows){
+    ACTIVITY_FEED=rows||[];
+    var ids=Array.from(new Set(ACTIVITY_FEED.map(function(r){return r.userId||r.user_id;})));
+    if(!ids.length)return;
+    return sbG('profiles','user_id=in.('+ids.join(',')+')').then(function(profs){
+      var map={};(profs||[]).forEach(function(p){map[p.userId||p.user_id]=p.pseudo;});
+      ACTIVITY_FEED.forEach(function(r){
+        var uid=r.userId||r.user_id;
+        r.pseudo=(uid===USER.id)?'Toi':(map[uid]||'?');
+      });
+    });
+  }).catch(function(){ACTIVITY_FEED=[];});
+}
+function fmtRelTime(iso){
+  var d=new Date(iso);var mn=Math.floor((Date.now()-d.getTime())/60000);
+  if(mn<1)return 'à l\'instant';
+  if(mn<60)return 'il y a '+mn+' min';
+  var h=Math.floor(mn/60);if(h<24)return 'il y a '+h+'h';
+  var j=Math.floor(h/24);if(j<7)return 'il y a '+j+'j';
+  return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+}
+function openFeed(){
+  document.getElementById('main-nav').style.display='none';
+  showSc('feed');
+  document.getElementById('feed-c').innerHTML='<div style="text-align:center;color:var(--txt4);padding:40px 0;font-size:12px">Chargement...</div>';
+  loadActivityFeed().then(renderFeed);
+}
+function renderFeed(){
+  var el=document.getElementById('feed-c');if(!el)return;
+  if(!ACTIVITY_FEED.length){
+    el.innerHTML='<div style="text-align:center;color:var(--txt4);padding:50px 0;font-size:12px">Rien pour l\'instant. Ajoute des amis (Réglages) pour voir leurs séances et PR ici.</div>';
+    return;
+  }
+  el.innerHTML=ACTIVITY_FEED.map(function(e){
+    var isPR=e.type==='pr_muscu'||e.type==='pr_wod';
+    var sub='';
+    var d=e.detail||{};
+    if(e.type==='seance'){
+      var parts=[];
+      if(d.dureeMin)parts.push(d.dureeMin+' min');
+      if(d.volume)parts.push(Math.round(d.volume)+' kg');
+      if(d.series)parts.push(d.series+' séries');
+      sub=parts.join(' · ');
+    } else if(e.type==='pr_muscu'){
+      sub=d.poids?d.poids+' kg':'';
+    } else if(e.type==='pr_wod'){
+      sub=d.resultTxt||'';
+    }
+    return '<div class="card" style="padding:13px 14px;margin-bottom:8px'+(isPR?';border-color:var(--accent-b)':'')+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--txt3)">'+e.pseudo+'</div>'
+      +'<div style="font-size:10px;color:var(--txt4)">'+fmtRelTime(e.created_at)+'</div>'
+      +'</div>'
+      +(isPR?'<span class="cbadge" style="margin-bottom:5px;display:inline-block;border-color:var(--accent-b);color:var(--accent)">🔥 RECORD</span>':'')
+      +'<div class="ctitle" style="font-size:17px;margin-bottom:2px">'+e.titre+'</div>'
+      +(sub?'<div style="font-size:12px;color:var(--txt4)">'+sub+'</div>':'')
+      +'</div>';
+  }).join('');
 }
 
 function norm(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
@@ -2262,6 +2337,12 @@ function logPR(){
   try{var k='pr_count_'+WEEK;kvSetItem(k,(parseInt(kvGetItem(k)||'0')+1));}catch(e){}
 }
 function getPRCount(week){try{return parseInt(kvGetItem('pr_count_'+week)||'0');}catch(e){return 0;}}
+// Copie server-side (best-effort) d'une seance/PR dans le fil d'activite —
+// c'est cette table que les amis voient (RLS : soi-meme + amis acceptes).
+function pushActivityFeed(type,titre,detail){
+  if(!USER)return;
+  sbP('activity_feed',{user_id:USER.id,type:type,titre:titre,detail:detail||null,week:WEEK}).catch(function(){});
+}
 
 // ── EMOM (saisie minute par minute, total calculé automatiquement) ──────
 var EMOM_CFG={duree:10,objectif:5};
@@ -2821,6 +2902,7 @@ function savePerf(exId){
     PERF[exId].unshift(Object.assign({},entry,{date:new Date().toISOString()}));
     if(prevMax>0&&entry.poids>prevMax){
       logPR();
+      pushActivityFeed('pr_muscu',entry.exercice_nom,{poids:entry.poids});
       setTimeout(function(){prToast(entry.exercice_nom,entry.poids);},1500);
     }
   }).catch(function(){});
@@ -2837,7 +2919,11 @@ function autoVal(){
   });
   s.exercices.forEach(function(ex){if(!isSkipped(ex.id))kvSetItem('ex_'+ex.id+'_'+WEEK,'1');});
   kvSetItem('done_'+s.id+'_'+WEEK,'1');
-  setTimeout(function(){logSession(buildSeanceLogEntry(s));},60);
+  setTimeout(function(){
+    var logEntry=buildSeanceLogEntry(s);
+    logSession(logEntry);
+    pushActivityFeed('seance',s.nom,{dureeMin:logEntry.dureeMin,volume:logEntry.volume,series:logEntry.series});
+  },60);
   var ss=SEANCES.filter(function(x){return x.prog_id===ACTPROG;});
   var idx=ss.findIndex(function(x){return x.id===s.id;});
   kvSetItem('li_'+ACTPROG,idx);
@@ -2859,7 +2945,11 @@ function valSess(){
   });
   s.exercices.forEach(function(ex){if(!isSkipped(ex.id))kvSetItem('ex_'+ex.id+'_'+WEEK,'1');});
   kvSetItem('done_'+s.id+'_'+WEEK,'1');
-  setTimeout(function(){logSession(buildSeanceLogEntry(s));},60);
+  setTimeout(function(){
+    var logEntry=buildSeanceLogEntry(s);
+    logSession(logEntry);
+    pushActivityFeed('seance',s.nom,{dureeMin:logEntry.dureeMin,volume:logEntry.volume,series:logEntry.series});
+  },60);
   var ss2=SEANCES.filter(function(x){return x.prog_id===ACTPROG;});
   kvSetItem('li_'+ACTPROG,ss2.findIndex(function(x){return x.id===s.id;}));
   toast(s.nom+' validee !');renderWk();
@@ -3095,7 +3185,8 @@ function renderProfilCard(){
 function renderAmisCard(){
   var html='<div class="set-s"><div class="set-t">Amis</div>'
     +(MY_PSEUDO?'<div class="csub" style="margin-bottom:10px">Ton pseudo : <b>'+MY_PSEUDO+'</b></div>':'')
-    +'<div style="display:flex;gap:8px;margin-bottom:6px">'
+    +'<div class="set-row" onclick="openFeed()"><div><div class="set-lbl">Fil d\'activité</div><div class="set-sub">Séances et PR de toi et tes amis</div></div><span style="color:var(--txt4)">&#8250;</span></div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:6px;margin-top:10px">'
     +'<input class="inp" id="friend-search" placeholder="Chercher un pseudo..." style="flex:1;margin-bottom:0" onkeydown="if(event.key===\'Enter\'){event.preventDefault();searchFriend();}">'
     +'<button class="btn-s btn-sm" onclick="searchFriend()">Chercher</button>'
     +'</div>'
@@ -4226,7 +4317,10 @@ function finishWodCompletion(result){
   var dureeMin=WOD_START?Math.max(1,Math.round((Date.now()-WOD_START)/60000)):null;
   logSession({type:'wod',nom:ACTIVE_WOD.nom,dureeMin:dureeMin,volume:0,series:0,exercices:[],wodInfo:{nom:ACTIVE_WOD.nom,format:ACTIVE_WOD.format,materiel:ACTIVE_WOD.materiel,desc:ACTIVE_WOD.desc},wodResult:result});
   toast(ACTIVE_WOD.nom+' — '+wodResultDisplay(result));
-  if(isPR)setTimeout(function(){prToast(ACTIVE_WOD.nom,wodResultDisplay(result));},1500);
+  if(isPR){
+    pushActivityFeed('pr_wod',ACTIVE_WOD.nom,{resultTxt:wodResultDisplay(result)});
+    setTimeout(function(){prToast(ACTIVE_WOD.nom,wodResultDisplay(result));},1500);
+  }
   ACTIVE_WOD=null;ivStop();IV_STATE=null;ADD_TARGET_DAY=null;WOD_START=null;clearPersistedTimer();
   renderChrono();
 }
