@@ -151,6 +151,9 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 .ewt-l{font-size:9px;color:var(--txt4)}
 .exc-expand{display:none;padding:0 13px 11px 47px;flex-direction:column;gap:7px}
 .exc.open .exc-expand{display:flex}
+.exc-drag{flex-shrink:0;width:30px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--txt4);cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none}
+.exc-drag:active{color:var(--txt2)}
+.exc.dragging{opacity:.55;box-shadow:inset 0 0 0 1.5px var(--accent);position:relative;z-index:5}
 .info-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px}
 .info-badge{padding:4px 9px;border:1px solid var(--border2);font-family:var(--font-cond);font-weight:700;font-size:11px;letter-spacing:.5px;color:var(--txt3)}
 .prow{display:flex;gap:5px}
@@ -327,9 +330,9 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
       </div>
       <div style="display:flex;align-items:center;gap:6px">
         <div style="display:flex;align-items:center;gap:2px;background:var(--card2);border:1px solid var(--border2);padding:4px 6px">
-          <button onclick="chWeek(-1)" style="background:none;border:none;color:var(--txt2);font-size:15px;cursor:pointer;line-height:1;padding:0 5px">&#8722;</button>
-          <span style="font-size:11px;font-weight:700;color:var(--txt2);min-width:20px;text-align:center">S<span id="wkn">1</span></span>
-          <button onclick="chWeek(1)" style="background:none;border:none;color:var(--txt2);font-size:15px;cursor:pointer;line-height:1;padding:0 5px">&#43;</button>
+          <button onclick="chWeek(-1)" style="background:none;border:none;width:28px;height:28px;color:var(--txt2);font-size:16px;cursor:pointer;line-height:1">&#8722;</button>
+          <span style="font-size:12px;font-weight:700;color:var(--txt2);min-width:24px;text-align:center">S<span id="wkn">1</span></span>
+          <button onclick="chWeek(1)" style="background:none;border:none;width:28px;height:28px;color:var(--txt2);font-size:16px;cursor:pointer;line-height:1">&#43;</button>
         </div>
         <button onclick="goNav('set')" style="width:32px;height:32px;flex-shrink:0;background:var(--card2);border:1px solid var(--border2);color:var(--txt2);cursor:pointer;display:flex;align-items:center;justify-content:center">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -1106,7 +1109,11 @@ function doImport(file){
 function doResetApp(){
   if(!confirm('Effacer toutes tes donnees (programmes, seances, historique) ? Irreversible.'))return;
   function finishReset(){
-    var exactKeys=['pgx','weekplan','profil_v1','session_log','wod_perf_v1','user_wods_v2','pins','charge_hist',LS_KEY];
+    // Nettoyage exhaustif de TOUT ce qui est encore stocke en localStorage (cle exacte
+    // ou prefixe suivi d'un id/semaine). Un rechargement complet suit juste apres : ca
+    // evite qu'une des dizaines de variables en memoire (semaine active, chrono, saisie
+    // en cours, etc.) ne survive au reset et fasse ressurgir de vieilles donnees.
+    var exactKeys=['pgx','weekplan','profil_v1','session_log','wod_perf_v1','user_wods_v2','pins','charge_hist','active_timer','active_rest_timer','auto_rest_timer','uw',LS_KEY];
     var prefixes=['ex_','done_','skip_','wod_done_','extra_light_','extra_seances_','seance_finbloc_done_','pr_count_','li_'];
     var allKeys=[];
     for(var i=0;i<localStorage.length;i++)allKeys.push(localStorage.key(i));
@@ -1114,15 +1121,11 @@ function doResetApp(){
       if(exactKeys.indexOf(k)>=0){localStorage.removeItem(k);return;}
       if(prefixes.some(function(p){return k.indexOf(p)===0;}))localStorage.removeItem(k);
     });
-    PROGS=[];SEANCES=[];PERF={};PINS={};
-    WEEKPLAN=[{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'}];
-    WEEK=1;ACTPROG=null;
-    ONB_STEP=1;NEW_PROG={nom:'',seances:[]};CHOICE=null;
-    showSc('onb');renderOnb();
-    document.getElementById('main-nav').style.display='none';
+    toast('Donnees effacees - rechargement...');
+    setTimeout(function(){location.reload();},700);
   }
-  // Les programmes/seances/exercices sont lies par cascade cote SQL : supprimer les
-  // programmes suffit. Les performances sont a part (pas de lien de cascade dessus).
+  // Les seances/exercices sont lies aux programmes par cascade cote SQL : supprimer les
+  // programmes suffit pour eux. Les performances sont a part (pas de cascade dessus).
   Promise.all([
     sbD('programmes','user_id=eq.'+USER.id),
     sbD('performances','user_id=eq.'+USER.id)
@@ -1466,7 +1469,7 @@ function finishOnb(){
         });
       });
     });
-    return p.then(function(){ACTPROG=prog.id;});
+    return p.then(function(){ACTPROG=prog.id;WEEK=1;saveL();});
   }).then(function(){
     return loadAll();
   }).then(function(){
@@ -1692,11 +1695,19 @@ function setDayPlan(dayIdx,type,seanceId){
 // ── WORKOUT ───────────────────────────────────────────────────────────────────
 function openWk(el){
   var sid=typeof el==='string'?el:el.getAttribute('data-id');
-  CURWK=null;
-  for(var i=0;i<SEANCES.length;i++){if(SEANCES[i].id===sid){CURWK=SEANCES[i];break;}}
-  if(!CURWK)return;
-  WKP={};
-  SESSION_START=Date.now();
+  var resuming=CURWK&&CURWK.id===sid;
+  var found=null;
+  for(var i=0;i<SEANCES.length;i++){if(SEANCES[i].id===sid){found=SEANCES[i];break;}}
+  if(!found)return;
+  CURWK=found;
+  // On ne remet a zero les series en cours de saisie (WKP) et le depart du chrono
+  // de seance que si on ENTRE dans une seance differente de celle deja active —
+  // revenir sur la meme seance (ex: retour a l'Accueil puis "Continuer la seance")
+  // doit retrouver ce qui etait deja saisi.
+  if(!resuming){
+    WKP={};
+    SESSION_START=Date.now();
+  }
   showSc('wk');
   document.getElementById('main-nav').style.display='none';
   document.getElementById('tfab').classList.add('show');
@@ -1748,12 +1759,6 @@ function openExMenu(i){
     }
     html+='<div class="choice" onclick="closeModal();toggleBlocMode('+i+')"><div class="ct">'+(ex.blocMode?'Désactiver le mode blocs':'Mode blocs (PDC)')+'</div><div class="cs">'+(ex.blocMode?'Revenir aux séries classiques':'Pyramide, séries libres, plusieurs formats à la suite')+'</div></div>';
   }
-  if(i>0){
-    html+='<div class="choice" onclick="closeModal();moveExInSession('+i+',-1)"><div class="ct">Monter</div><div class="cs">Le remonter dans la liste</div></div>';
-  }
-  if(i<s.exercices.length-1){
-    html+='<div class="choice" onclick="closeModal();moveExInSession('+i+',1)"><div class="ct">Descendre</div><div class="cs">Le descendre dans la liste</div></div>';
-  }
   html+='<div class="choice" style="border-color:rgba(193,84,63,.35)" onclick="closeModal();skipExInSession('+i+')"><div class="ct" style="color:var(--red)">Retirer de cette séance</div><div class="cs">Pas de matos, pas le temps... revient la prochaine fois</div></div>';
   document.getElementById('modal-c').innerHTML=html;
   openModal();
@@ -1781,17 +1786,19 @@ function renderWk(){
       +'<div style="font-family:var(--font-cond);font-size:9px;font-weight:700;color:var(--accent);letter-spacing:1px;margin-bottom:3px">NOTE</div>'
       +'<div style="font-size:12.5px;color:var(--txt2)">'+s.notes+'</div></div>';
   }
+  var dragSvg='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.6"></circle><circle cx="8" cy="12" r="1.6"></circle><circle cx="8" cy="18" r="1.6"></circle><circle cx="16" cy="6" r="1.6"></circle><circle cx="16" cy="12" r="1.6"></circle><circle cx="16" cy="18" r="1.6"></circle></svg>';
   exos.forEach(function(ex,i){
     if(isSkipped(ex.id)){
-      html+='<div class="exc" id="ex-'+i+'" style="opacity:.4;padding:11px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px">'
+      html+='<div class="exc" id="ex-'+i+'" data-exid="'+ex.id+'" style="opacity:.4;padding:11px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px">'
         +'<div style="min-width:0"><div class="en" style="text-decoration:line-through">'+(ex.exercice_nom||ex.nom)+'</div><div class="emeta">Ignoré pour cette séance</div></div>'
         +'<button class="btn-s btn-sm" style="flex-shrink:0" onclick="unskipEx('+i+')">Remettre</button>'
         +'</div>';
       return;
     }
     var done=localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1';
+    var dragHandle='<div class="exc-drag" onpointerdown="excDragStart(event,\''+ex.id+'\')" aria-label="Réordonner">'+dragSvg+'</div>';
     if(ex.type==='wod'){
-      html+='<div class="exc'+(done?' done':'')+'" id="ex-'+i+'" style="border-left:3px solid var(--accent)">'
+      html+='<div class="exc'+(done?' done':'')+'" id="ex-'+i+'" data-exid="'+ex.id+'" style="border-left:3px solid var(--accent)">'
         +'<div class="exc-row" onclick="togEx('+i+')">'
         +'<div class="exc-chk" onclick="event.stopPropagation();chkEx('+i+',\''+ex.id+'\')">'+(done?'&#10003;':'')+'</div>'
         +'<div class="exc-body">'
@@ -1802,6 +1809,7 @@ function renderWk(){
         +'<button class="btn-icon-swap" onclick="event.stopPropagation();openExMenu('+i+')" aria-label="Modifier">'
         +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>'
         +'</button>'
+        +dragHandle
         +'</div>'
         +'<div class="exc-expand"><div id="ed-'+i+'">'+renderWodItemBody(i,ex)+'</div></div></div>';
       return;
@@ -1809,7 +1817,7 @@ function renderWk(){
     if(ex.type==='emom'){
       var emomDone=done;
       var emomTotal=0;if(ex.emomLog)for(var mk in ex.emomLog)emomTotal+=(parseInt(ex.emomLog[mk])||0);
-      html+='<div class="exc'+(emomDone?' done':'')+'" id="ex-'+i+'" style="border-left:3px solid var(--accent)">'
+      html+='<div class="exc'+(emomDone?' done':'')+'" id="ex-'+i+'" data-exid="'+ex.id+'" style="border-left:3px solid var(--accent)">'
         +'<div class="exc-row" onclick="togEx('+i+')">'
         +'<div class="exc-chk" onclick="event.stopPropagation();chkEx('+i+',\''+ex.id+'\')">'+(emomDone?'&#10003;':'')+'</div>'
         +'<div class="exc-body">'
@@ -1820,6 +1828,7 @@ function renderWk(){
         +'<button class="btn-icon-swap" onclick="event.stopPropagation();openExMenu('+i+')" aria-label="Modifier">'
         +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>'
         +'</button>'
+        +dragHandle
         +'</div>'
         +'<div class="exc-expand"><div id="ed-'+i+'">'+renderEmomItemBody(i,ex)+'</div></div></div>';
       return;
@@ -1831,7 +1840,7 @@ function renderWk(){
     var bsGroup=ex.biset_group;
     var bsBorderWk=bsGroup?'border-left:3px solid var(--green);':'';
     var bsLabelWk=bsGroup?'<div style="font-size:9px;font-weight:700;color:var(--green);letter-spacing:.8px;text-transform:uppercase;margin-bottom:1px">BISET</div>':'';
-    html+='<div class="exc'+(done?' done':'')+'" id="ex-'+i+'" style="'+bsBorderWk+'">'
+    html+='<div class="exc'+(done?' done':'')+'" id="ex-'+i+'" data-exid="'+ex.id+'" style="'+bsBorderWk+'">'
       +'<div class="exc-row" onclick="togEx('+i+')">'
       +'<div class="exc-chk" onclick="event.stopPropagation();chkEx('+i+',\''+ex.id+'\')">'+( done?'&#10003;':'')+'</div>'
       +'<div class="exc-body">'
@@ -1844,6 +1853,7 @@ function renderWk(){
       +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>'
       +'</button>'
       +'<div class="ewt">'+wtHtml+'</div>'
+      +dragHandle
       +'</div>'
       +'<div class="exc-expand">'
       +'<div id="ed-'+i+'">'+renderExpandBody(i,ex,wp)+'</div>'
@@ -2434,14 +2444,73 @@ function unskipEx(i){
   localStorage.removeItem('skip_'+s.exercices[i].id+'_'+WEEK);
   renderWk();
 }
-function moveExInSession(i,dir){
+// ── REORDONNER PAR APPUI LONG + GLISSER ─────────────────────────────────────
+var EXC_DRAG=null;
+function excDragStart(ev,exId){
+  if(ev.button!==undefined&&ev.button!==0)return;
+  var handle=ev.currentTarget;
+  var row=handle.closest('.exc');
+  if(!row)return;
+  var startY=ev.clientY;
+  var st={row:row,armed:false,timer:null};
+  EXC_DRAG=st;
+  st.timer=setTimeout(function(){
+    if(EXC_DRAG!==st)return;
+    st.armed=true;
+    row.classList.add('dragging');
+  },220);
+  function onMove(e2){
+    if(EXC_DRAG!==st)return;
+    if(!st.armed){
+      if(Math.abs(e2.clientY-startY)>10){clearTimeout(st.timer);teardown();}
+      return;
+    }
+    e2.preventDefault();
+    excDragCheckSwap(row,e2.clientY);
+  }
+  function onUp(){
+    clearTimeout(st.timer);
+    if(st.armed)excDragCommit(row);
+    teardown();
+  }
+  function teardown(){
+    document.removeEventListener('pointermove',onMove);
+    document.removeEventListener('pointerup',onUp);
+    document.removeEventListener('pointercancel',onUp);
+    EXC_DRAG=null;
+  }
+  document.addEventListener('pointermove',onMove,{passive:false});
+  document.addEventListener('pointerup',onUp);
+  document.addEventListener('pointercancel',onUp);
+}
+function excDragCheckSwap(row,clientY){
+  var list=document.getElementById('wk-c');
+  if(!list)return;
+  var rows=Array.prototype.slice.call(list.querySelectorAll('.exc[data-exid]'));
+  var idx=rows.indexOf(row);
+  if(idx===-1)return;
+  for(var k=0;k<rows.length;k++){
+    if(rows[k]===row)continue;
+    var r=rows[k].getBoundingClientRect();
+    var mid=r.top+r.height/2;
+    if(k<idx&&clientY<mid){list.insertBefore(row,rows[k]);return;}
+    if(k>idx&&clientY>mid){list.insertBefore(row,rows[k].nextSibling);return;}
+  }
+}
+function excDragCommit(row){
+  row.classList.remove('dragging');
   var s=CURWK;if(!s)return;
-  var j=i+dir;
-  if(j<0||j>=s.exercices.length)return;
-  var tmp=s.exercices[i];s.exercices[i]=s.exercices[j];s.exercices[j]=tmp;
+  var list=document.getElementById('wk-c');
+  if(!list)return;
+  var newIds=Array.prototype.slice.call(list.querySelectorAll('.exc[data-exid]')).map(function(el){return el.getAttribute('data-exid');});
+  var byId={};s.exercices.forEach(function(e){byId[e.id]=e;});
+  var reordered=newIds.map(function(id){return byId[id];}).filter(Boolean);
+  s.exercices.forEach(function(e){if(reordered.indexOf(e)===-1)reordered.push(e);});
+  s.exercices=reordered;
   renderWk();
-  sbPt('seance_exercices',{ordre:i},'id=eq.'+s.exercices[i].id).catch(function(){});
-  sbPt('seance_exercices',{ordre:j},'id=eq.'+s.exercices[j].id).catch(function(){});
+  reordered.forEach(function(e,j){
+    if(e.ordre!==j){e.ordre=j;sbPt('seance_exercices',{ordre:j},'id=eq.'+e.id).catch(function(){});}
+  });
 }
 
 function revertSwapEx(i){
@@ -3098,22 +3167,77 @@ function saveWod(){
   closeModal();renderWodList();toast(nom+' cree !');
 }
 
-// ── TIMER ─────────────────────────────────────────────────────────────────────
+// ── TIMER (minuteur de repos) ───────────────────────────────────────────────
+// Base sur un horodatage de fin reel (T_endTs), comme le chrono principal : resiste
+// au throttling navigateur et a une vraie fermeture/reouverture de l'app (persiste
+// dans 'active_rest_timer').
+var T_endTs=null, REST_ALERT_TIMER=null;
 function setP(s,btn){document.querySelectorAll('.tpre').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');stopT();TT=s;TR=s;document.getElementById('t-m').value='';document.getElementById('t-s').value='';updT();}
 function setCT(){var m=parseInt(document.getElementById('t-m').value)||0,s=parseInt(document.getElementById('t-s').value)||0,tot=m*60+s;if(tot>0){document.querySelectorAll('.tpre').forEach(function(b){b.classList.remove('on');});stopT();TT=tot;TR=tot;updT();}}
 function togT(){TRUN?pauseT():startT();}
+function persistRestTimer(){
+  try{
+    if(TRUN&&T_endTs)localStorage.setItem('active_rest_timer',JSON.stringify({endTs:T_endTs,dur:TT}));
+    else localStorage.removeItem('active_rest_timer');
+  }catch(e){}
+}
+function clearPersistedRestTimer(){try{localStorage.removeItem('active_rest_timer');}catch(e){}}
+function tTick(){
+  TR=Math.max(0,Math.round((T_endTs-Date.now())/1000));
+  updT();
+  if(TR<=0){
+    clearInterval(TI);TI=null;TRUN=false;
+    document.getElementById('t-go').textContent='▶ Start';
+    document.getElementById('tfab').classList.remove('run');
+    clearPersistedRestTimer();
+    restEndAlert();
+  }
+}
 function startT(){
-  if(TR<=0)TR=TT;TRUN=true;
+  if(TI){clearInterval(TI);TI=null;}
+  if(REST_ALERT_TIMER){clearTimeout(REST_ALERT_TIMER);REST_ALERT_TIMER=null;}
+  if(TR<=0)TR=TT;
+  TRUN=true;
+  T_endTs=Date.now()+TR*1000;
   document.getElementById('t-go').textContent='⏸ Pause';
   document.getElementById('tfab').classList.add('run');
-  TI=setInterval(function(){
-    TR--;updT();
-    if(TR<=0){clearInterval(TI);TRUN=false;document.getElementById('t-go').textContent='▶ Start';document.getElementById('tfab').classList.remove('run');if(navigator.vibrate)navigator.vibrate([200,100,200,100,400]);toast('Repos termine - Go !');}
-  },1000);
+  persistRestTimer();
+  TI=setInterval(tTick,1000);
 }
-function pauseT(){clearInterval(TI);TRUN=false;document.getElementById('t-go').textContent='▶ Reprendre';document.getElementById('tfab').classList.remove('run');}
-function stopT(){clearInterval(TI);TRUN=false;if(document.getElementById('t-go'))document.getElementById('t-go').textContent='▶ Start';document.getElementById('tfab').classList.remove('run');}
-function resetT(){stopT();TR=TT;updT();}
+function pauseT(){if(TI){clearInterval(TI);TI=null;}TRUN=false;document.getElementById('t-go').textContent='▶ Reprendre';document.getElementById('tfab').classList.remove('run');clearPersistedRestTimer();}
+function stopT(){if(TI){clearInterval(TI);TI=null;}TRUN=false;if(document.getElementById('t-go'))document.getElementById('t-go').textContent='▶ Start';document.getElementById('tfab').classList.remove('run');clearPersistedRestTimer();}
+function resetT(){stopT();if(REST_ALERT_TIMER){clearTimeout(REST_ALERT_TIMER);REST_ALERT_TIMER=null;}TR=TT;updT();}
+// Notif "repos termine" : vibration + toast, repetee jusqu'a 3 fois puis s'arrete pour de bon.
+function restEndAlert(){
+  if(REST_ALERT_TIMER){clearTimeout(REST_ALERT_TIMER);REST_ALERT_TIMER=null;}
+  var count=0;
+  function fire(){
+    count++;
+    if(navigator.vibrate)try{navigator.vibrate([200,100,200,100,400]);}catch(e){}
+    toast('Repos termine - Go !');
+    if(count<3)REST_ALERT_TIMER=setTimeout(fire,2600);
+    else REST_ALERT_TIMER=null;
+  }
+  fire();
+}
+function restoreActiveRestTimer(){
+  var raw;
+  try{raw=localStorage.getItem('active_rest_timer');}catch(e){return;}
+  if(!raw)return;
+  var st;
+  try{st=JSON.parse(raw);}catch(e){clearPersistedRestTimer();return;}
+  var rem=Math.max(0,Math.round((st.endTs-Date.now())/1000));
+  TT=st.dur||TT;
+  if(rem>0){
+    TR=rem;T_endTs=st.endTs;TRUN=true;
+    var goBtn=document.getElementById('t-go');if(goBtn)goBtn.textContent='⏸ Pause';
+    var fab=document.getElementById('tfab');if(fab)fab.classList.add('run');
+    TI=setInterval(tTick,1000);
+    updT();
+  } else {
+    clearPersistedRestTimer();
+  }
+}
 
 var CF_FORMATS=['EMOM','AMRAP','For Time','Rounds'];
 var CF_fmt='AMRAP',CF_dur=1200,CF_rem=1200,CF_run=false,CF_int=null;
@@ -3993,7 +4117,7 @@ function ctorFinish(){
         });
       });
     });
-    return p.then(function(){ACTPROG=prog.id;saveL();});
+    return p.then(function(){ACTPROG=prog.id;WEEK=1;saveL();});
   }).then(loadAll).then(function(){
     CTOR_STATE={nom:'',semaines:8,split:null,seances:[]};
     document.getElementById('main-nav').style.display='flex';
@@ -4930,6 +5054,7 @@ function initMain(){
 }
 function init(){
   restoreActiveTimer();
+  restoreActiveRestTimer();
   loadProfil();
   loadExFull();
   if(!hasProfil()){
