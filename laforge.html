@@ -827,6 +827,37 @@ function sbD(t,q){
   }).then(sbResp).then(function(){return true;});
 }
 
+// ── KV (table user_kv) ──────────────────────────────────────────────────────
+// Remplace tout ce qui etait stocke en localStorage brut (planning de semaine,
+// profil, coches "fait", PR, historique, WOD perso...) par un cache memoire (KV)
+// synchronise avec la table generique user_kv. Lectures/ecritures cote app restent
+// SYNCHRONES (memes fonctions kvGetItem/kvSetItem/kvRemoveItem que localStorage
+// avant elles, meme contrat de valeurs = chaines) : tout le code appelant n'a pas
+// change. kvLoadAll() charge tout en un seul aller-retour au demarrage ; chaque
+// ecriture met a jour le cache immediatement puis pousse vers Supabase en tache de
+// fond (comme sbPt ailleurs, best-effort, jamais bloquant).
+var KV={};
+function kvLoadAll(){
+  return sbG('user_kv','user_id=eq.'+USER.id).then(function(rows){
+    KV={};
+    (rows||[]).forEach(function(r){KV[r.key]=r.value;});
+  }).catch(function(){KV={};});
+}
+function kvGetItem(key){
+  var v=KV[key];
+  return v===undefined?null:v;
+}
+function kvSetItem(key,val){
+  KV[key]=val;
+  sbHeaders({'Prefer':'resolution=merge-duplicates'}).then(function(h){
+    return fetch(SB_URL+'/rest/v1/user_kv?on_conflict=user_id,key',{method:'POST',headers:h,body:JSON.stringify({user_id:USER.id,key:key,value:val})});
+  }).then(sbResp).catch(function(){});
+}
+function kvRemoveItem(key){
+  delete KV[key];
+  sbD('user_kv','user_id=eq.'+USER.id+'&key=eq.'+encodeURIComponent(key)).catch(function(){});
+}
+
 function norm(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
 function fmtT(s){return (s<10?'0':'')+Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60;}
 
@@ -1023,18 +1054,18 @@ var WEEKPLAN=[{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:
 var DOW=['L','M','M','J','V','S','D'];
 var PINS={};
 function todayIdx(){var d=new Date().getDay();return d===0?6:d-1;}
-function loadWP(){try{var d=JSON.parse(localStorage.getItem('weekplan'));if(d&&d.length===7)WEEKPLAN=d;}catch(e){}}
-function saveWP2(){try{localStorage.setItem('weekplan',JSON.stringify(WEEKPLAN));}catch(e){}}
-function loadPins(){try{var d=JSON.parse(localStorage.getItem('pins'));if(d)PINS=d;}catch(e){}}
-function savePins(){try{localStorage.setItem('pins',JSON.stringify(PINS));}catch(e){}}
+function loadWP(){try{var d=JSON.parse(kvGetItem('weekplan'));if(d&&d.length===7)WEEKPLAN=d;}catch(e){}}
+function saveWP2(){try{kvSetItem('weekplan',JSON.stringify(WEEKPLAN));}catch(e){}}
+function loadPins(){try{var d=JSON.parse(kvGetItem('pins'));if(d)PINS=d;}catch(e){}}
+function savePins(){try{kvSetItem('pins',JSON.stringify(PINS));}catch(e){}}
 function togPin(nom){PINS[nom]=!PINS[nom];savePins();renderStats();}
 var ACTPROG=null,CURWK=null,CHARTEX=null,SESSION_START=null,WOD_START=null;
 var ONB_STEP=1,CHOICE=null,NEW_PROG={nom:'',seances:[]},BUILD_IDX=0;
 var TI=null,TR=120,TT=120,TRUN=false;
 var WODS=[],AWOD=null,WINT=null,WRUN=false,WREM=0,WRD=1,WPHASE='work',SWTYPE='EMOM';
 
-function saveL(){try{localStorage.setItem('pgx',JSON.stringify({week:WEEK,act:ACTPROG}));}catch(e){}}
-function loadL(){try{var d=JSON.parse(localStorage.getItem('pgx'));if(d){WEEK=d.week||1;ACTPROG=d.act;}}catch(e){}}
+function saveL(){try{kvSetItem('pgx',JSON.stringify({week:WEEK,act:ACTPROG}));}catch(e){}}
+function loadL(){try{var d=JSON.parse(kvGetItem('pgx'));if(d){WEEK=d.week||1;ACTPROG=d.act;}}catch(e){}}
 
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
 function prToast(nom,poids){
@@ -1109,10 +1140,10 @@ function doImport(file){
 function doResetApp(){
   if(!confirm('Effacer toutes tes donnees (programmes, seances, historique) ? Irreversible.'))return;
   function finishReset(){
-    // Nettoyage exhaustif de TOUT ce qui est encore stocke en localStorage (cle exacte
-    // ou prefixe suivi d'un id/semaine). Un rechargement complet suit juste apres : ca
-    // evite qu'une des dizaines de variables en memoire (semaine active, chrono, saisie
-    // en cours, etc.) ne survive au reset et fasse ressurgir de vieilles donnees.
+    // Nettoyage local (variables de chrono, restes eventuels de l'ancienne version
+    // localStorage-only) + rechargement complet : evite qu'une des dizaines de
+    // variables en memoire (semaine active, chrono, saisie en cours, etc.) ne
+    // survive au reset et fasse ressurgir de vieilles donnees.
     var exactKeys=['pgx','weekplan','profil_v1','session_log','wod_perf_v1','user_wods_v2','pins','charge_hist','active_timer','active_rest_timer','auto_rest_timer','uw',LS_KEY];
     var prefixes=['ex_','done_','skip_','wod_done_','extra_light_','extra_seances_','seance_finbloc_done_','pr_count_','li_'];
     var allKeys=[];
@@ -1125,10 +1156,12 @@ function doResetApp(){
     setTimeout(function(){location.reload();},700);
   }
   // Les seances/exercices sont lies aux programmes par cascade cote SQL : supprimer les
-  // programmes suffit pour eux. Les performances sont a part (pas de cascade dessus).
+  // programmes suffit pour eux. Les performances et le KV (planning, coches, PR,
+  // historique, WOD perso...) sont a part (pas de cascade dessus).
   Promise.all([
     sbD('programmes','user_id=eq.'+USER.id),
-    sbD('performances','user_id=eq.'+USER.id)
+    sbD('performances','user_id=eq.'+USER.id),
+    sbD('user_kv','user_id=eq.'+USER.id)
   ]).then(finishReset).catch(function(){
     toast('Suppression cote serveur incomplete (verifie ta connexion)');
     finishReset();
@@ -1479,8 +1512,8 @@ function finishOnb(){
 
 // ── HOME ──────────────────────────────────────────────────────────────────────
 function wpLabel(entry,dayIdx){
-  var extra=dayIdx!==undefined&&(localStorage.getItem('wod_done_'+WEEK+'_'+dayIdx)||localStorage.getItem('extra_light_'+WEEK+'_'+dayIdx)||extraDoneFor(WEEK,dayIdx));
-  if(!entry||entry.type==='repos')return extra?(localStorage.getItem('wod_done_'+WEEK+'_'+dayIdx)?'WOD':'+1'):'\u2013';
+  var extra=dayIdx!==undefined&&(kvGetItem('wod_done_'+WEEK+'_'+dayIdx)||kvGetItem('extra_light_'+WEEK+'_'+dayIdx)||extraDoneFor(WEEK,dayIdx));
+  if(!entry||entry.type==='repos')return extra?(kvGetItem('wod_done_'+WEEK+'_'+dayIdx)?'WOD':'+1'):'\u2013';
   if(entry.type==='wod')return 'WOD';
   var s=SEANCES.find(function(x){return x.id===entry.seance_id;});
   var lbl=s?s.nom.substring(0,3).toUpperCase():'\u2013';
@@ -1504,9 +1537,9 @@ function weekStats(){
     });
   });
   WEEKPLAN.forEach(function(e,i){
-    if(e.type==='seance'&&localStorage.getItem('done_'+e.seance_id+'_'+WEEK)==='1')nbFait++;
-    if(localStorage.getItem('wod_done_'+WEEK+'_'+i))nbFait++;
-    if(localStorage.getItem('extra_light_'+WEEK+'_'+i))nbFait++;
+    if(e.type==='seance'&&kvGetItem('done_'+e.seance_id+'_'+WEEK)==='1')nbFait++;
+    if(kvGetItem('wod_done_'+WEEK+'_'+i))nbFait++;
+    if(kvGetItem('extra_light_'+WEEK+'_'+i))nbFait++;
     if(extraDoneFor(WEEK,i))nbFait++;
   });
   var dureeTotale=0;
@@ -1520,7 +1553,7 @@ function seancePct(s){
   if(!s)return 0;
   var exos=s.exercices||[];
   if(!exos.length)return 0;
-  var dc=exos.filter(function(e){return localStorage.getItem('ex_'+e.id+'_'+WEEK)==='1';}).length;
+  var dc=exos.filter(function(e){return kvGetItem('ex_'+e.id+'_'+WEEK)==='1';}).length;
   return Math.round(dc/exos.length*100);
 }
 function nextSeanceInfo(ti){
@@ -1542,19 +1575,19 @@ function getTodayActivities(ti){
   var entry=WEEKPLAN[ti];
   if(entry&&entry.type==='seance'){
     var s=SEANCES.find(function(x){return x.id===entry.seance_id;});
-    if(s&&localStorage.getItem('done_'+s.id+'_'+WEEK)==='1'){
+    if(s&&kvGetItem('done_'+s.id+'_'+WEEK)==='1'){
       acts.push({type:'Muscu',nom:s.nom});
     }
   }
-  var wodDone=localStorage.getItem('wod_done_'+WEEK+'_'+ti);
+  var wodDone=kvGetItem('wod_done_'+WEEK+'_'+ti);
   if(wodDone)acts.push({type:'WOD',nom:wodDone});
   extraSeancesFor(WEEK,ti).forEach(function(id){
-    if(localStorage.getItem('done_'+id+'_'+WEEK)==='1'){
+    if(kvGetItem('done_'+id+'_'+WEEK)==='1'){
       var es=SEANCES.find(function(x){return x.id===id;});
       if(es)acts.push({type:'Muscu',nom:es.nom});
     }
   });
-  var light=localStorage.getItem('extra_light_'+WEEK+'_'+ti);
+  var light=kvGetItem('extra_light_'+WEEK+'_'+ti);
   if(light)acts.push({type:'Activité',nom:light});
   return acts;
 }
@@ -1611,10 +1644,10 @@ function renderHome(){
   elC.innerHTML+='<button class="btn-ghost" style="border-style:dashed;margin-bottom:14px;margin-top:'+(todayActs.length?'10px':'0')+'" onclick="openAddType()">+ Ajouter une séance</button>';
   var wkHtml='';
   WEEKPLAN.forEach(function(e,i){
-    var wodDone=localStorage.getItem('wod_done_'+WEEK+'_'+i);
-    var lightDone=localStorage.getItem('extra_light_'+WEEK+'_'+i);
+    var wodDone=kvGetItem('wod_done_'+WEEK+'_'+i);
+    var lightDone=kvGetItem('extra_light_'+WEEK+'_'+i);
     var extraSeanceDone=extraDoneFor(WEEK,i);
-    var status=(e&&e.type==='seance'&&localStorage.getItem('done_'+e.seance_id+'_'+WEEK)==='1')?'done':(wodDone||lightDone||extraSeanceDone)?'done':(e&&e.type!=='repos')?'planned':'rest';
+    var status=(e&&e.type==='seance'&&kvGetItem('done_'+e.seance_id+'_'+WEEK)==='1')?'done':(wodDone||lightDone||extraSeanceDone)?'done':(e&&e.type!=='repos')?'planned':'rest';
     wkHtml+='<div style="flex:1;text-align:center;cursor:pointer" onclick="openDayDetailHome('+i+')">'
       +'<div style="font-family:var(--font-cond);font-size:10.5px;font-weight:700;color:var(--txt4);margin-bottom:4px;text-transform:uppercase">'+DOW[i]+'</div>'
       +'<div style="position:relative;padding:8px 2px;font-size:9px;font-weight:700;border:1px solid '+(status==='done'?'var(--accent)':i===ti?'var(--accent-b)':'var(--border2)')+';background:'+(i===ti?'var(--card3)':'var(--card2)')+';color:'+(i===ti?'var(--txt)':'var(--txt3)')+'">'
@@ -1657,7 +1690,7 @@ function renderProgTab(){
   var ss=SEANCES.filter(function(s){return s.prog_id===prog.id;});
   WEEKPLAN.forEach(function(e,i){
     var label='Repos',badgeCls='var(--txt4)';
-    var wodDone=localStorage.getItem('wod_done_'+WEEK+'_'+i);
+    var wodDone=kvGetItem('wod_done_'+WEEK+'_'+i);
     if(e.type==='wod'){label='WOD Day';badgeCls='var(--accent)';}
     else if(e.type==='seance'){
       var s=SEANCES.find(function(x){return x.id===e.seance_id;});
@@ -1737,7 +1770,7 @@ function calcWt(ex){
   return lp;
 }
 
-function isSkipped(exId){return localStorage.getItem('skip_'+exId+'_'+WEEK)==='1';}
+function isSkipped(exId){return kvGetItem('skip_'+exId+'_'+WEEK)==='1';}
 function openExMenu(i){
   var s=CURWK;if(!s||!s.exercices[i])return;
   var ex=s.exercices[i];
@@ -1747,10 +1780,10 @@ function openExMenu(i){
     if(ex.wodBloc&&ex.wodBloc.type==='A'&&ex.wodBloc.wodId){
       html+='<div class="choice" onclick="closeModal();wodItemDetail('+i+')"><div class="ct">Voir le détail / Lancer</div><div class="cs">Ouvre le Chrono</div></div>';
     }
-    var done=localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1';
+    var done=kvGetItem('ex_'+ex.id+'_'+WEEK)==='1';
     if(!done)html+='<div class="choice" onclick="closeModal();markWodItemDone('+i+')"><div class="ct">Marquer comme fait</div><div class="cs">Déjà réalisé, sans passer par le Chrono</div></div>';
   } else if(ex.type==='emom'){
-    var doneEmom=localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1';
+    var doneEmom=kvGetItem('ex_'+ex.id+'_'+WEEK)==='1';
     if(doneEmom)html+='<div class="choice" onclick="closeModal();unmarkDone(\''+ex.id+'\')"><div class="ct">Reprendre la saisie</div><div class="cs">Revenir sur les minutes déjà validées</div></div>';
   } else {
     html+='<div class="choice" onclick="closeModal();openSwapEx('+i+')"><div class="ct">Remplacer l\'exercice</div><div class="cs">Uniquement pour cette séance</div></div>';
@@ -1771,11 +1804,11 @@ function renderWk(){
   var exos=s.exercices||[];
   var activeExos=exos.filter(function(e){return !isSkipped(e.id);});
   document.getElementById('wk-s').textContent=activeExos.length+' éléments · S'+WEEK;
-  var dc=activeExos.filter(function(e){return localStorage.getItem('ex_'+e.id+'_'+WEEK)==='1';}).length;
+  var dc=activeExos.filter(function(e){return kvGetItem('ex_'+e.id+'_'+WEEK)==='1';}).length;
   var pct=activeExos.length?Math.round(dc/activeExos.length*100):0;
   document.getElementById('wk-ring').setAttribute('stroke-dashoffset',81.7-(pct/100)*81.7);
   document.getElementById('wk-pct').textContent=pct+'%';
-  var isDone=localStorage.getItem('done_'+s.id+'_'+WEEK)==='1';
+  var isDone=kvGetItem('done_'+s.id+'_'+WEEK)==='1';
   var vb=document.getElementById('vbtn');
   if(isDone){vb.textContent='Validee - Suivante \u2192';vb.style.background='var(--card2)';vb.style.color='var(--done)';vb.style.border='1.5px solid rgba(34,197,94,.3)';}
   else{vb.textContent='Valider '+s.nom;vb.style.background='var(--green)';vb.style.color='#000';vb.style.border='none';}
@@ -1795,7 +1828,7 @@ function renderWk(){
         +'</div>';
       return;
     }
-    var done=localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1';
+    var done=kvGetItem('ex_'+ex.id+'_'+WEEK)==='1';
     var dragHandle='<div class="exc-drag" onpointerdown="excDragStart(event,\''+ex.id+'\')" aria-label="Réordonner">'+dragSvg+'</div>';
     if(ex.type==='wod'){
       html+='<div class="exc'+(done?' done':'')+'" id="ex-'+i+'" data-exid="'+ex.id+'" style="border-left:3px solid var(--accent)">'
@@ -1867,7 +1900,7 @@ function renderWk(){
 var FINBLOC_ACTIVE_SEANCE=null, FINBLOC_ACTIVE_ITEM=null;
 function renderWodItemBody(i,ex){
   var fb=ex.wodBloc||{};
-  var done=localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1';
+  var done=kvGetItem('ex_'+ex.id+'_'+WEEK)==='1';
   var html='<div style="font-size:13px;color:var(--txt2);margin-bottom:10px">'+finBlocSummary(fb)+(done?' <span style="color:var(--accent)">&#10003; Fait</span>':'')+'</div>';
   if(done&&ex.wodResult){
     html+='<div class="card cross" style="position:relative;padding:12px;text-align:center;border-color:var(--accent-b);margin-bottom:10px">'
@@ -1900,7 +1933,7 @@ function wodItemDetail(i){
   if(WODBANK_NORM)go();else{toast('Chargement...');loadWodBank().then(go);}
 }
 function unmarkDone(exId){
-  localStorage.removeItem('ex_'+exId+'_'+WEEK);
+  kvRemoveItem('ex_'+exId+'_'+WEEK);
   renderWk();
 }
 function markWodItemDone(i){
@@ -1908,15 +1941,15 @@ function markWodItemDone(i){
   var ex=s.exercices[i];
   var format=wodItemFormat(ex);
   openWodResultPrompt(ex.exercice_nom,format,function(result){
-    localStorage.setItem('ex_'+ex.id+'_'+WEEK,'1');
+    kvSetItem('ex_'+ex.id+'_'+WEEK,'1');
     ex.wodResult=result;
     sbPt('seance_exercices',{wodResult:result},'id=eq.'+ex.id).catch(function(){});
     var isPR=logWodPerf(ex.exercice_nom,format,result);
     toast(ex.exercice_nom+' — '+wodResultDisplay(result));
     if(isPR)setTimeout(function(){prToast(ex.exercice_nom,wodResultDisplay(result));},1200);
     renderWk();
-    if(s.exercices.filter(function(e){return !isSkipped(e.id);}).every(function(e){return localStorage.getItem('ex_'+e.id+'_'+WEEK)==='1';})){
-      if(localStorage.getItem('done_'+s.id+'_'+WEEK)!=='1')setTimeout(autoVal,800);
+    if(s.exercices.filter(function(e){return !isSkipped(e.id);}).every(function(e){return kvGetItem('ex_'+e.id+'_'+WEEK)==='1';})){
+      if(kvGetItem('done_'+s.id+'_'+WEEK)!=='1')setTimeout(autoVal,800);
     }
   });
 }
@@ -1984,8 +2017,8 @@ function wodResultCompareVal(result){
   if(result.format.indexOf('TIME')>=0)return -(result.min*60+result.sec);
   return result.score||0;
 }
-function loadWodPerf(){try{return JSON.parse(localStorage.getItem('wod_perf_v1')||'{}');}catch(e){return {};}}
-function saveWodPerf(o){try{localStorage.setItem('wod_perf_v1',JSON.stringify(o));}catch(e){}}
+function loadWodPerf(){try{return JSON.parse(kvGetItem('wod_perf_v1')||'{}');}catch(e){return {};}}
+function saveWodPerf(o){try{kvSetItem('wod_perf_v1',JSON.stringify(o));}catch(e){}}
 function logWodPerf(nom,format,result){
   if(!result)return false;
   var all=loadWodPerf();
@@ -2000,9 +2033,9 @@ function logWodPerf(nom,format,result){
   return isPR;
 }
 function logPR(){
-  try{var k='pr_count_'+WEEK;localStorage.setItem(k,(parseInt(localStorage.getItem(k)||'0')+1));}catch(e){}
+  try{var k='pr_count_'+WEEK;kvSetItem(k,(parseInt(kvGetItem(k)||'0')+1));}catch(e){}
 }
-function getPRCount(week){try{return parseInt(localStorage.getItem('pr_count_'+week)||'0');}catch(e){return 0;}}
+function getPRCount(week){try{return parseInt(kvGetItem('pr_count_'+week)||'0');}catch(e){return 0;}}
 
 // ── EMOM (saisie minute par minute, total calculé automatiquement) ──────
 var EMOM_CFG={duree:10,objectif:5};
@@ -2036,7 +2069,7 @@ function emomCreate(){
 function renderEmomItemBody(i,ex){
   var cfg=ex.emomConfig||{duree:10,mouvement:'',objectif:5};
   var log=ex.emomLog||{};
-  var done=localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1';
+  var done=kvGetItem('ex_'+ex.id+'_'+WEEK)==='1';
   var total=0;for(var k in log)total+=(parseInt(log[k])||0);
   var html='<div style="font-size:12.5px;color:var(--txt4);margin-bottom:10px">'+cfg.duree+' min &middot; objectif '+cfg.objectif+' reps/min</div>';
   if(done){
@@ -2066,11 +2099,11 @@ function emomValidate(i){
   var log=ex.emomLog||{};
   var total=0;for(var k in log)total+=(parseInt(log[k])||0);
   sbPt('seance_exercices',{emomLog:log},'id=eq.'+ex.id).catch(function(){});
-  localStorage.setItem('ex_'+ex.id+'_'+WEEK,'1');
+  kvSetItem('ex_'+ex.id+'_'+WEEK,'1');
   toast(ex.exercice_nom+' — '+total+' reps');
   renderWk();
-  if(s.exercices.filter(function(e){return !isSkipped(e.id);}).every(function(e){return localStorage.getItem('ex_'+e.id+'_'+WEEK)==='1';})){
-    if(localStorage.getItem('done_'+s.id+'_'+WEEK)!=='1')setTimeout(autoVal,800);
+  if(s.exercices.filter(function(e){return !isSkipped(e.id);}).every(function(e){return kvGetItem('ex_'+e.id+'_'+WEEK)==='1';})){
+    if(kvGetItem('done_'+s.id+'_'+WEEK)!=='1')setTimeout(autoVal,800);
   }
 }
 
@@ -2121,12 +2154,12 @@ function delValidatedSerie(exId,ri){
 }
 function finalizeExercise(i,exId){
   savePerf(exId);
-  localStorage.setItem('ex_'+exId+'_'+WEEK,'1');
+  kvSetItem('ex_'+exId+'_'+WEEK,'1');
   toast('Exercice terminé');
   renderWk();
   var s=CURWK;
-  if(s&&s.exercices.filter(function(e){return !isSkipped(e.id);}).every(function(e){return localStorage.getItem('ex_'+e.id+'_'+WEEK)==='1';})){
-    if(localStorage.getItem('done_'+s.id+'_'+WEEK)!=='1')setTimeout(autoVal,800);
+  if(s&&s.exercices.filter(function(e){return !isSkipped(e.id);}).every(function(e){return kvGetItem('ex_'+e.id+'_'+WEEK)==='1';})){
+    if(kvGetItem('done_'+s.id+'_'+WEEK)!=='1')setTimeout(autoVal,800);
   }
 }
 function renderExpandBody(i,ex,wp){
@@ -2214,7 +2247,7 @@ function renderBlocBody(i,ex,wp){
   if(!wp.blocs)wp.blocs=[];
   if(!wp._cur)wp._cur={poids:'',reps:'',rpe:null};
   var cur=wp._cur;
-  var done=localStorage.getItem('ex_'+exId+'_'+WEEK)==='1';
+  var done=kvGetItem('ex_'+exId+'_'+WEEK)==='1';
   var last=lastDetailFor(exId);
   var html=infoBadges(ex);
   if(last)html+='<div style="font-size:10.5px;color:var(--txt4);margin-bottom:8px">Dernière fois : '+last.detail.map(function(r){return r.reps+'@'+r.poids+'kg';}).join(' \u00b7 ')+'</div>';
@@ -2431,17 +2464,17 @@ function skipExInSession(i){
   var s=CURWK;if(!s||!s.exercices[i])return;
   var ex=s.exercices[i];
   if(!confirm('Retirer "'+(ex.exercice_nom||ex.nom)+'" de cette séance ? (pas de matos, pas le temps...) Il reviendra la prochaine fois.'))return;
-  localStorage.setItem('skip_'+ex.id+'_'+WEEK,'1');
+  kvSetItem('skip_'+ex.id+'_'+WEEK,'1');
   renderWk();
   toast('Exercice retiré de cette séance');
   var s2=CURWK;
-  if(s2&&s2.exercices.filter(function(e){return !isSkipped(e.id);}).every(function(e){return localStorage.getItem('ex_'+e.id+'_'+WEEK)==='1';})){
-    if(localStorage.getItem('done_'+s2.id+'_'+WEEK)!=='1')setTimeout(autoVal,800);
+  if(s2&&s2.exercices.filter(function(e){return !isSkipped(e.id);}).every(function(e){return kvGetItem('ex_'+e.id+'_'+WEEK)==='1';})){
+    if(kvGetItem('done_'+s2.id+'_'+WEEK)!=='1')setTimeout(autoVal,800);
   }
 }
 function unskipEx(i){
   var s=CURWK;if(!s||!s.exercices[i])return;
-  localStorage.removeItem('skip_'+s.exercices[i].id+'_'+WEEK);
+  kvRemoveItem('skip_'+s.exercices[i].id+'_'+WEEK);
   renderWk();
 }
 // ── REORDONNER PAR APPUI LONG + GLISSER ─────────────────────────────────────
@@ -2524,14 +2557,14 @@ function revertSwapEx(i){
 
 function chkEx(i,exId){
   var k='ex_'+exId+'_'+WEEK;
-  var was=localStorage.getItem(k)==='1';
-  localStorage.setItem(k,was?'0':'1');
+  var was=kvGetItem(k)==='1';
+  kvSetItem(k,was?'0':'1');
   if(!was&&WKP[exId]&&(WKP[exId].poids||(WKP[exId].detail&&WKP[exId].detail.some(function(r){return r.poids||r.reps;}))))savePerf(exId);
   renderWk();
   if(!was){
     var s=CURWK;
-    if(s&&s.exercices.filter(function(e){return !isSkipped(e.id);}).every(function(e){return localStorage.getItem('ex_'+e.id+'_'+WEEK)==='1';})){
-      if(localStorage.getItem('done_'+s.id+'_'+WEEK)!=='1')setTimeout(autoVal,800);
+    if(s&&s.exercices.filter(function(e){return !isSkipped(e.id);}).every(function(e){return kvGetItem('ex_'+e.id+'_'+WEEK)==='1';})){
+      if(kvGetItem('done_'+s.id+'_'+WEEK)!=='1')setTimeout(autoVal,800);
     }
   }
 }
@@ -2570,18 +2603,18 @@ function savePerf(exId){
 function hasWP(exId){var w=WKP[exId];if(!w)return false;return !!w.poids||(w.detailOn&&w.detail&&w.detail.some(function(r){return r.poids||r.reps;}));}
 function autoVal(){
   var s=CURWK;if(!s)return;
-  if(localStorage.getItem('done_'+s.id+'_'+WEEK)==='1')return;
+  if(kvGetItem('done_'+s.id+'_'+WEEK)==='1')return;
   s.exercices.forEach(function(ex){
     if(isSkipped(ex.id))return;
-    if(localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1')return;
+    if(kvGetItem('ex_'+ex.id+'_'+WEEK)==='1')return;
     if(hasWP(ex.id))savePerf(ex.id);
   });
-  s.exercices.forEach(function(ex){if(!isSkipped(ex.id))localStorage.setItem('ex_'+ex.id+'_'+WEEK,'1');});
-  localStorage.setItem('done_'+s.id+'_'+WEEK,'1');
+  s.exercices.forEach(function(ex){if(!isSkipped(ex.id))kvSetItem('ex_'+ex.id+'_'+WEEK,'1');});
+  kvSetItem('done_'+s.id+'_'+WEEK,'1');
   setTimeout(function(){logSession(buildSeanceLogEntry(s));},60);
   var ss=SEANCES.filter(function(x){return x.prog_id===ACTPROG;});
   var idx=ss.findIndex(function(x){return x.id===s.id;});
-  localStorage.setItem('li_'+ACTPROG,idx);
+  kvSetItem('li_'+ACTPROG,idx);
   toast(s.nom+' validee !');
   setTimeout(function(){
     var next=(idx+1)%ss.length;
@@ -2594,12 +2627,12 @@ function autoVal(){
 
 function valSess(){
   var s=CURWK;if(!s)return;
-  var isDone=localStorage.getItem('done_'+s.id+'_'+WEEK)==='1';
+  var isDone=kvGetItem('done_'+s.id+'_'+WEEK)==='1';
   if(isDone){
     var ss=SEANCES.filter(function(x){return x.prog_id===ACTPROG;});
     var idx=ss.findIndex(function(x){return x.id===s.id;});
     var next=(idx+1)%ss.length;
-    localStorage.setItem('li_'+ACTPROG,idx);
+    kvSetItem('li_'+ACTPROG,idx);
     var prevWeek=WEEK;
     if(next===0){WEEK=Math.min(20,WEEK+1);saveL();toast('Cycle complet ! Semaine '+WEEK);}
     else toast('Seance suivante : '+ss[next].nom);
@@ -2609,14 +2642,14 @@ function valSess(){
   }
   s.exercices.forEach(function(ex){
     if(isSkipped(ex.id))return;
-    if(localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1')return;
+    if(kvGetItem('ex_'+ex.id+'_'+WEEK)==='1')return;
     if(hasWP(ex.id))savePerf(ex.id);
   });
-  s.exercices.forEach(function(ex){if(!isSkipped(ex.id))localStorage.setItem('ex_'+ex.id+'_'+WEEK,'1');});
-  localStorage.setItem('done_'+s.id+'_'+WEEK,'1');
+  s.exercices.forEach(function(ex){if(!isSkipped(ex.id))kvSetItem('ex_'+ex.id+'_'+WEEK,'1');});
+  kvSetItem('done_'+s.id+'_'+WEEK,'1');
   setTimeout(function(){logSession(buildSeanceLogEntry(s));},60);
   var ss2=SEANCES.filter(function(x){return x.prog_id===ACTPROG;});
-  localStorage.setItem('li_'+ACTPROG,ss2.findIndex(function(x){return x.id===s.id;}));
+  kvSetItem('li_'+ACTPROG,ss2.findIndex(function(x){return x.id===s.id;}));
   toast(s.nom+' validee !');renderWk();
   setTimeout(goHome,1200);
 }
@@ -2913,7 +2946,7 @@ function renderSet(){
   html+='<button class="btn btn-s" onclick="addNewProg()">+ Nouveau programme</button></div>';
 
   // WOD perso section
-  var uWods=JSON.parse(localStorage.getItem('uw')||'[]');
+  var uWods=JSON.parse(kvGetItem('uw')||'[]');
   if(uWods.length){
     html+='<div class="sdiv"></div><div class="set-s"><div class="set-t">WODs personnalises</div>';
     uWods.forEach(function(w,i){
@@ -2930,9 +2963,9 @@ function renderSet(){
 
 function delUserWod(i){
   if(!confirm('Supprimer ce WOD ?'))return;
-  var wods=JSON.parse(localStorage.getItem('uw')||'[]');
+  var wods=JSON.parse(kvGetItem('uw')||'[]');
   wods.splice(i,1);
-  localStorage.setItem('uw',JSON.stringify(wods));
+  kvSetItem('uw',JSON.stringify(wods));
   renderSet();toast('WOD supprime');
 }
 
@@ -2980,8 +3013,8 @@ function delProg(id){
 function resetCyc(pid){
   if(!confirm('Reinitialiser le cycle ?'))return;
   SEANCES.filter(function(s){return s.prog_id===pid;}).forEach(function(s){
-    s.exercices.forEach(function(e){localStorage.removeItem('ex_'+e.id+'_'+WEEK);});
-    localStorage.removeItem('done_'+s.id+'_'+WEEK);
+    s.exercices.forEach(function(e){kvRemoveItem('ex_'+e.id+'_'+WEEK);});
+    kvRemoveItem('done_'+s.id+'_'+WEEK);
   });
   toast('Cycle reinitialise');renderHome();
 }
@@ -2999,7 +3032,7 @@ var WCOLS={EMOM:'#22C55E',AMRAP:'#3B82F6',Tabata:'#EF4444','For Time':'#F59E0B',
 var WRUN_DATA={rem:0,run:false,round:1,phase:'work',int:null};
 
 function renderWodList(){
-  var uWods=JSON.parse(localStorage.getItem('uw')||'[]');
+  var uWods=JSON.parse(kvGetItem('uw')||'[]');
   WODS=DEF_WODS.concat(uWods);
   var html='<div class="sec">WODs disponibles</div>';
   WODS.forEach(function(w,i){
@@ -3162,8 +3195,8 @@ function saveWod(){
     work:getV('w-work',40),rest:getV('w-rest',20),
     dur:getV('w-dur',20),rounds:getV('w-rounds',0)||null,
     exos:exos,desc:exos.map(function(e){return e.n+' x '+e.r;}).join(' · ')};
-  var saved=JSON.parse(localStorage.getItem('uw')||'[]');
-  saved.push(wod);localStorage.setItem('uw',JSON.stringify(saved));
+  var saved=JSON.parse(kvGetItem('uw')||'[]');
+  saved.push(wod);kvSetItem('uw',JSON.stringify(saved));
   closeModal();renderWodList();toast(nom+' cree !');
 }
 
@@ -3545,9 +3578,9 @@ function loadWodBank(){
 
 // ── PROFIL ────────────────────────────────────────────────────────────────
 var PROFIL={age:null,niveau:null,objectifs:[],lieux:[]};
-function loadProfil(){try{var d=JSON.parse(localStorage.getItem('profil_v1'));if(d)PROFIL=d;}catch(e){}}
-function saveProfilLS(){try{localStorage.setItem('profil_v1',JSON.stringify(PROFIL));}catch(e){}}
-function hasProfil(){try{return !!localStorage.getItem('profil_v1');}catch(e){return false;}}
+function loadProfil(){try{var d=JSON.parse(kvGetItem('profil_v1'));if(d)PROFIL=d;}catch(e){}}
+function saveProfilLS(){try{kvSetItem('profil_v1',JSON.stringify(PROFIL));}catch(e){}}
+function hasProfil(){try{return !!kvGetItem('profil_v1');}catch(e){return false;}}
 function profilFieldsCount(){
   var n=0;
   if(PROFIL.age)n++;
@@ -3674,8 +3707,8 @@ function openWodBank(mode,pickCb){
 function wbSetFmt(f){WB_FMT=f;renderWodBankList();}
 function wbSearch(v){WB_Q=v;renderWodBankList();}
 // ── WOD PERSONNELS (créés par l'utilisateur, classés par catégorie libre) ──
-function loadUserWods(){try{return JSON.parse(localStorage.getItem('user_wods_v2')||'[]');}catch(e){return [];}}
-function saveUserWods(arr){try{localStorage.setItem('user_wods_v2',JSON.stringify(arr));}catch(e){}}
+function loadUserWods(){try{return JSON.parse(kvGetItem('user_wods_v2')||'[]');}catch(e){return [];}}
+function saveUserWods(arr){try{kvSetItem('user_wods_v2',JSON.stringify(arr));}catch(e){}}
 function userWodNorm(u){return {id:u.id,nom:u.nom,format:u.categorie.toUpperCase(),materiel:(u.exos||[]).map(function(e){return e.n;}).join(', '),lieu:'',section:'user',isUser:true};}
 function allWodsNorm(){
   var bank=WODBANK_NORM||[];
@@ -3941,9 +3974,9 @@ function finishWodCompletion(result){
     WEEKPLAN[ti]={type:'wod'};
     saveWP2();
   }
-  try{localStorage.setItem('wod_done_'+WEEK+'_'+ti,ACTIVE_WOD.nom);}catch(e){}
+  try{kvSetItem('wod_done_'+WEEK+'_'+ti,ACTIVE_WOD.nom);}catch(e){}
   if(FINBLOC_ACTIVE_ITEM){
-    try{localStorage.setItem('ex_'+FINBLOC_ACTIVE_ITEM+'_'+WEEK,'1');}catch(e){}
+    try{kvSetItem('ex_'+FINBLOC_ACTIVE_ITEM+'_'+WEEK,'1');}catch(e){}
     var itemId=FINBLOC_ACTIVE_ITEM;
     if(CURWK){
       var it=CURWK.exercices.find(function(x){return x.id===itemId;});
@@ -3952,7 +3985,7 @@ function finishWodCompletion(result){
     FINBLOC_ACTIVE_ITEM=null;
   }
   if(FINBLOC_ACTIVE_SEANCE){
-    try{localStorage.setItem('seance_finbloc_done_'+FINBLOC_ACTIVE_SEANCE+'_'+WEEK,'1');}catch(e){}
+    try{kvSetItem('seance_finbloc_done_'+FINBLOC_ACTIVE_SEANCE+'_'+WEEK,'1');}catch(e){}
     FINBLOC_ACTIVE_SEANCE=null;
   }
   var isPR=logWodPerf(ACTIVE_WOD.nom,ACTIVE_WOD.format,result);
@@ -4387,7 +4420,7 @@ function showProgDone(prog){
   var totalDone=0,totalSeries=0,totalVolume=0;
   for(var w=1;w<=prog.semaines;w++){
     ss.forEach(function(s){
-      if(localStorage.getItem('done_'+s.id+'_'+w)==='1')totalDone++;
+      if(kvGetItem('done_'+s.id+'_'+w)==='1')totalDone++;
     });
   }
   Object.keys(PERF).forEach(function(exId){
@@ -4568,16 +4601,16 @@ function adhocSave(){
 function addExtraSeance(dayIdx,seanceId){
   var key='extra_seances_'+WEEK+'_'+dayIdx;
   try{
-    var arr=JSON.parse(localStorage.getItem(key)||'[]');
+    var arr=JSON.parse(kvGetItem(key)||'[]');
     arr.push(seanceId);
-    localStorage.setItem(key,JSON.stringify(arr));
+    kvSetItem(key,JSON.stringify(arr));
   }catch(e){}
 }
 function extraSeancesFor(week,dayIdx){
-  try{return JSON.parse(localStorage.getItem('extra_seances_'+week+'_'+dayIdx)||'[]');}catch(e){return [];}
+  try{return JSON.parse(kvGetItem('extra_seances_'+week+'_'+dayIdx)||'[]');}catch(e){return [];}
 }
 function extraDoneFor(week,dayIdx){
-  return extraSeancesFor(week,dayIdx).some(function(id){return localStorage.getItem('done_'+id+'_'+week)==='1';});
+  return extraSeancesFor(week,dayIdx).some(function(id){return kvGetItem('done_'+id+'_'+week)==='1';});
 }
 
 // ── AJOUTER UNE SEANCE — sélecteur de type (Muscu / WOD / Ergo / Autre) ──
@@ -4659,7 +4692,7 @@ function addLightSave(){
     var dur=(document.getElementById('al-dur')||{value:''}).value.trim();
     label=nom+(dur?' · '+dur+' min':'');
   }
-  try{localStorage.setItem('extra_light_'+WEEK+'_'+ti,label);}catch(e){}
+  try{kvSetItem('extra_light_'+WEEK+'_'+ti,label);}catch(e){}
   toast('Ajouté à '+DOWFULL[ti]+' !');
   ADD_TARGET_DAY=null;
   document.getElementById('main-nav').style.display='flex';
@@ -4684,11 +4717,11 @@ function openDayDetailHome(dayIdx){
   }
   if(e&&e.type==='seance'){
     var s=SEANCES.find(function(x){return x.id===e.seance_id;});
-    if(s&&localStorage.getItem('done_'+s.id+'_'+WEEK)!=='1'){
+    if(s&&kvGetItem('done_'+s.id+'_'+WEEK)!=='1'){
       var pctDay=seancePct(s);
       html+='<button class="btn-s" style="margin-top:12px" onclick="closeModal();openWk(\''+s.id+'\')">'+(pctDay>0?'Continuer ':'Démarrer ')+s.nom+'</button>';
     }
-  } else if(e&&e.type==='wod'&&!localStorage.getItem('wod_done_'+WEEK+'_'+dayIdx)){
+  } else if(e&&e.type==='wod'&&!kvGetItem('wod_done_'+WEEK+'_'+dayIdx)){
     html+='<button class="btn-s" style="margin-top:12px" onclick="closeModal();goNav(\'wod\')">Aller au Chrono</button>';
   }
   html+='<button class="btn-ghost" style="border-style:dashed;margin-top:10px" onclick="closeModal();openAddType('+dayIdx+')">+ Ajouter une séance à ce jour</button>';
@@ -4697,8 +4730,8 @@ function openDayDetailHome(dayIdx){
 }
 
 // ── HISTORIQUE (journal de toutes les séances réellement faites) ────────
-function loadSessionLog(){try{return JSON.parse(localStorage.getItem('session_log')||'[]');}catch(e){return [];}}
-function saveSessionLog(l){try{localStorage.setItem('session_log',JSON.stringify(l));}catch(e){}}
+function loadSessionLog(){try{return JSON.parse(kvGetItem('session_log')||'[]');}catch(e){return [];}}
+function saveSessionLog(l){try{kvSetItem('session_log',JSON.stringify(l));}catch(e){}}
 function logSession(entry){
   var log=loadSessionLog();
   entry.id='sl_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -4713,13 +4746,13 @@ function buildSeanceLogEntry(s){
   s.exercices.forEach(function(ex){
     if(isSkipped(ex.id))return;
     if(ex.type==='wod'){
-      if(localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1'){
+      if(kvGetItem('ex_'+ex.id+'_'+WEEK)==='1'){
         wodItems.push({nom:ex.exercice_nom,resume:finBlocSummary(ex.wodBloc),wodBloc:ex.wodBloc||null,wodResult:ex.wodResult||null});
       }
       return;
     }
     if(ex.type==='emom'){
-      if(localStorage.getItem('ex_'+ex.id+'_'+WEEK)==='1'){
+      if(kvGetItem('ex_'+ex.id+'_'+WEEK)==='1'){
         var total=0;if(ex.emomLog)for(var mk in ex.emomLog)total+=(parseInt(ex.emomLog[mk])||0);
         emomItems.push({nom:ex.exercice_nom,duree:(ex.emomConfig&&ex.emomConfig.duree)||10,objectif:(ex.emomConfig&&ex.emomConfig.objectif)||5,mouvement:(ex.emomConfig&&ex.emomConfig.mouvement)||'',total:total,detail:ex.emomLog||{}});
       }
@@ -5055,13 +5088,15 @@ function initMain(){
 function init(){
   restoreActiveTimer();
   restoreActiveRestTimer();
-  loadProfil();
-  loadExFull();
-  if(!hasProfil()){
-    showSc('accroche');renderAccroche();
-    return;
-  }
-  initMain();
+  kvLoadAll().then(function(){
+    loadProfil();
+    loadExFull();
+    if(!hasProfil()){
+      showSc('accroche');renderAccroche();
+      return;
+    }
+    initMain();
+  });
 }
 
 bootAuth();
