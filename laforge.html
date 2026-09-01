@@ -757,61 +757,71 @@ function bootAuth(){
     if(session)onAuthed(session.user);else showLogin();
   }).catch(function(){showLogin();});
 }
-function LS_load(){try{var d=JSON.parse(localStorage.getItem(LS_KEY));return d||{};}catch(e){return {};}}
-function LS_save(db){try{localStorage.setItem(LS_KEY,JSON.stringify(db));}catch(e){}}
-function LS_uid(){return 'id_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);}
-function LS_parseQ(q){
-  var f={},order=null;
-  (q||'').split('&').forEach(function(part){
-    if(!part)return;
-    var kv=part.split('=');var k=kv[0];var v=decodeURIComponent(kv.slice(1).join('='));
-    if(k==='order'){order=v;return;}
-    var m=v.match(/^eq\.(.*)$/);
-    if(m)f[k]=m[1];
-  });
-  return {filters:f,order:order};
+// ── DONNEES (API REST Supabase) ─────────────────────────────────────────────
+// Les fonctions sbG/sbP/sbPt/sbD gardent exactement la meme signature qu'avant
+// (t = table, q = query string style PostgREST "champ=eq.valeur&order=champ.asc",
+// d = objet a inserer/mettre a jour) pour ne toucher a aucun site d'appel.
+// Conversion camelCase (JS) <-> snake_case (colonnes SQL) pour les quelques
+// champs qui divergent ; tout le reste passe tel quel.
+var SB_FIELD_OUT={finBloc:'fin_bloc',wodBloc:'wod_bloc',emomConfig:'emom_config',emomLog:'emom_log',blocMode:'bloc_mode',wodResult:'wod_result'};
+var SB_FIELD_IN={};
+for(var _skf in SB_FIELD_OUT)SB_FIELD_IN[SB_FIELD_OUT[_skf]]=_skf;
+
+function sbToSnake(obj){
+  if(!obj||typeof obj!=='object')return obj;
+  var out={};
+  for(var k in obj)out[SB_FIELD_OUT[k]||k]=obj[k];
+  return out;
 }
-function LS_match(row,filters){
-  for(var k in filters){if(k==='user_id')continue;if(String(row[k])!==String(filters[k]))return false;}
-  return true;
+function sbToCamelRow(row){
+  if(!row||typeof row!=='object')return row;
+  var out={};
+  for(var k in row)out[SB_FIELD_IN[k]||k]=row[k];
+  return out;
+}
+function sbToCamelArr(rows){return Array.isArray(rows)?rows.map(sbToCamelRow):rows;}
+
+function sbHeaders(extra){
+  return SB.auth.getSession().then(function(res){
+    var session=res&&res.data&&res.data.session;
+    var token=session&&session.access_token?session.access_token:SB_KEY;
+    var h={'apikey':SB_KEY,'Authorization':'Bearer '+token,'Content-Type':'application/json'};
+    if(extra)for(var k in extra)h[k]=extra[k];
+    return h;
+  });
+}
+function sbResp(resp){
+  if(resp.status===204)return [];
+  return resp.text().then(function(txt){
+    var body=null;
+    if(txt){try{body=JSON.parse(txt);}catch(e){body=txt;}}
+    if(!resp.ok){
+      var msg=(body&&body.message)?body.message:('Erreur serveur ('+resp.status+')');
+      var err=new Error(msg);err.status=resp.status;err.body=body;
+      throw err;
+    }
+    return body===null?[]:body;
+  });
 }
 function sbG(t,q){
-  var db=LS_load();var rows=(db[t]||[]).slice();
-  var pq=LS_parseQ(q);
-  rows=rows.filter(function(r){return LS_match(r,pq.filters);});
-  if(pq.order){
-    var parts=pq.order.split('.');var field=parts[0];var dir=parts[1]||'asc';
-    rows.sort(function(a,b){
-      var av=a[field],bv=b[field];
-      if(av<bv)return dir==='desc'?1:-1;
-      if(av>bv)return dir==='desc'?-1:1;
-      return 0;
-    });
-  }
-  return Promise.resolve(rows);
+  return sbHeaders().then(function(h){
+    return fetch(SB_URL+'/rest/v1/'+t+(q?('?'+q):''),{headers:h});
+  }).then(sbResp).then(sbToCamelArr);
 }
 function sbP(t,d){
-  var db=LS_load();if(!db[t])db[t]=[];
-  var row=Object.assign({id:LS_uid(),created_at:new Date().toISOString()},d);
-  db[t].push(row);LS_save(db);
-  return Promise.resolve([row]);
+  return sbHeaders({'Prefer':'return=representation'}).then(function(h){
+    return fetch(SB_URL+'/rest/v1/'+t,{method:'POST',headers:h,body:JSON.stringify(sbToSnake(d))});
+  }).then(sbResp).then(sbToCamelArr);
 }
 function sbPt(t,d,q){
-  var db=LS_load();if(!db[t])db[t]=[];
-  var pq=LS_parseQ(q);var updated=[];
-  db[t]=db[t].map(function(r){
-    if(LS_match(r,pq.filters)){var nr=Object.assign({},r,d);updated.push(nr);return nr;}
-    return r;
-  });
-  LS_save(db);
-  return Promise.resolve(updated);
+  return sbHeaders({'Prefer':'return=representation'}).then(function(h){
+    return fetch(SB_URL+'/rest/v1/'+t+(q?('?'+q):''),{method:'PATCH',headers:h,body:JSON.stringify(sbToSnake(d))});
+  }).then(sbResp).then(sbToCamelArr);
 }
 function sbD(t,q){
-  var db=LS_load();if(!db[t])db[t]=[];
-  var pq=LS_parseQ(q);
-  db[t]=db[t].filter(function(r){return !LS_match(r,pq.filters);});
-  LS_save(db);
-  return Promise.resolve(true);
+  return sbHeaders().then(function(h){
+    return fetch(SB_URL+'/rest/v1/'+t+(q?('?'+q):''),{method:'DELETE',headers:h});
+  }).then(sbResp).then(function(){return true;});
 }
 
 function norm(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
@@ -1095,20 +1105,31 @@ function doImport(file){
 
 function doResetApp(){
   if(!confirm('Effacer toutes tes donnees (programmes, seances, historique) ? Irreversible.'))return;
-  var exactKeys=['pgx','weekplan','profil_v1','session_log','wod_perf_v1','user_wods_v2','pins','charge_hist',LS_KEY];
-  var prefixes=['ex_','done_','skip_','wod_done_','extra_light_','extra_seances_','seance_finbloc_done_','pr_count_','li_'];
-  var allKeys=[];
-  for(var i=0;i<localStorage.length;i++)allKeys.push(localStorage.key(i));
-  allKeys.forEach(function(k){
-    if(exactKeys.indexOf(k)>=0){localStorage.removeItem(k);return;}
-    if(prefixes.some(function(p){return k.indexOf(p)===0;}))localStorage.removeItem(k);
+  function finishReset(){
+    var exactKeys=['pgx','weekplan','profil_v1','session_log','wod_perf_v1','user_wods_v2','pins','charge_hist',LS_KEY];
+    var prefixes=['ex_','done_','skip_','wod_done_','extra_light_','extra_seances_','seance_finbloc_done_','pr_count_','li_'];
+    var allKeys=[];
+    for(var i=0;i<localStorage.length;i++)allKeys.push(localStorage.key(i));
+    allKeys.forEach(function(k){
+      if(exactKeys.indexOf(k)>=0){localStorage.removeItem(k);return;}
+      if(prefixes.some(function(p){return k.indexOf(p)===0;}))localStorage.removeItem(k);
+    });
+    PROGS=[];SEANCES=[];PERF={};PINS={};
+    WEEKPLAN=[{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'}];
+    WEEK=1;ACTPROG=null;
+    ONB_STEP=1;NEW_PROG={nom:'',seances:[]};CHOICE=null;
+    showSc('onb');renderOnb();
+    document.getElementById('main-nav').style.display='none';
+  }
+  // Les programmes/seances/exercices sont lies par cascade cote SQL : supprimer les
+  // programmes suffit. Les performances sont a part (pas de lien de cascade dessus).
+  Promise.all([
+    sbD('programmes','user_id=eq.'+USER.id),
+    sbD('performances','user_id=eq.'+USER.id)
+  ]).then(finishReset).catch(function(){
+    toast('Suppression cote serveur incomplete (verifie ta connexion)');
+    finishReset();
   });
-  PROGS=[];SEANCES=[];PERF={};PINS={};
-  WEEKPLAN=[{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'}];
-  WEEK=1;ACTPROG=null;
-  ONB_STEP=1;NEW_PROG={nom:'',seances:[]};CHOICE=null;
-  showSc('onb');renderOnb();
-  document.getElementById('main-nav').style.display='none';
 }
 
 // ── DATA ─────────────────────────────────────────────────────────────────────
@@ -1139,7 +1160,7 @@ function loadAll(){
     });
     return p;
   }).then(function(){
-    return sbG('performances','user_id=eq.'+USER.id+'&order=date.desc').then(function(perfs){
+    return sbG('performances','user_id=eq.'+USER.id+'&order=created_at.desc').then(function(perfs){
       PERF={};
       (perfs||[]).forEach(function(p){
         if(!PERF[p.seance_exercice_id])PERF[p.seance_exercice_id]=[];
@@ -1414,7 +1435,8 @@ function addCustomEx(si,inB){
   var m=document.getElementById('cex-m').value.trim();
   if(!n){toast('Entre un nom');return;}
   EX.push({n:n,m:m||'Autre'});
-  if(USER){sbP('exercices_base',{user_id:USER.id,nom:n,muscle:m||'Autre',custom:true}).catch(function(){});}
+  // Note: exercice custom ajoute seulement en local pour l'instant (pas de table dediee) —
+  // sera persiste dans user_kv au lot 3.
   addExFn(si,n,m||'Autre',inB);
 }
 
@@ -4893,17 +4915,18 @@ function xminPick(ri){
 // ── INIT ──────────────────────────────────────────────────────────────────────
 function initMain(){
   loadL();
-  var db=LS_load();
-  if(db.programmes&&db.programmes.length){
-    loadAll().then(function(){showMain();}).catch(function(){
+  loadAll().then(function(){
+    if(PROGS&&PROGS.length){
+      showMain();
+    } else {
+      ONB_STEP=1;
       showSc('onb');renderOnb();
       document.getElementById('main-nav').style.display='none';
-    });
-  } else {
-    ONB_STEP=1;
+    }
+  }).catch(function(){
     showSc('onb');renderOnb();
     document.getElementById('main-nav').style.display='none';
-  }
+  });
 }
 function init(){
   restoreActiveTimer();
