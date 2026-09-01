@@ -1780,6 +1780,9 @@ function buildExHtml(e,i,si,inB){
   var setsFn=inB?'NEW_PROG.seances['+si+'].exercices['+i+'].sets=parseInt(this.value)||3':'editExF(\''+( e.id||i)+'\',\'sets\',this.value)';
   var repsFn=inB?'NEW_PROG.seances['+si+'].exercices['+i+'].reps=parseInt(this.value)||10':'editExF(\''+( e.id||i)+'\',\'reps\',this.value)';
   var mrFn=inB?'mrBld('+si+','+i+')':'mrLive(\''+( e.id||i)+'\','+si+','+i+')';
+  var schFn=inB?'schmBld('+si+','+i+')':'schmLive(\''+( e.id||i)+'\','+si+','+i+')';
+  var schInpFn=inB?'schmBldSet('+si+','+i+',this.value)':'schmLiveSet(\''+( e.id||i)+'\','+si+','+i+',this.value)';
+  var hasSch=e.reps_scheme&&e.reps_scheme.length;
   var delFn=inB?'NEW_PROG.seances['+si+'].exercices.splice('+i+',1);renderBldList('+si+')':'delExS('+si+','+i+')';
   var chipsHtml='';
   ['poids','reps','neant'].forEach(function(t){
@@ -1808,15 +1811,35 @@ function buildExHtml(e,i,si,inB){
     +'<button class="exb-del" onclick="'+delFn+'">x</button>'
     +'</div></div>'
     +'<div class="exb-grid">'
-    +'<div class="exb-f"><div class="exb-fl">Series</div><input class="exb-inp" type="number" value="'+(e.sets||3)+'" inputmode="numeric" oninput="'+setsFn+'"></div>'
-    +'<div class="exb-f"><div class="exb-fl">Reps</div><input class="exb-inp" type="number" value="'+(e.reps||10)+'" inputmode="numeric"'+(e.max_reps?' disabled style="color:var(--green)"':'')+' oninput="'+repsFn+'"></div>'
+    +(hasSch
+      ? '<div class="exb-f" style="grid-column:1 / -1"><div class="exb-fl">Répétitions par série</div><input class="exb-inp" type="text" placeholder="ex. 5,3,1" value="'+e.reps_scheme.join(',')+'" oninput="'+schInpFn+'" style="width:100%;text-align:left;padding-left:8px"></div>'
+      : '<div class="exb-f"><div class="exb-fl">Series</div><input class="exb-inp" type="number" value="'+(e.sets||3)+'" inputmode="numeric" oninput="'+setsFn+'"></div>'
+        +'<div class="exb-f"><div class="exb-fl">Reps</div><input class="exb-inp" type="number" value="'+(e.reps||10)+'" inputmode="numeric"'+(e.max_reps?' disabled style="color:var(--green)"':'')+' oninput="'+repsFn+'"></div>')
     +'</div>'
-    +'<div class="mr-row"><button class="mr-tog'+(e.max_reps?' on':'')+'" onclick="'+mrFn+'"></button><span class="mr-lbl">Max reps</span></div>'
+    +(hasSch?'':'<div class="mr-row"><button class="mr-tog'+(e.max_reps?' on':'')+'" onclick="'+mrFn+'"></button><span class="mr-lbl">Max reps</span></div>')
+    +'<div class="mr-row"><button class="mr-tog'+(hasSch?' on':'')+'" onclick="'+schFn+'"></button><span class="mr-lbl">Séries perso (ex. 5-3-1)</span></div>'
     +'<div class="prog-lbl">Progression</div><div class="chips" style="margin-top:4px">'+chipsHtml+'</div>'
     +progHtml+'</div>';
 }
 
-function mrBld(si,i){NEW_PROG.seances[si].exercices[i].max_reps=!NEW_PROG.seances[si].exercices[i].max_reps;renderBldList(si);}
+function mrBld(si,i){
+  var e=NEW_PROG.seances[si].exercices[i];
+  e.max_reps=!e.max_reps;
+  if(e.max_reps)e.reps_scheme=null;
+  renderBldList(si);
+}
+function schmBld(si,i){
+  var e=NEW_PROG.seances[si].exercices[i];
+  if(e.reps_scheme&&e.reps_scheme.length){e.reps_scheme=null;}
+  else{e.reps_scheme=Array(e.sets||3).fill(e.reps||10);e.max_reps=false;}
+  renderBldList(si);
+}
+function schmBldSet(si,i,val){
+  var e=NEW_PROG.seances[si].exercices[i];
+  var parsed=parseRepsScheme(val);
+  e.reps_scheme=parsed;
+  if(parsed)e.sets=parsed.length;
+}
 
 function toggleBisetBld(si,i){
   var exos=NEW_PROG.seances[si].exercices;
@@ -1866,8 +1889,23 @@ function bsSet(si,i){toggleBisetLive(si,i);}
 function mrLive(id,si,i){
   var ex=SEANCES[si]&&SEANCES[si].exercices[i];if(!ex)return;
   ex.max_reps=!ex.max_reps;
-  sbPt('seance_exercices',{max_reps:ex.max_reps},'id=eq.'+id).catch(function(){});
+  if(ex.max_reps)ex.reps_scheme=null;
+  sbPt('seance_exercices',{max_reps:ex.max_reps,reps_scheme:ex.reps_scheme},'id=eq.'+id).catch(function(){});
   renderSet();
+}
+function schmLive(id,si,i){
+  var ex=SEANCES[si]&&SEANCES[si].exercices[i];if(!ex)return;
+  if(ex.reps_scheme&&ex.reps_scheme.length)ex.reps_scheme=null;
+  else{ex.reps_scheme=Array(ex.sets||3).fill(ex.reps||10);ex.max_reps=false;}
+  sbPt('seance_exercices',{reps_scheme:ex.reps_scheme,max_reps:ex.max_reps},'id=eq.'+id).catch(function(){});
+  renderSet();
+}
+function schmLiveSet(id,si,i,val){
+  var ex=SEANCES[si]&&SEANCES[si].exercices[i];if(!ex)return;
+  var parsed=parseRepsScheme(val);
+  ex.reps_scheme=parsed;
+  if(parsed)ex.sets=parsed.length;
+  sbPt('seance_exercices',{reps_scheme:parsed,sets:ex.sets},'id=eq.'+id).catch(function(){});
 }
 function setExPT(id,si,i,t){
   if(SEANCES[si]&&SEANCES[si].exercices[i])SEANCES[si].exercices[i].progression_type=t;
@@ -1951,7 +1989,7 @@ function finishOnb(){
           var p2=Promise.resolve();
           s.exercices.forEach(function(e,ei){
             p2=p2.then(function(){
-              return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,exercice_nom:e.nom,muscle:e.muscle||'',sets:e.sets||3,reps:e.reps||10,max_reps:e.max_reps||false,progression_type:e.prog_type||'poids',progression_valeur:e.prog_val||2.5,progression_frequence:e.prog_freq||1,reps_cible:e.reps_cible||null,biset_group:e.biset_group||null,ordre:ei});
+              return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,exercice_nom:e.nom,muscle:e.muscle||'',sets:e.sets||3,reps:e.reps||10,max_reps:e.max_reps||false,reps_scheme:e.reps_scheme||null,progression_type:e.prog_type||'poids',progression_valeur:e.prog_val||2.5,progression_frequence:e.prog_freq||1,reps_cible:e.reps_cible||null,biset_group:e.biset_group||null,ordre:ei});
             });
           });
           return p2;
@@ -2282,6 +2320,27 @@ function migrateFinBlocToItem(s){
   }).catch(function(){});
 }
 
+// ── SÉRIES PERSONNALISÉES (ex. 5-3-1) ────────────────────────────────────
+// reps_scheme : tableau optionnel de reps cible par série (ex. [5,3,1]).
+// Quand présent il prime sur le couple sets/reps uniforme pour l'affichage
+// et pour la cible montrée pendant la séance ; sets reste synchronisé à sa
+// longueur pour que le reste du code (qui lit ex.sets) continue de marcher.
+function parseRepsScheme(str){
+  if(!str)return null;
+  var parts=String(str).split(/[,\-\/\s]+/).map(function(s){return parseInt(s,10);}).filter(function(n){return !isNaN(n)&&n>0;});
+  return parts.length?parts:null;
+}
+function exTargetSets(ex){return (ex&&ex.reps_scheme&&ex.reps_scheme.length)?ex.reps_scheme.length:((ex&&ex.sets)||3);}
+function exTargetReps(ex,setIdx){
+  if(ex&&ex.reps_scheme&&ex.reps_scheme.length)return ex.reps_scheme[Math.min(setIdx,ex.reps_scheme.length-1)];
+  return ex?ex.reps:10;
+}
+function exSetsRepsLabel(ex){
+  if(ex&&ex.reps_scheme&&ex.reps_scheme.length)return ex.reps_scheme.join('-')+' reps';
+  var reps=ex.max_reps?'Max':ex.reps+' reps';
+  return (ex.sets||3)+'x'+reps;
+}
+
 function calcWt(ex){
   var perfs=PERF[ex.id]||[];
   if(!perfs.length)return null;
@@ -2393,7 +2452,6 @@ function renderWk(){
     }
     var wt=calcWt(ex);
     var wp=WKP[ex.id]||{};
-    var reps=ex.max_reps?'Max':ex.reps+' reps';
     var wtHtml=wt!==null?('<div class="ewt-v">'+wt+'</div><div class="ewt-l">kg</div>'):'<div style="font-size:10px;color:var(--green);font-weight:700">1ere</div>';
     var bsGroup=ex.biset_group;
     var bsBorderWk=bsGroup?'border-left:3px solid var(--green);':'';
@@ -2405,7 +2463,7 @@ function renderWk(){
       +bsLabelWk
       +(ex.muscle?'<div class="emuscle">'+ex.muscle+'</div>':'')
       +'<div class="en">'+(ex.exercice_nom||ex.nom)+'</div>'
-      +'<div class="emeta">'+ex.sets+'x'+reps+'</div>'
+      +'<div class="emeta">'+exSetsRepsLabel(ex)+'</div>'
       +'</div>'
       +'<button class="btn-icon-swap" onclick="event.stopPropagation();openExMenu('+i+')" aria-label="Modifier">'
       +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>'
@@ -2645,8 +2703,14 @@ function rpeRowCur(exId,cur){
     +'</div>';
   return html;
 }
-function infoBadges(ex){
-  var repsLbl=ex.max_reps?'MAX REPS':(ex.reps+' REPS');
+function infoBadges(ex,curSetIdx){
+  var repsLbl;
+  if(ex.reps_scheme&&ex.reps_scheme.length){
+    var idx=curSetIdx||0;
+    repsLbl=exTargetReps(ex,idx)+' REPS · S'+(idx+1)+' ('+ex.reps_scheme.join('-')+')';
+  } else {
+    repsLbl=ex.max_reps?'MAX REPS':(ex.reps+' REPS');
+  }
   var restS=TT||120,m=Math.floor(restS/60),s=restS%60;
   var restLbl='REPOS '+m+':'+(s<10?'0':'')+s;
   return '<div class="info-badges"><span class="info-badge">'+repsLbl+'</span><span class="info-badge">'+restLbl+'</span></div>';
@@ -2666,7 +2730,7 @@ function validerSerie(i,exId){
   WKP[exId].detailOn=true;
   WKP[exId].detail.push({poids:cur.poids,reps:cur.reps,rpe:cur.rpe});
   WKP[exId]._cur={poids:cur.poids,reps:'',rpe:cur.rpe};
-  var target=ex.sets||1;
+  var target=exTargetSets(ex);
   if(WKP[exId].detail.length>=target)finalizeExercise(i,exId);
   else refreshExpand(exId);
   autoStartRestTimer();
@@ -2694,13 +2758,13 @@ function renderExpandBody(i,ex,wp){
   var rows=wp.detail||[];
   if(!wp._cur)wp._cur={poids:'',reps:'',rpe:null};
   var cur=wp._cur;
-  var target=ex.sets||1;
+  var target=exTargetSets(ex);
   var last=lastDetailFor(exId);
   if(!rows.length&&!cur.poids){
     var suggested=calcWt(ex);
     if(suggested!==null)cur.poids=suggested;
   }
-  var html=infoBadges(ex);
+  var html=infoBadges(ex,rows.length);
   html+='<div style="margin-bottom:6px">'
     +'<span style="font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:1px;color:var(--txt4);text-transform:uppercase">SÉRIE '+Math.min(rows.length+1,target)+' / '+target+'</span>'
     +'</div>';
@@ -2715,7 +2779,7 @@ function renderExpandBody(i,ex,wp){
   if(rows.length<target){
     html+='<div class="prow" style="margin-top:8px">'
       +'<input class="pi" type="number" placeholder="'+(calcWt(ex)!==null?calcWt(ex)+' kg':'Poids kg')+'" value="'+(cur.poids||'')+'" oninput="wkCur(\''+exId+'\',\'poids\',this.value)" inputmode="decimal" step="0.5">'
-      +'<input class="pi" type="number" placeholder="'+(ex.max_reps?'Max reps':ex.reps)+'" value="'+(cur.reps||'')+'" oninput="wkCur(\''+exId+'\',\'reps\',this.value)" inputmode="numeric" style="max-width:80px">'
+      +'<input class="pi" type="number" placeholder="'+(ex.max_reps?'Max reps':exTargetReps(ex,rows.length))+'" value="'+(cur.reps||'')+'" oninput="wkCur(\''+exId+'\',\'reps\',this.value)" inputmode="numeric" style="max-width:80px">'
       +'</div>'
       +rpeRowCur(exId,cur.rpe)
       +'<button class="btn btn-p" style="margin-top:8px" onclick="event.stopPropagation();validerSerie('+i+',\''+exId+'\')">Valider la série</button>';
@@ -3456,7 +3520,7 @@ function renderSet(){
       (s.exercices||[]).forEach(function(e,ei){
         html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">'
           +'<div><div style="font-size:11px;font-weight:700;color:var(--txt)">'+(e.exercice_nom||e.nom)+'</div>'
-          +'<div style="font-size:10px;color:var(--txt3)">'+e.sets+'x'+(e.max_reps?'Max':e.reps)+' · '+(e.progression_type||'poids')+'</div></div>'
+          +'<div style="font-size:10px;color:var(--txt3)">'+exSetsRepsLabel(e)+' · '+(e.progression_type||'poids')+'</div></div>'
           +'<div style="display:flex;gap:5px">'
           +'<button onclick="editExModal(\''+e.id+'\','+idx+','+ei+')" style="background:none;border:none;color:var(--txt3);font-size:11px;cursor:pointer;padding:2px 5px">Edit</button>'
           +'<button onclick="bsSet('+idx+','+ei+')" style="background:none;border:1.5px solid var(--accent);border-radius:0;color:var(--accent);font-size:10px;font-weight:700;cursor:pointer;padding:2px 7px">BS</button>'
@@ -3497,11 +3561,18 @@ function delUserWod(i){
 
 function editExModal(exId,si,ei){
   var ex=SEANCES[si]&&SEANCES[si].exercices[ei];if(!ex)return;
+  var hasSch=ex.reps_scheme&&ex.reps_scheme.length;
   var html='<div class="mtitle">'+(ex.exercice_nom||ex.nom)+'</div>'
-    +'<div class="lbl">Series</div><input class="inp" type="number" id="e-sets" value="'+ex.sets+'" inputmode="numeric" style="margin-bottom:8px">'
+    +'<div class="mr-row"><button class="mr-tog'+(hasSch?' on':'')+'" id="e-sch" onclick="this.classList.toggle(\'on\');document.getElementById(\'e-sch-wrap\').style.display=this.classList.contains(\'on\')?\'block\':\'none\';document.getElementById(\'e-simple-wrap\').style.display=this.classList.contains(\'on\')?\'none\':\'block\';"></button><span class="mr-lbl">Séries personnalisées (ex. 5-3-1)</span></div>'
+    +'<div id="e-sch-wrap" style="display:'+(hasSch?'block':'none')+'">'
+    +'<div class="lbl">Répétitions par série</div><input class="inp" type="text" id="e-sch-val" placeholder="ex. 5,3,1" value="'+(hasSch?ex.reps_scheme.join(','):'')+'" style="margin-bottom:14px">'
+    +'</div>'
+    +'<div id="e-simple-wrap" style="display:'+(hasSch?'none':'block')+'">'
+    +'<div class="lbl" style="margin-top:0">Series</div><input class="inp" type="number" id="e-sets" value="'+ex.sets+'" inputmode="numeric" style="margin-bottom:8px">'
     +'<div class="lbl">Reps</div>'
     +'<div class="mr-row"><button class="mr-tog'+(ex.max_reps?' on':'')+'" id="e-mr" onclick="this.classList.toggle(\'on\')"></button><span class="mr-lbl">Max reps</span></div>'
     +'<input class="inp" type="number" id="e-reps" value="'+ex.reps+'" inputmode="numeric" style="margin-bottom:8px">'
+    +'</div>'
     +'<div class="lbl">Progression</div>'
     +'<div class="chips" style="margin-bottom:9px">'
     +['poids','reps','neant'].map(function(t){return '<button class="chip'+(ex.progression_type===t?' on':'')+' pt-c" onclick="document.querySelectorAll(\'.pt-c\').forEach(function(c){c.classList.remove(\'on\');});this.classList.add(\'on\')" data-t="'+t+'">'+(t==='poids'?'+kg/seance':t==='reps'?'+reps+kg':'Neant')+'</button>';}).join('')
@@ -3514,14 +3585,21 @@ function editExModal(exId,si,ei){
 }
 
 function saveExEdit(exId,si,ei){
-  var sets=parseInt(document.getElementById('e-sets').value)||3;
-  var reps=parseInt(document.getElementById('e-reps').value)||10;
-  var mr=document.getElementById('e-mr').classList.contains('on');
+  var schOn=document.getElementById('e-sch').classList.contains('on');
+  var parsed=schOn?parseRepsScheme(document.getElementById('e-sch-val').value):null;
+  var sets,reps,mr;
+  if(parsed){
+    sets=parsed.length;reps=parsed[parsed.length-1];mr=false;
+  } else {
+    sets=parseInt(document.getElementById('e-sets').value)||3;
+    reps=parseInt(document.getElementById('e-reps').value)||10;
+    mr=document.getElementById('e-mr').classList.contains('on');
+  }
   var pt=document.querySelector('.pt-c.on');var ptype=pt?pt.getAttribute('data-t'):'poids';
   var pval=parseFloat(document.getElementById('e-pv').value)||2.5;
   var pfreq=parseInt(document.getElementById('e-pf').value)||1;
-  sbPt('seance_exercices',{sets:sets,reps:reps,max_reps:mr,progression_type:ptype,progression_valeur:pval,progression_frequence:pfreq},'id=eq.'+exId).then(function(){
-    if(SEANCES[si]&&SEANCES[si].exercices[ei])Object.assign(SEANCES[si].exercices[ei],{sets:sets,reps:reps,max_reps:mr,progression_type:ptype,progression_valeur:pval,progression_frequence:pfreq});
+  sbPt('seance_exercices',{sets:sets,reps:reps,max_reps:mr,reps_scheme:parsed,progression_type:ptype,progression_valeur:pval,progression_frequence:pfreq},'id=eq.'+exId).then(function(){
+    if(SEANCES[si]&&SEANCES[si].exercices[ei])Object.assign(SEANCES[si].exercices[ei],{sets:sets,reps:reps,max_reps:mr,reps_scheme:parsed,progression_type:ptype,progression_valeur:pval,progression_frequence:pfreq});
     closeModal();renderSet();toast('Mis a jour');
   });
 }
@@ -4486,7 +4564,7 @@ function ctorFinish(){
           var p2=Promise.resolve();
           s.exercices.forEach(function(e,ei){
             p2=p2.then(function(){
-              return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,exercice_nom:e.nom,muscle:e.muscle||'',sets:e.sets||3,reps:e.reps||10,max_reps:false,progression_type:'poids',progression_valeur:2.5,progression_frequence:1,ordre:ei});
+              return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,exercice_nom:e.nom,muscle:e.muscle||'',sets:e.sets||3,reps:e.reps||10,max_reps:false,reps_scheme:e.reps_scheme||null,progression_type:'poids',progression_valeur:2.5,progression_frequence:1,ordre:ei});
             });
           });
           return p2;
@@ -4534,6 +4612,12 @@ function renderCtorExl(){
   if(!s.exercices.length){el.innerHTML='<div style="color:var(--txt4);font-size:12px;padding:6px 0 10px">Aucun exercice</div>';return;}
   var html='';
   s.exercices.forEach(function(e,i){
+    var hasSch=e.reps_scheme&&e.reps_scheme.length;
+    var srHtml=hasSch
+      ? '<input class="exb-inp" type="text" value="'+e.reps_scheme.join(',')+'" placeholder="5,3,1" style="width:64px" oninput="ctorSchmSet('+i+',this.value)">'
+      : '<input class="exb-inp" type="number" value="'+(e.sets||3)+'" inputmode="numeric" style="width:30px" oninput="ctorSetExField('+i+',\'sets\',this.value)">'
+        +'<span style="color:var(--txt4);font-size:12px">&times;</span>'
+        +'<input class="exb-inp" type="number" value="'+(e.reps||10)+'" inputmode="numeric" style="width:30px" oninput="ctorSetExField('+i+',\'reps\',this.value)">';
     html+='<div class="exc" style="padding:11px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px">'
       +'<div style="display:flex;flex-direction:column;flex-shrink:0">'
       +'<button onclick="ctorMoveEx('+i+',-1)" '+(i===0?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg></button>'
@@ -4541,9 +4625,8 @@ function renderCtorExl(){
       +'</div>'
       +'<div style="min-width:0;flex:1"><div class="emuscle">'+(e.muscle||'')+'</div><div class="en">'+e.nom+'</div></div>'
       +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
-      +'<input class="exb-inp" type="number" value="'+(e.sets||3)+'" inputmode="numeric" style="width:38px" oninput="ctorSetExField('+i+',\'sets\',this.value)">'
-      +'<span style="color:var(--txt4);font-size:12px">&times;</span>'
-      +'<input class="exb-inp" type="number" value="'+(e.reps||10)+'" inputmode="numeric" style="width:38px" oninput="ctorSetExField('+i+',\'reps\',this.value)">'
+      +srHtml
+      +'<button onclick="ctorSchmToggle('+i+')" style="background:'+(hasSch?'var(--gdim)':'none')+';border:1.5px solid '+(hasSch?'var(--green)':'var(--border2)')+';border-radius:0;color:'+(hasSch?'var(--green)':'var(--txt3)')+';font-size:9px;font-weight:700;cursor:pointer;padding:3px 6px" title="Séries personnalisées (ex. 5-3-1)">P</button>'
       +'<button class="exb-del" onclick="ctorDelEx('+i+')">&#10005;</button></div></div>';
   });
   el.innerHTML=html;
@@ -4557,6 +4640,18 @@ function ctorMoveEx(i,dir){
 function ctorSetExField(i,field,val){
   var e=CTOR_STATE.seances[CTORCFG_IDX].exercices[i];if(!e)return;
   e[field]=parseInt(val)||(field==='sets'?3:10);
+}
+function ctorSchmToggle(i){
+  var e=CTOR_STATE.seances[CTORCFG_IDX].exercices[i];if(!e)return;
+  if(e.reps_scheme&&e.reps_scheme.length)e.reps_scheme=null;
+  else e.reps_scheme=Array(e.sets||3).fill(e.reps||10);
+  renderCtorExl();
+}
+function ctorSchmSet(i,val){
+  var e=CTOR_STATE.seances[CTORCFG_IDX].exercices[i];if(!e)return;
+  var parsed=parseRepsScheme(val);
+  e.reps_scheme=parsed;
+  if(parsed)e.sets=parsed.length;
 }
 function ctorDelEx(i){CTOR_STATE.seances[CTORCFG_IDX].exercices.splice(i,1);renderCtorExl();}
 function ctorOpenAddEx(){
@@ -4851,6 +4946,12 @@ function renderAdhocExl(){
   if(!s.exercices.length){el.innerHTML='<div style="color:var(--txt4);font-size:12px;padding:6px 0 10px">Aucun exercice</div>';return;}
   var html='';
   s.exercices.forEach(function(e,i){
+    var hasSch=e.reps_scheme&&e.reps_scheme.length;
+    var srHtml=hasSch
+      ? '<input class="exb-inp" type="text" value="'+e.reps_scheme.join(',')+'" placeholder="5,3,1" style="width:64px" oninput="adhocSchmSet('+i+',this.value)">'
+      : '<input class="exb-inp" type="number" value="'+(e.sets||3)+'" inputmode="numeric" style="width:30px" oninput="adhocSetExField('+i+',\'sets\',this.value)">'
+        +'<span style="color:var(--txt4);font-size:12px">&times;</span>'
+        +'<input class="exb-inp" type="number" value="'+(e.reps||10)+'" inputmode="numeric" style="width:30px" oninput="adhocSetExField('+i+',\'reps\',this.value)">';
     html+='<div class="exc" style="padding:11px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px">'
       +'<div style="display:flex;flex-direction:column;flex-shrink:0">'
       +'<button onclick="adhocMoveEx('+i+',-1)" '+(i===0?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg></button>'
@@ -4858,9 +4959,8 @@ function renderAdhocExl(){
       +'</div>'
       +'<div style="min-width:0;flex:1"><div class="emuscle">'+(e.muscle||'')+'</div><div class="en">'+e.nom+'</div></div>'
       +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
-      +'<input class="exb-inp" type="number" value="'+(e.sets||3)+'" inputmode="numeric" style="width:38px" oninput="adhocSetExField('+i+',\'sets\',this.value)">'
-      +'<span style="color:var(--txt4);font-size:12px">&times;</span>'
-      +'<input class="exb-inp" type="number" value="'+(e.reps||10)+'" inputmode="numeric" style="width:38px" oninput="adhocSetExField('+i+',\'reps\',this.value)">'
+      +srHtml
+      +'<button onclick="adhocSchmToggle('+i+')" style="background:'+(hasSch?'var(--gdim)':'none')+';border:1.5px solid '+(hasSch?'var(--green)':'var(--border2)')+';border-radius:0;color:'+(hasSch?'var(--green)':'var(--txt3)')+';font-size:9px;font-weight:700;cursor:pointer;padding:3px 6px" title="Séries personnalisées (ex. 5-3-1)">P</button>'
       +'<button class="exb-del" onclick="adhocDelEx('+i+')">&#10005;</button></div></div>';
   });
   el.innerHTML=html;
@@ -4874,6 +4974,18 @@ function adhocMoveEx(i,dir){
 function adhocSetExField(i,field,val){
   var e=ADHOC_STATE.exercices[i];if(!e)return;
   e[field]=parseInt(val)||(field==='sets'?3:10);
+}
+function adhocSchmToggle(i){
+  var e=ADHOC_STATE.exercices[i];if(!e)return;
+  if(e.reps_scheme&&e.reps_scheme.length)e.reps_scheme=null;
+  else e.reps_scheme=Array(e.sets||3).fill(e.reps||10);
+  renderAdhocExl();
+}
+function adhocSchmSet(i,val){
+  var e=ADHOC_STATE.exercices[i];if(!e)return;
+  var parsed=parseRepsScheme(val);
+  e.reps_scheme=parsed;
+  if(parsed)e.sets=parsed.length;
 }
 function adhocDelEx(i){ADHOC_STATE.exercices.splice(i,1);renderAdhocExl();}
 function adhocOpenAddEx(){
@@ -4916,7 +5028,7 @@ function adhocSave(){
       var p2=Promise.resolve();
       s.exercices.forEach(function(e,ei){
         p2=p2.then(function(){
-          return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,exercice_nom:e.nom,muscle:e.muscle||'',sets:e.sets||3,reps:e.reps||10,max_reps:false,progression_type:'poids',progression_valeur:2.5,progression_frequence:1,ordre:ei});
+          return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,exercice_nom:e.nom,muscle:e.muscle||'',sets:e.sets||3,reps:e.reps||10,max_reps:false,reps_scheme:e.reps_scheme||null,progression_type:'poids',progression_valeur:2.5,progression_frequence:1,ordre:ei});
         });
       });
       return p2.then(function(){
@@ -5105,7 +5217,7 @@ function buildSeanceLogEntry(s,weekOverride){
     var last=(PERF[ex.id]||[])[0];
     if(!last)return;
     var detail=(last.detail&&last.detail.length)?last.detail:[{poids:last.poids,reps:last.reps}];
-    exercices.push({nom:ex.exercice_nom||ex.nom,muscle:ex.muscle||'',detail:detail,blocs:last.blocs||null,rpe:last.rpe||null,sets:ex.sets||3,reps:ex.reps||10,max_reps:ex.max_reps||false,blocMode:ex.blocMode||false});
+    exercices.push({nom:ex.exercice_nom||ex.nom,muscle:ex.muscle||'',detail:detail,blocs:last.blocs||null,rpe:last.rpe||null,sets:ex.sets||3,reps:ex.reps||10,max_reps:ex.max_reps||false,reps_scheme:ex.reps_scheme||null,blocMode:ex.blocMode||false});
     detail.forEach(function(r){volume+=(parseFloat(r.poids)||0)*(parseFloat(r.reps)||0);series++;});
   });
   var prog=PROGS.find(function(p){return p.id===s.prog_id;});
@@ -5119,7 +5231,7 @@ function refaireExercice(exi){
   var log=loadSessionLog();var e=log[HIST_CUR];if(!e||!e.exercices||!e.exercices[exi])return;
   var src=e.exercices[exi];
   var s=CURWK;
-  sbP('seance_exercices',{seance_id:s.id,user_id:USER.id,exercice_nom:src.nom,muscle:src.muscle||'',sets:src.sets||3,reps:src.reps||10,max_reps:src.max_reps||false,blocMode:src.blocMode||false,progression_type:'poids',progression_valeur:2.5,progression_frequence:1,ordre:s.exercices.length}).then(function(arr){
+  sbP('seance_exercices',{seance_id:s.id,user_id:USER.id,exercice_nom:src.nom,muscle:src.muscle||'',sets:src.sets||3,reps:src.reps||10,max_reps:src.max_reps||false,reps_scheme:src.reps_scheme||null,blocMode:src.blocMode||false,progression_type:'poids',progression_valeur:2.5,progression_frequence:1,ordre:s.exercices.length}).then(function(arr){
     s.exercices.push(arr[0]);
     toast(src.nom+' ajouté à la séance');
     document.getElementById('main-nav').style.display='none';
