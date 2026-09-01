@@ -961,7 +961,7 @@ function renderFriendSearchResults(){
   el.innerHTML=FRIEND_SEARCH_RESULTS.map(function(p){
     var uid=p.userId||p.user_id;
     var already=FRIENDS.some(function(f){return f.otherId===uid;})||FRIEND_REQ_IN.some(function(f){return f.otherId===uid;})||FRIEND_REQ_OUT.some(function(f){return f.otherId===uid;});
-    return '<div class="set-row"><div><div class="set-lbl">'+p.pseudo+'</div></div>'
+    return '<div class="set-row"><div><div class="set-lbl">'+escapeHtml(p.pseudo)+'</div></div>'
       +(already?'<span style="color:var(--txt4);font-size:11px">Deja lie</span>':'<button class="btn-s btn-sm" onclick="sendFriendRequest(\''+uid+'\')">Ajouter</button>')
       +'</div>';
   }).join('');
@@ -1034,16 +1034,26 @@ function renderFeed(){
     }
     return '<div class="card" style="padding:13px 14px;margin-bottom:8px'+(isPR?';border-color:var(--accent-b)':'')+'">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
-      +'<div style="font-size:12px;font-weight:700;color:var(--txt3)">'+e.pseudo+'</div>'
+      +'<div style="font-size:12px;font-weight:700;color:var(--txt3)">'+escapeHtml(e.pseudo)+'</div>'
       +'<div style="font-size:10px;color:var(--txt4)">'+fmtRelTime(e.created_at)+'</div>'
       +'</div>'
       +(isPR?'<span class="cbadge" style="margin-bottom:5px;display:inline-block;border-color:var(--accent-b);color:var(--accent)">🔥 RECORD</span>':'')
-      +'<div class="ctitle" style="font-size:17px;margin-bottom:2px">'+e.titre+'</div>'
+      +'<div class="ctitle" style="font-size:17px;margin-bottom:2px">'+escapeHtml(e.titre)+'</div>'
       +(sub?'<div style="font-size:12px;color:var(--txt4)">'+sub+'</div>':'')
       +'</div>';
   }).join('');
 }
 
+// Echappe le HTML pour tout texte affiche qui peut venir d'un autre utilisateur
+// (pseudo, nom de seance/exercice/WOD dans le fil d'amis) \u2014 l'app construit son
+// affichage par concatenation de chaines, donc sans ca un pseudo/nom malveillant
+// du type <img src=x onerror=...> s'executerait chez les amis qui le voient.
+function escapeHtml(s){
+  if(s===null||s===undefined)return '';
+  return String(s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
 function norm(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
 function fmtT(s){return (s<10?'0':'')+Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60;}
 
@@ -3215,7 +3225,7 @@ function renderPotoAmis(){
 }
 function renderAmisCard(){
   var html='<div class="set-s"><div class="set-t">Amis</div>'
-    +(MY_PSEUDO?'<div class="csub" style="margin-bottom:10px">Ton pseudo : <b>'+MY_PSEUDO+'</b></div>':'')
+    +(MY_PSEUDO?'<div class="csub" style="margin-bottom:10px">Ton pseudo : <b>'+escapeHtml(MY_PSEUDO)+'</b></div>':'')
     +'<div style="display:flex;gap:8px;margin-bottom:6px;margin-top:10px">'
     +'<input class="inp" id="friend-search" placeholder="Chercher un pseudo..." style="flex:1;margin-bottom:0" onkeydown="if(event.key===\'Enter\'){event.preventDefault();searchFriend();}">'
     +'<button class="btn-s btn-sm" onclick="searchFriend()">Chercher</button>'
@@ -3224,7 +3234,7 @@ function renderAmisCard(){
   if(FRIEND_REQ_IN.length){
     html+='<div class="csub" style="margin:10px 0 4px">Demandes reçues</div>';
     FRIEND_REQ_IN.forEach(function(f){
-      html+='<div class="set-row"><div><div class="set-lbl">'+f.pseudo+'</div></div>'
+      html+='<div class="set-row"><div><div class="set-lbl">'+escapeHtml(f.pseudo)+'</div></div>'
         +'<div style="display:flex;gap:6px">'
         +'<button class="btn-s btn-sm" onclick="respondFriendRequest(\''+f.id+'\',true)">Accepter</button>'
         +'<button style="background:none;border:none;color:var(--txt4);font-size:11px;cursor:pointer" onclick="respondFriendRequest(\''+f.id+'\',false)">Refuser</button>'
@@ -3234,7 +3244,7 @@ function renderAmisCard(){
   if(FRIEND_REQ_OUT.length){
     html+='<div class="csub" style="margin:10px 0 4px">Demandes envoyées</div>';
     FRIEND_REQ_OUT.forEach(function(f){
-      html+='<div class="set-row"><div><div class="set-lbl">'+f.pseudo+'</div><div class="set-sub">En attente</div></div>'
+      html+='<div class="set-row"><div><div class="set-lbl">'+escapeHtml(f.pseudo)+'</div><div class="set-sub">En attente</div></div>'
         +'<button style="background:none;border:none;color:var(--txt4);font-size:11px;cursor:pointer" onclick="cancelFriendRequest(\''+f.id+'\')">Annuler</button>'
         +'</div>';
     });
@@ -3242,7 +3252,7 @@ function renderAmisCard(){
   html+='<div class="csub" style="margin:10px 0 4px">Mes amis'+(FRIENDS.length?' ('+FRIENDS.length+')':'')+'</div>';
   if(FRIENDS.length){
     FRIENDS.forEach(function(f){
-      html+='<div class="set-row"><div><div class="set-lbl">'+f.pseudo+'</div></div>'
+      html+='<div class="set-row"><div><div class="set-lbl">'+escapeHtml(f.pseudo)+'</div></div>'
         +'<button style="background:none;border:none;color:var(--txt4);font-size:11px;cursor:pointer" onclick="removeFriend(\''+f.id+'\')">Retirer</button>'
         +'</div>';
     });
