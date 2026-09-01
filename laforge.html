@@ -1079,6 +1079,23 @@ function toggleKudos(feedId){
   var p=was?sbD('pr_likes','pr_id=eq.'+feedId+'&user_id=eq.'+USER.id):sbP('pr_likes',{pr_id:feedId,user_id:USER.id});
   p.catch(function(){KUDOS[feedId]=k;renderFeed();toast('Erreur - reessaie');});
 }
+function deleteFeedEntry(feedId){
+  if(!confirm('Supprimer cette entrée de ton fil ?'))return;
+  var prevFeed=ACTIVITY_FEED.slice(),prevPR=ACTIVITY_FEED_PR.slice(),prevKudos=KUDOS[feedId];
+  ACTIVITY_FEED=ACTIVITY_FEED.filter(function(e){return e.id!==feedId;});
+  ACTIVITY_FEED_PR=ACTIVITY_FEED_PR.filter(function(e){return e.id!==feedId;});
+  delete KUDOS[feedId];
+  renderFeed();
+  if(document.getElementById('poto-pr-c'))renderPotoPR();
+  sbD('activity_feed','id=eq.'+feedId+'&user_id=eq.'+USER.id).then(function(){
+    sbD('pr_likes','pr_id=eq.'+feedId).catch(function(){});
+    toast('Supprimé');
+  }).catch(function(){
+    ACTIVITY_FEED=prevFeed;ACTIVITY_FEED_PR=prevPR;if(prevKudos)KUDOS[feedId]=prevKudos;
+    renderFeed();if(document.getElementById('poto-pr-c'))renderPotoPR();
+    toast('Erreur - reessaie');
+  });
+}
 function feedTypeLabel(type){return type==='pr_wod'?'WOD':'Muscu';}
 function openFeedDetail(feedId){
   var e=ACTIVITY_FEED.find(function(x){return x.id===feedId;});
@@ -1145,6 +1162,7 @@ function renderFeed(){
       +'<div style="display:flex;gap:8px;margin-top:11px">'
       +'<button class="kudos-btn'+(k.mine?' on':'')+'" onclick="toggleKudos(\''+e.id+'\')">'+TROPHY_SVG.replace(/width="15" height="15"/,'width="13" height="13"')+' Bravo'+(k.count?' · '+k.count:'')+'</button>'
       +'<button class="kudos-btn" onclick="openFeedDetail(\''+e.id+'\')">Voir la séance</button>'
+      +(isSelf?'<button class="kudos-btn" style="flex:0 0 auto;width:38px;color:var(--red);border-color:rgba(193,84,63,.35)" onclick="deleteFeedEntry(\''+e.id+'\')" title="Supprimer">&#10005;</button>':'')
       +'</div>'
       +'</div>';
   }).join('');
