@@ -1632,41 +1632,113 @@ function getTodayActivitiesReal(){
   });
   return acts;
 }
+// Carte "séance" compacte pour l'Accueil (jour en cours + éventuels extras du même jour)
+function seanceCardHomeHtml(s,badge,i){
+  var exos=s.exercices||[];
+  var muscles=Array.from(new Set(exos.map(function(e){return e.muscle;}).filter(Boolean))).slice(0,3).join(' · ');
+  var pct=seancePct(s);
+  return '<div class="card hl" style="padding:0;margin-bottom:10px"><div style="padding:16px">'
+    +'<div style="display:flex;align-items:flex-start;justify-content:space-between">'
+    +'<span class="cbadge">'+badge+'</span>'
+    +'<span style="font-family:var(--font-display);font-weight:800;font-size:16px;color:var(--accent)">'+pct+'%</span>'
+    +'</div>'
+    +'<div class="ctitle" style="font-size:'+(i===0?'32px':'22px')+';margin:8px 0 4px">'+s.nom+'</div>'
+    +(muscles?'<div style="font-size:12px;color:var(--txt4)">'+muscles+'</div>':'')
+    +'</div>'
+    +'<div class="cbar"><div class="cprog" style="width:'+pct+'%"></div></div>'
+    +'<div style="padding:14px 16px 16px"><button class="btn '+(i===0?'btn-p':'btn-s')+'" style="margin:0" onclick="openWk(\''+s.id+'\')">'+(pct>0?'Continuer la séance':'Démarrer la séance')+'</button></div>'
+    +'</div>';
+}
+// Prochain jour (dans la semaine, planning de l'onglet Programme) qui a une séance/WOD assigné
+function findNextSeanceHome(ti){
+  for(var off=1;off<=7;off++){
+    var idx=(ti+off)%7;
+    var e=WEEKPLAN[idx];
+    if(e&&e.type==='seance'){
+      var s=SEANCES.find(function(x){return x.id===e.seance_id;});
+      if(s)return {kind:'seance',nom:s.nom,jour:DOWFULL[idx],seance:s};
+    } else if(e&&e.type==='wod'){
+      return {kind:'wod',nom:'WOD',jour:DOWFULL[idx]};
+    }
+  }
+  return null;
+}
+// Exercice épinglé le plus récemment performé (pour motiver quand rien n'est prévu)
+function findPinnedHighlightHome(){
+  loadPins();
+  var candidates=[];
+  SEANCES.forEach(function(s){(s.exercices||[]).forEach(function(e){
+    if(e.type==='wod'||e.type==='emom')return;
+    var nom=e.exercice_nom||e.nom;
+    if(!PINS[nom])return;
+    var perfs=PERF[e.id]||[];
+    if(!perfs.length)return;
+    candidates.push({nom:nom,muscle:e.muscle,perf:perfs[0]});
+  });});
+  if(!candidates.length)return null;
+  candidates.sort(function(a,b){return new Date(b.perf.created_at||0)-new Date(a.perf.created_at||0);});
+  return candidates[0];
+}
 function renderHome(){
   loadWP();
   document.getElementById('h-date').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('wkn').textContent=WEEK;
   var ti=todayIdx();
   var elC=document.getElementById('h-cards');
-  // Le programme est une liste de séances à faire dans l'ordre, pas un planning
-  // verrouillé par jour de la semaine — tu peux les faire quand tu veux.
-  var prog=PROGS.find(function(p){return p.id===ACTPROG;});
-  var progSeances=prog?SEANCES.filter(function(x){return x.prog_id===prog.id;}):[];
-  var todo=progSeances.filter(function(x){return kvGetItem('done_'+x.id+'_'+WEEK)!=='1';});
-  if(!progSeances.length){
-    elC.innerHTML='<div class="card" style="padding:16px;text-align:center;color:var(--txt4)">Aucune séance dans ce programme.</div>';
-  } else if(!todo.length){
-    elC.innerHTML='<div class="card hl" style="padding:16px;text-align:center"><div class="ctitle" style="font-size:22px;margin-bottom:4px">Semaine bouclée</div><div style="font-size:12px;color:var(--txt4)">Toutes les séances de la semaine '+WEEK+' sont faites.</div></div>';
-  } else {
-    var html='';
-    todo.forEach(function(s,i){
-      var exos=s.exercices||[];
-      var muscles=Array.from(new Set(exos.map(function(e){return e.muscle;}).filter(Boolean))).slice(0,3).join(' · ');
-      var pct=seancePct(s);
-      html+='<div class="card hl" style="padding:0;margin-bottom:10px"><div style="padding:16px">'
-        +'<div style="display:flex;align-items:flex-start;justify-content:space-between">'
-        +'<span class="cbadge">'+(i===0?'À FAIRE':'ENSUITE')+'</span>'
-        +'<span style="font-family:var(--font-display);font-weight:800;font-size:16px;color:var(--accent)">'+pct+'%</span>'
-        +'</div>'
-        +'<div class="ctitle" style="font-size:'+(i===0?'32px':'22px')+';margin:8px 0 4px">'+s.nom+'</div>'
-        +(muscles?'<div style="font-size:12px;color:var(--txt4)">'+muscles+'</div>':'')
-        +'</div>'
-        +'<div class="cbar"><div class="cprog" style="width:'+pct+'%"></div></div>'
-        +'<div style="padding:14px 16px 16px"><button class="btn '+(i===0?'btn-p':'btn-s')+'" style="margin:0" onclick="openWk(\''+s.id+'\')">'+(pct>0?'Continuer la séance':'Démarrer la séance')+'</button></div>'
-        +'</div>';
-    });
-    elC.innerHTML=html;
+  // Home reflète le planning du jour choisi dans l'onglet Programme : une séance
+  // n'apparaît ici que si elle est assignée à AUJOURD'HUI. Rien de prévu ? on
+  // affiche plutôt quelque chose de motivant (prochaine séance / perf épinglée / PR).
+  var entry=WEEKPLAN[ti];
+  var cardsHtml='';
+  var plannedCount=0,idxCard=0;
+  if(entry&&entry.type==='seance'){
+    var sToday=SEANCES.find(function(x){return x.id===entry.seance_id;});
+    if(sToday){
+      plannedCount++;
+      if(kvGetItem('done_'+sToday.id+'_'+WEEK)!=='1')cardsHtml+=seanceCardHomeHtml(sToday,'AUJOURD\'HUI',idxCard++);
+    }
+  } else if(entry&&entry.type==='wod'){
+    plannedCount++;
+    if(!kvGetItem('wod_done_'+WEEK+'_'+ti)){
+      cardsHtml+='<div class="card hl" style="padding:0;margin-bottom:10px"><div style="padding:16px"><span class="cbadge">AUJOURD\'HUI</span>'
+        +'<div class="ctitle" style="font-size:32px;margin:8px 0 14px">WOD</div>'
+        +'<button class="btn btn-p" style="margin:0" onclick="goNav(\'wod\')">Aller au chrono</button></div></div>';
+      idxCard++;
+    }
   }
+  extraSeancesFor(WEEK,ti).forEach(function(id){
+    var es=SEANCES.find(function(x){return x.id===id;});
+    if(!es)return;
+    plannedCount++;
+    if(kvGetItem('done_'+es.id+'_'+WEEK)!=='1')cardsHtml+=seanceCardHomeHtml(es,'AUSSI AUJOURD\'HUI',idxCard++);
+  });
+  if(plannedCount===0){
+    var nextS=findNextSeanceHome(ti);
+    if(nextS){
+      cardsHtml+='<div class="card" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="'+(nextS.kind==='seance'?'openWk(\''+nextS.seance.id+'\')':'goNav(\'wod\')')+'">'
+        +'<div><div class="ctitle" style="font-size:20px">'+nextS.nom+'</div><div class="csub">Prochaine séance · '+nextS.jour+'</div></div>'
+        +'<span style="color:var(--txt4);font-size:16px">&#8250;</span></div>';
+    } else {
+      var pin=findPinnedHighlightHome();
+      if(pin){
+        var pv=(pin.perf.detail&&pin.perf.detail.length)?Math.max.apply(null,pin.perf.detail.map(function(r){return parseFloat(r.poids)||0;})):(parseFloat(pin.perf.poids)||0);
+        cardsHtml+='<div class="card" style="padding:14px 16px;cursor:pointer" onclick="goNav(\'stats\')">'
+          +'<div class="csub" style="margin-bottom:4px">Perf épinglée</div>'
+          +'<div class="ctitle" style="font-size:20px">'+pin.nom+'</div>'
+          +'<div style="font-size:12px;color:var(--txt4)">'+(pv?pv+'kg · ':'')+'dernière fois</div></div>';
+      } else if(getPRCount(WEEK)>0){
+        var prc=getPRCount(WEEK);
+        cardsHtml+='<div class="card hl" style="padding:16px;text-align:center">'
+          +'<div class="ctitle" style="font-size:20px">🔥 '+prc+' record'+(prc>1?'s':'')+' cette semaine</div>'
+          +'<div style="font-size:12px;color:var(--txt4);margin-top:2px">Continue comme ça.</div></div>';
+      } else {
+        cardsHtml+='<div class="card" style="padding:16px;text-align:center;color:var(--txt4)">Repos aujourd\'hui</div>';
+      }
+    }
+  } else if(cardsHtml===''){
+    cardsHtml+='<div class="card hl" style="padding:16px;text-align:center"><div class="ctitle" style="font-size:20px">Séance du jour terminée ✓</div></div>';
+  }
+  elC.innerHTML=cardsHtml;
   var todayActs=getTodayActivitiesReal();
   if(todayActs.length){
     elC.innerHTML+='<div class="sec" style="margin-top:16px">Fait aujourd\'hui</div>';
