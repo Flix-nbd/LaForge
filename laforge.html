@@ -316,6 +316,20 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
   </div>
 </div>
 
+<!-- PSEUDO (une fois, apres connexion, pour pouvoir se trouver entre amis) -->
+<div class="screen" id="sc-pseudo">
+  <div class="scroll" style="display:flex;flex-direction:column;justify-content:center;min-height:100dvh;padding:24px;padding-bottom:24px">
+    <div style="text-align:center;margin-bottom:28px">
+      <img src="logo-laforge-v2.png" alt="LaForge" style="height:44px;width:auto;object-fit:contain;margin-bottom:10px" onerror="this.style.display='none'">
+      <div class="hsub" style="opacity:.8">Choisis ton pseudo — c'est comme ça que tes amis te trouveront</div>
+    </div>
+    <div class="lbl" style="margin-top:0">Pseudo</div>
+    <input class="inp" id="pseudo-input" placeholder="ex. felix78" maxlength="24" style="margin-bottom:8px" onkeydown="if(event.key==='Enter'){event.preventDefault();savePseudo();}">
+    <div id="pseudo-err" style="color:var(--red);font-size:11px;min-height:14px;margin:2px 0 10px;line-height:1.4"></div>
+    <button class="btn btn-p" id="pseudo-btn" onclick="savePseudo()">Continuer</button>
+  </div>
+</div>
+
 <!-- ONBOARDING -->
 <div class="screen" id="sc-onb">
   <div class="onb" id="onb-c"></div>
@@ -743,7 +757,7 @@ function doAuthSubmit(){
 }
 function onAuthed(user){
   USER={id:user.id,email:user.email};
-  init();
+  ensurePseudo().then(init);
 }
 function doLogout(){
   SB.auth.signOut().then(function(){location.reload();});
@@ -856,6 +870,109 @@ function kvSetItem(key,val){
 function kvRemoveItem(key){
   delete KV[key];
   sbD('user_kv','user_id=eq.'+USER.id+'&key=eq.'+encodeURIComponent(key)).catch(function(){});
+}
+
+// \u2500\u2500 AMIS (profils publics, demandes, fil d'activit\u00e9) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+var MY_PSEUDO=null;
+var PSEUDO_RESOLVE=null;
+function slugifyPseudo(v){return (v||'').trim().toLowerCase().replace(/[^a-z0-9_.-]/g,'').slice(0,24);}
+// Verifie qu'un pseudo existe pour ce compte ; sinon bloque sur l'ecran "Choisis
+// ton pseudo" jusqu'a ce qu'il soit enregistre. Best-effort : une erreur reseau
+// ne doit pas empecher l'appli de demarrer.
+function ensurePseudo(){
+  return sbG('profiles','user_id=eq.'+USER.id).then(function(rows){
+    if(rows&&rows.length){MY_PSEUDO=rows[0].pseudo;return true;}
+    return new Promise(function(resolve){
+      PSEUDO_RESOLVE=resolve;
+      document.getElementById('main-nav').style.display='none';
+      showSc('pseudo');
+      setTimeout(function(){var el=document.getElementById('pseudo-input');if(el)el.focus();},50);
+    });
+  }).catch(function(){return true;});
+}
+function savePseudo(){
+  var raw=(document.getElementById('pseudo-input').value||'').trim();
+  var slug=slugifyPseudo(raw);
+  var errEl=document.getElementById('pseudo-err');
+  if(!slug){errEl.textContent='Choisis un pseudo (lettres, chiffres, . _ -).';return;}
+  var btn=document.getElementById('pseudo-btn');
+  btn.disabled=true;btn.textContent='...';
+  errEl.textContent='';
+  sbP('profiles',{user_id:USER.id,pseudo:slug}).then(function(){
+    MY_PSEUDO=slug;
+    btn.disabled=false;btn.textContent='Continuer';
+    if(PSEUDO_RESOLVE){var r=PSEUDO_RESOLVE;PSEUDO_RESOLVE=null;r(true);}
+  }).catch(function(e){
+    btn.disabled=false;btn.textContent='Continuer';
+    errEl.textContent=(e&&e.status===409)?'Ce pseudo est deja pris.':'Erreur - reessaie.';
+  });
+}
+
+// Amis (statut 'accepted'), demandes recues et envoyees ('pending'), chacun
+// enrichi avec le pseudo de l'autre personne (table profiles, lisible par
+// tout utilisateur connecte).
+var FRIENDS=[],FRIEND_REQ_IN=[],FRIEND_REQ_OUT=[];
+function loadFriendData(){
+  return sbG('friendships','or=(requester_id.eq.'+USER.id+',recipient_id.eq.'+USER.id+')').then(function(rows){
+    rows=rows||[];
+    FRIENDS=[];FRIEND_REQ_IN=[];FRIEND_REQ_OUT=[];
+    var otherIds=[];
+    rows.forEach(function(r){
+      var otherId=r.requester_id===USER.id?r.recipient_id:r.requester_id;
+      otherIds.push(otherId);
+      if(r.status==='accepted')FRIENDS.push({id:r.id,otherId:otherId});
+      else if(r.recipient_id===USER.id)FRIEND_REQ_IN.push({id:r.id,otherId:otherId});
+      else FRIEND_REQ_OUT.push({id:r.id,otherId:otherId});
+    });
+    if(!otherIds.length)return;
+    return sbG('profiles','user_id=in.('+otherIds.join(',')+')').then(function(profs){
+      var map={};(profs||[]).forEach(function(p){map[p.userId||p.user_id]=p.pseudo;});
+      FRIENDS.forEach(function(f){f.pseudo=map[f.otherId]||'?';});
+      FRIEND_REQ_IN.forEach(function(f){f.pseudo=map[f.otherId]||'?';});
+      FRIEND_REQ_OUT.forEach(function(f){f.pseudo=map[f.otherId]||'?';});
+    });
+  }).catch(function(){FRIENDS=[];FRIEND_REQ_IN=[];FRIEND_REQ_OUT=[];});
+}
+var FRIEND_SEARCH_RESULTS=[];
+function searchFriend(){
+  var term=slugifyPseudo((document.getElementById('friend-search')||{value:''}).value);
+  var el=document.getElementById('friend-search-results');
+  if(!term){FRIEND_SEARCH_RESULTS=[];if(el)el.innerHTML='';return;}
+  sbG('profiles','pseudo=ilike.*'+encodeURIComponent(term)+'*&limit=8').then(function(rows){
+    FRIEND_SEARCH_RESULTS=(rows||[]).filter(function(p){return (p.userId||p.user_id)!==USER.id;});
+    renderFriendSearchResults();
+  }).catch(function(){});
+}
+function renderFriendSearchResults(){
+  var el=document.getElementById('friend-search-results');if(!el)return;
+  if(!FRIEND_SEARCH_RESULTS.length){el.innerHTML='<div class="csub" style="padding:8px 0">Aucun resultat.</div>';return;}
+  el.innerHTML=FRIEND_SEARCH_RESULTS.map(function(p){
+    var uid=p.userId||p.user_id;
+    var already=FRIENDS.some(function(f){return f.otherId===uid;})||FRIEND_REQ_IN.some(function(f){return f.otherId===uid;})||FRIEND_REQ_OUT.some(function(f){return f.otherId===uid;});
+    return '<div class="set-row"><div><div class="set-lbl">'+p.pseudo+'</div></div>'
+      +(already?'<span style="color:var(--txt4);font-size:11px">Deja lie</span>':'<button class="btn-s btn-sm" onclick="sendFriendRequest(\''+uid+'\')">Ajouter</button>')
+      +'</div>';
+  }).join('');
+}
+function sendFriendRequest(uid){
+  sbP('friendships',{requester_id:USER.id,recipient_id:uid,status:'pending'}).then(function(){
+    toast('Demande envoyee');
+    return loadFriendData();
+  }).then(function(){
+    renderFriendSearchResults();
+    renderSet();
+  }).catch(function(){toast('Erreur - reessaie');});
+}
+function respondFriendRequest(id,accept){
+  var p=accept?sbPt('friendships',{status:'accepted'},'id=eq.'+id):sbD('friendships','id=eq.'+id);
+  p.then(function(){toast(accept?'Ami ajoute !':'Demande refusee');return loadFriendData();}).then(renderSet).catch(function(){toast('Erreur - reessaie');});
+}
+function cancelFriendRequest(id){
+  sbD('friendships','id=eq.'+id).then(function(){return loadFriendData();}).then(renderSet).catch(function(){toast('Erreur - reessaie');});
+}
+function removeFriend(id){
+  if(!confirm('Retirer cet ami ?'))return;
+  sbD('friendships','id=eq.'+id).then(function(){return loadFriendData();}).then(renderSet).catch(function(){toast('Erreur - reessaie');});
 }
 
 function norm(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
@@ -1133,7 +1250,7 @@ function goNav(id){
   if(id==='home')renderHome();
   else if(id==='prog')renderProgTab();
   else if(id==='stats')renderStats();
-  else if(id==='set')renderSet();
+  else if(id==='set'){renderSet();loadFriendData().then(renderSet);}
   else if(id==='wod')renderChrono();
   else if(id==='hist')renderHist();
 }
@@ -2975,6 +3092,45 @@ function renderProfilCard(){
     +'<div class="set-row" onclick="ctorOpenAddEx()"><div><div class="set-lbl">Mes exercices</div><div class="set-sub">Rechercher / consulter</div></div><span style="color:var(--txt4)">&#8250;</span></div>'
     +'</div><div class="sdiv"></div>';
 }
+function renderAmisCard(){
+  var html='<div class="set-s"><div class="set-t">Amis</div>'
+    +(MY_PSEUDO?'<div class="csub" style="margin-bottom:10px">Ton pseudo : <b>'+MY_PSEUDO+'</b></div>':'')
+    +'<div style="display:flex;gap:8px;margin-bottom:6px">'
+    +'<input class="inp" id="friend-search" placeholder="Chercher un pseudo..." style="flex:1;margin-bottom:0" onkeydown="if(event.key===\'Enter\'){event.preventDefault();searchFriend();}">'
+    +'<button class="btn-s btn-sm" onclick="searchFriend()">Chercher</button>'
+    +'</div>'
+    +'<div id="friend-search-results" style="margin-bottom:4px"></div>';
+  if(FRIEND_REQ_IN.length){
+    html+='<div class="csub" style="margin:10px 0 4px">Demandes reçues</div>';
+    FRIEND_REQ_IN.forEach(function(f){
+      html+='<div class="set-row"><div><div class="set-lbl">'+f.pseudo+'</div></div>'
+        +'<div style="display:flex;gap:6px">'
+        +'<button class="btn-s btn-sm" onclick="respondFriendRequest(\''+f.id+'\',true)">Accepter</button>'
+        +'<button style="background:none;border:none;color:var(--txt4);font-size:11px;cursor:pointer" onclick="respondFriendRequest(\''+f.id+'\',false)">Refuser</button>'
+        +'</div></div>';
+    });
+  }
+  if(FRIEND_REQ_OUT.length){
+    html+='<div class="csub" style="margin:10px 0 4px">Demandes envoyées</div>';
+    FRIEND_REQ_OUT.forEach(function(f){
+      html+='<div class="set-row"><div><div class="set-lbl">'+f.pseudo+'</div><div class="set-sub">En attente</div></div>'
+        +'<button style="background:none;border:none;color:var(--txt4);font-size:11px;cursor:pointer" onclick="cancelFriendRequest(\''+f.id+'\')">Annuler</button>'
+        +'</div>';
+    });
+  }
+  html+='<div class="csub" style="margin:10px 0 4px">Mes amis'+(FRIENDS.length?' ('+FRIENDS.length+')':'')+'</div>';
+  if(FRIENDS.length){
+    FRIENDS.forEach(function(f){
+      html+='<div class="set-row"><div><div class="set-lbl">'+f.pseudo+'</div></div>'
+        +'<button style="background:none;border:none;color:var(--txt4);font-size:11px;cursor:pointer" onclick="removeFriend(\''+f.id+'\')">Retirer</button>'
+        +'</div>';
+    });
+  } else {
+    html+='<div class="csub" style="padding:2px 0 4px">Aucun ami pour l\'instant — cherche un pseudo ci-dessus.</div>';
+  }
+  html+='</div><div class="sdiv"></div>';
+  return html;
+}
 function renderSet(){
   var el=document.getElementById('set-c');
   var html=renderProfilCard();
@@ -3005,6 +3161,7 @@ function renderSet(){
     +'<div class="set-row" onclick="doLogout()"><div><div class="set-lbl">Se deconnecter</div></div><span style="color:var(--txt3)">&#8250;</span></div>'
     +'<div class="set-row" onclick="doResetApp()"><div><div class="set-lbl">Effacer toutes les donnees</div><div class="set-sub">Programmes, seances, historique (irreversible)</div></div><span style="color:var(--txt3)">&#8250;</span></div>'
     +'</div><div class="sdiv"></div>'
+    +renderAmisCard()
     +'<div class="set-s" id="set-progs-anchor"><div class="set-t">Programmes</div>';
   PROGS.forEach(function(p){
     var ss=SEANCES.filter(function(s){return s.prog_id===p.id;});
