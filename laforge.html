@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg:#0C0C0B;          /* fond général, noir quasi neutre */
@@ -295,8 +296,25 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 </head>
 <body>
 
+<!-- LOGIN -->
+<div class="screen active" id="sc-login">
+  <div class="scroll" style="display:flex;flex-direction:column;justify-content:center;min-height:100dvh;padding:24px;padding-bottom:24px">
+    <div style="text-align:center;margin-bottom:32px">
+      <img src="logo-laforge-v2.png" alt="LaForge" style="height:44px;width:auto;object-fit:contain;margin-bottom:10px" onerror="this.style.display='none'">
+      <div class="hsub" id="login-sub" style="opacity:.8">Connecte-toi pour accéder à ton carnet</div>
+    </div>
+    <div class="lbl" style="margin-top:0">Email</div>
+    <input class="inp" id="login-email" type="email" placeholder="toi@exemple.com" autocomplete="email" style="margin-bottom:12px">
+    <div class="lbl">Mot de passe</div>
+    <input class="inp" id="login-pass" type="password" placeholder="********" autocomplete="current-password" style="margin-bottom:8px" onkeydown="if(event.key==='Enter'){event.preventDefault();doAuthSubmit();}">
+    <div id="login-err" style="color:var(--red);font-size:11px;min-height:14px;margin:2px 0 10px;line-height:1.4"></div>
+    <button class="btn btn-p" id="login-btn" onclick="doAuthSubmit()" style="margin-bottom:14px">Se connecter</button>
+    <button class="btn-ghost" id="login-toggle" onclick="toggleAuthMode()" style="border:none">Pas encore de compte ? Créer un compte</button>
+  </div>
+</div>
+
 <!-- ONBOARDING -->
-<div class="screen active" id="sc-onb">
+<div class="screen" id="sc-onb">
   <div class="onb" id="onb-c"></div>
 </div>
 
@@ -671,6 +689,74 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 <script>
 var LS_KEY='laforge_db';
 var USER={id:'local',email:'local'};
+
+// ── AUTH (Supabase) ─────────────────────────────────────────────────────────
+var SB_URL='https://dlmlzdbdzcaquyzkkyts.supabase.co';
+var SB_KEY='sb_publishable_R-fYwFFcWBr4mUFUGouHxQ_OTKvi-A9';
+var SB=(typeof window.supabase!=='undefined')?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}}):null;
+var AUTH_MODE='signin'; // 'signin' | 'signup'
+
+function showLogin(){
+  document.getElementById('main-nav').style.display='none';
+  showSc('login');
+}
+function setAuthErr(msg){document.getElementById('login-err').textContent=msg||'';}
+function toggleAuthMode(){
+  AUTH_MODE=(AUTH_MODE==='signin')?'signup':'signin';
+  document.getElementById('login-btn').textContent=AUTH_MODE==='signin'?'Se connecter':'Créer le compte';
+  document.getElementById('login-toggle').textContent=AUTH_MODE==='signin'?'Pas encore de compte ? Créer un compte':'Déjà un compte ? Se connecter';
+  document.getElementById('login-sub').textContent=AUTH_MODE==='signin'?'Connecte-toi pour accéder à ton carnet':'Crée ton compte pour commencer';
+  setAuthErr('');
+}
+function doAuthSubmit(){
+  if(!SB){setAuthErr('Connexion au service impossible. Recharge la page.');return;}
+  var email=(document.getElementById('login-email').value||'').trim();
+  var pass=document.getElementById('login-pass').value||'';
+  if(!email||!pass){setAuthErr('Renseigne ton email et ton mot de passe.');return;}
+  if(AUTH_MODE==='signup'&&pass.length<6){setAuthErr('Le mot de passe doit faire au moins 6 caractères.');return;}
+  setAuthErr('');
+  var btn=document.getElementById('login-btn');
+  var idleLbl=btn.textContent;
+  btn.disabled=true;btn.textContent='...';
+  var call=(AUTH_MODE==='signin')
+    ?SB.auth.signInWithPassword({email:email,password:pass})
+    :SB.auth.signUp({email:email,password:pass});
+  call.then(function(res){
+    btn.disabled=false;btn.textContent=idleLbl;
+    if(res.error){setAuthErr(res.error.message);return;}
+    if(AUTH_MODE==='signup'&&(!res.data||!res.data.session)){
+      AUTH_MODE='signin';
+      document.getElementById('login-btn').textContent='Se connecter';
+      document.getElementById('login-toggle').textContent='Pas encore de compte ? Créer un compte';
+      document.getElementById('login-sub').textContent='Connecte-toi pour accéder à ton carnet';
+      setAuthErr('Compte créé — vérifie tes emails pour confirmer, puis connecte-toi.');
+      return;
+    }
+    onAuthed(res.data.session.user);
+  }).catch(function(e){
+    btn.disabled=false;btn.textContent=idleLbl;
+    setAuthErr('Erreur de connexion. Réessaie.');
+  });
+}
+function onAuthed(user){
+  USER={id:user.id,email:user.email};
+  init();
+}
+function doLogout(){
+  SB.auth.signOut().then(function(){location.reload();});
+}
+function bootAuth(){
+  if(!SB){
+    showLogin();
+    setAuthErr('Connexion au service impossible (bibliotheque non chargee). Verifie ta connexion internet et recharge la page.');
+    document.getElementById('login-btn').disabled=true;
+    return;
+  }
+  SB.auth.getSession().then(function(res){
+    var session=res&&res.data&&res.data.session;
+    if(session)onAuthed(session.user);else showLogin();
+  }).catch(function(){showLogin();});
+}
 function LS_load(){try{var d=JSON.parse(localStorage.getItem(LS_KEY));return d||{};}catch(e){return {};}}
 function LS_save(db){try{localStorage.setItem(LS_KEY,JSON.stringify(db));}catch(e){}}
 function LS_uid(){return 'id_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);}
@@ -2698,6 +2784,8 @@ function renderSet(){
     +'<input type="file" id="import-file" accept="application/json" style="display:none" onchange="doImport(this.files[0])">'
     +'</div><div class="sdiv"></div>'
     +'<div class="set-s"><div class="set-t">Compte</div>'
+    +(USER&&USER.email?'<div class="set-row" style="cursor:default"><div><div class="set-lbl">Connecte</div><div class="set-sub">'+USER.email+'</div></div></div>':'')
+    +'<div class="set-row" onclick="doLogout()"><div><div class="set-lbl">Se deconnecter</div></div><span style="color:var(--txt3)">&#8250;</span></div>'
     +'<div class="set-row" onclick="doResetApp()"><div><div class="set-lbl">Effacer toutes les donnees</div><div class="set-sub">Programmes, seances, historique (irreversible)</div></div><span style="color:var(--txt3)">&#8250;</span></div>'
     +'</div><div class="sdiv"></div>'
     +'<div class="set-s" id="set-progs-anchor"><div class="set-t">Programmes</div>';
@@ -4828,7 +4916,7 @@ function init(){
   initMain();
 }
 
-init();
+bootAuth();
 </script>
 </body>
 </html>
