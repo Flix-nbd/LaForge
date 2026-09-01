@@ -395,6 +395,7 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
   <div class="hdr">
     <div class="hdr-row"><div style="flex:1;text-align:center"><div class="htitle">Programme</div><div class="hsub" id="prog-sub"></div></div></div>
   </div>
+  <div class="prog-bar" id="prog-bar"></div>
   <div class="scroll" id="prog-c"></div>
 </div>
 
@@ -1251,16 +1252,28 @@ var DOW=['L','M','M','J','V','S','D'];
 var PINS={};
 function todayIdx(){var d=new Date().getDay();return d===0?6:d-1;}
 function blankWeekplan(){return [{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'}];}
-// Planning propre a chaque semaine (WEEK) — forcer le changement de semaine
-// (bouton manuel) doit repartir vierge, pas garder les seances de la semaine
-// en cours.
+// Planning propre a chaque semaine (WEEK) ET a chaque programme (ACTPROG) —
+// forcer le changement de semaine (bouton manuel) doit repartir vierge, et
+// deux programmes qui en sont tous les deux a la meme semaine ne doivent pas
+// se melanger leurs plannings.
+function wpKey(week){return 'weekplan_'+(ACTPROG||'default')+'_'+(week===undefined?WEEK:week);}
 function loadWP(){
   try{
-    var d=JSON.parse(kvGetItem('weekplan_'+WEEK));
+    var key=wpKey();
+    var raw=kvGetItem(key);
+    if(raw===null||raw===undefined){
+      // Migration : avant la separation par programme, le planning etait range
+      // sous 'weekplan_'+WEEK tout court (partage entre programmes). On le
+      // recupere une seule fois pour le programme actif au moment ou la cle
+      // scindee n'existe pas encore, puis on bascule dessus.
+      var legacy=kvGetItem('weekplan_'+WEEK);
+      if(legacy){kvSetItem(key,legacy);raw=legacy;}
+    }
+    var d=JSON.parse(raw);
     WEEKPLAN=(d&&d.length===7)?d:blankWeekplan();
   }catch(e){WEEKPLAN=blankWeekplan();}
 }
-function saveWP2(){try{kvSetItem('weekplan_'+WEEK,JSON.stringify(WEEKPLAN));}catch(e){}}
+function saveWP2(){try{kvSetItem(wpKey(),JSON.stringify(WEEKPLAN));}catch(e){}}
 function loadPins(){try{var d=JSON.parse(kvGetItem('pins'));if(d)PINS=d;}catch(e){}}
 function savePins(){try{kvSetItem('pins',JSON.stringify(PINS));}catch(e){}}
 function togPin(nom){PINS[nom]=!PINS[nom];savePins();renderStats();}
@@ -2018,6 +2031,7 @@ function chWeek(d){var prevWeek=WEEK;WEEK=Math.max(1,Math.min(20,WEEK+d));docume
 
 var DOWFULL=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
 function renderProgTab(){
+  renderProgBar();
   loadWP();
   var prog=PROGS.find(function(p){return p.id===ACTPROG;})||PROGS[0];
   var pHtml='';
@@ -4305,7 +4319,7 @@ var ACTIVE_WOD=null;
 function loadWodIntoChrono(norm){
   var raw=(WODBANK_RAW&&WODBANK_RAW[norm.id])||{};
   var mins=wodDureeMin(raw,norm.format);
-  ACTIVE_WOD={id:norm.id,nom:norm.nom,format:norm.format,materiel:norm.materiel,desc:wodDescOf(raw)};
+  ACTIVE_WOD={id:norm.id,nom:norm.nom,format:norm.format,materiel:norm.materiel,desc:wodDescOf(raw),launchWeek:WEEK,launchProg:ACTPROG};
   IV_STATE=null;WOD_START=Date.now();
   stopCF();
   CF_fmt=(norm.format==='EMOM')?'EMOM':(norm.format==='AMRAP')?'AMRAP':'For Time';
@@ -4315,7 +4329,7 @@ function loadWodIntoChrono(norm){
   toast(norm.nom+' chargé dans le Chrono');
 }
 function launchSimpleUserWod(u){
-  ACTIVE_WOD={id:u.id,nom:u.nom,format:u.categorie.toUpperCase(),materiel:(u.exos||[]).map(function(e){return e.n;}).join(', '),desc:(u.exos||[]).map(function(e){return e.n+(e.r?' '+e.r:'');}).join(' · ')};
+  ACTIVE_WOD={id:u.id,nom:u.nom,format:u.categorie.toUpperCase(),materiel:(u.exos||[]).map(function(e){return e.n;}).join(', '),desc:(u.exos||[]).map(function(e){return e.n+(e.r?' '+e.r:'');}).join(' · '),launchWeek:WEEK,launchProg:ACTPROG};
   IV_STATE=null;WOD_START=Date.now();
   stopCF();
   CF_fmt='For Time';CF_dur=(u.dur||20)*60;CF_rem=CF_dur;
@@ -4331,6 +4345,16 @@ function completeActiveWod(){
   });
 }
 function finishWodCompletion(result){
+  // Le bandeau de navigation reste visible pendant un WOD : on peut retourner
+  // a l'Accueil et changer de semaine (+/-) pendant que le chrono tourne en
+  // fond, puis revenir finir le WOD. Sans ca, tout ce qui suit (planning du
+  // jour, compteur "wod fait", PR, historique, fil d'activite) s'enregistre
+  // sur la semaine/le programme actifs au moment de la VALIDATION plutot que
+  // ceux du LANCEMENT. On restaure temporairement le contexte du lancement
+  // pour tout l'enregistrement, puis on revient au contexte reellement actif.
+  var liveWeek=WEEK,liveProg=ACTPROG;
+  var swapped=ACTIVE_WOD&&ACTIVE_WOD.launchWeek!=null&&(ACTIVE_WOD.launchWeek!==WEEK||ACTIVE_WOD.launchProg!==ACTPROG);
+  if(swapped){WEEK=ACTIVE_WOD.launchWeek;ACTPROG=ACTIVE_WOD.launchProg;}
   var ti=targetDay();
   loadWP();
   var cur=WEEKPLAN[ti];
@@ -4361,13 +4385,14 @@ function finishWodCompletion(result){
     setTimeout(function(){prToast(ACTIVE_WOD.nom,wodResultDisplay(result));},1500);
   }
   ACTIVE_WOD=null;ivStop();IV_STATE=null;ADD_TARGET_DAY=null;WOD_START=null;clearPersistedTimer();
+  if(swapped){WEEK=liveWeek;ACTPROG=liveProg;}
   renderChrono();
 }
 
 // ── MOTEUR D'INTERVALLES (rounds travail/repos — WOD perso type Boxe) ───
 var IV_STATE=null;
 function launchIntervalWod(u){
-  ACTIVE_WOD={id:u.id,nom:u.nom,format:u.categorie.toUpperCase(),materiel:(u.exos||[]).map(function(e){return e.n;}).join(', '),desc:(u.exos||[]).map(function(e){return e.n+(e.r?' '+e.r:'');}).join(' · ')};
+  ACTIVE_WOD={id:u.id,nom:u.nom,format:u.categorie.toUpperCase(),materiel:(u.exos||[]).map(function(e){return e.n;}).join(', '),desc:(u.exos||[]).map(function(e){return e.n+(e.r?' '+e.r:'');}).join(' · '),launchWeek:WEEK,launchProg:ACTPROG};
   stopCF();WOD_START=Date.now();
   IV_STATE={round:1,totalRounds:u.rounds,phase:'work',rem:u.work,workDur:u.work,restDur:u.rest,running:false,interval:null,phaseEndTs:null};
   document.getElementById('main-nav').style.display='flex';
