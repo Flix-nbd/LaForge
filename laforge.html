@@ -409,7 +409,16 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 <!-- PROGRAMME -->
 <div class="screen" id="sc-prog">
   <div class="hdr">
-    <div class="hdr-row"><div style="flex:1;text-align:center"><div class="htitle">Programme</div><div class="hsub" id="prog-sub"></div></div></div>
+    <div class="hdr-row">
+      <div style="flex:1"><div class="htitle">Programme</div><div class="hsub" id="prog-sub"></div></div>
+      <button class="btn-s btn-sm" id="prog-edit-btn" style="width:auto;padding:0 14px;flex-shrink:0" onclick="toggleProgEdit()">Modifier</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:9px;margin-top:12px">
+      <span style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Semaine</span>
+      <button onclick="adjWeekSet(-1)" style="background:var(--card2);border:1.5px solid var(--border2);width:26px;height:26px;font-size:14px;color:var(--txt2);cursor:pointer">-</button>
+      <div style="font-family:var(--font-heading);font-weight:600;font-size:15px;min-width:20px;text-align:center" id="progtab-week">1</div>
+      <button onclick="adjWeekSet(1)" style="background:var(--card2);border:1.5px solid var(--border2);width:26px;height:26px;font-size:14px;color:var(--txt2);cursor:pointer">+</button>
+    </div>
   </div>
   <div class="prog-bar" id="prog-bar"></div>
   <div class="scroll" id="prog-c"></div>
@@ -1506,7 +1515,7 @@ function goNav(id){
   var nb=document.getElementById('nb-'+id);if(nb)nb.classList.add('active');
   document.getElementById('tfab').classList.remove('show');
   if(id==='home')renderHome();
-  else if(id==='prog')renderProgTab();
+  else if(id==='prog'){PROG_EDIT_MODE=false;renderProgTab();}
   else if(id==='set')renderSet();
   else if(id==='wod')renderChrono();
   else if(id==='hist')setHistPerfTab(HISTPERF_TAB);
@@ -1882,7 +1891,7 @@ function toggleBisetLive(si,i){
       sbPt('seance_exercices',{biset_group:grp},'id=eq.'+exos[i-1].id).catch(function(){});
     }
   }
-  renderSet();renderWk();
+  renderProgTab();renderWk();
 }
 function bsSet(si,i){toggleBisetLive(si,i);}
 
@@ -1891,14 +1900,14 @@ function mrLive(id,si,i){
   ex.max_reps=!ex.max_reps;
   if(ex.max_reps)ex.reps_scheme=null;
   sbPt('seance_exercices',{max_reps:ex.max_reps,reps_scheme:ex.reps_scheme},'id=eq.'+id).catch(function(){});
-  renderSet();
+  renderProgTab();
 }
 function schmLive(id,si,i){
   var ex=SEANCES[si]&&SEANCES[si].exercices[i];if(!ex)return;
   if(ex.reps_scheme&&ex.reps_scheme.length)ex.reps_scheme=null;
   else{ex.reps_scheme=Array(ex.sets||3).fill(ex.reps||10);ex.max_reps=false;}
   sbPt('seance_exercices',{reps_scheme:ex.reps_scheme,max_reps:ex.max_reps},'id=eq.'+id).catch(function(){});
-  renderSet();
+  renderProgTab();
 }
 function schmLiveSet(id,si,i,val){
   var ex=SEANCES[si]&&SEANCES[si].exercices[i];if(!ex)return;
@@ -1910,7 +1919,7 @@ function schmLiveSet(id,si,i,val){
 function setExPT(id,si,i,t){
   if(SEANCES[si]&&SEANCES[si].exercices[i])SEANCES[si].exercices[i].progression_type=t;
   sbPt('seance_exercices',{progression_type:t},'id=eq.'+id).catch(function(){});
-  renderSet();
+  renderProgTab();
 }
 function editExF(id,field,val){
   var v=field==='progression_valeur'||field==='progression_frequence'?parseFloat(val)||0:parseInt(val)||0;
@@ -1921,7 +1930,7 @@ function delExS(si,i){
   var ex=SEANCES[si]&&SEANCES[si].exercices[i];if(!ex)return;
   if(!confirm('Supprimer '+ex.exercice_nom+' ?'))return;
   sbD('seance_exercices','id=eq.'+ex.id).then(function(){
-    SEANCES[si].exercices.splice(i,1);renderSet();toast('Supprime');
+    SEANCES[si].exercices.splice(i,1);renderProgTab();toast('Supprime');
   });
 }
 
@@ -1973,7 +1982,7 @@ function addCustomEx(si,inB){
 function addExDB(si,nom,muscle){
   var s=SEANCES[si];if(!s)return;
   sbP('seance_exercices',{seance_id:s.id,user_id:USER.id,exercice_nom:nom,muscle:muscle||'',sets:3,reps:10,max_reps:false,progression_type:'poids',progression_valeur:2.5,progression_frequence:1,ordre:s.exercices.length}).then(function(arr){
-    s.exercices.push(arr[0]);closeModal();renderSet();toast(nom+' ajoute');
+    s.exercices.push(arr[0]);closeModal();renderProgTab();toast(nom+' ajoute');
   });
 }
 
@@ -2138,6 +2147,15 @@ function renderHome(){
   document.getElementById('wkn').textContent=WEEK;
   var ti=todayIdx();
   var elC=document.getElementById('h-cards');
+  if(!PROGS.length){
+    elC.innerHTML='<div class="card hl" style="padding:20px;text-align:center">'
+      +'<div class="ctitle" style="font-size:22px;margin-bottom:6px">Aucun programme actif</div>'
+      +'<div style="font-size:13px;color:var(--txt3);margin-bottom:16px">Crée ou choisis un programme pour commencer à t\'entraîner.</div>'
+      +'<button class="btn btn-p" onclick="openCtor()">Créer un programme</button></div>';
+    document.getElementById('h-week').innerHTML='';
+    document.getElementById('h-stats').innerHTML='';
+    return;
+  }
   // Home reflète le planning du jour choisi dans l'onglet Programme : une séance
   // n'apparaît ici que si elle est assignée à AUJOURD'HUI. Rien de prévu ? on
   // affiche plutôt quelque chose de motivant (prochaine séance / perf épinglée / PR).
@@ -2233,7 +2251,7 @@ function renderProgBar(){
   PROGS.forEach(function(p){
     html+='<div class="pc'+(p.id===ACTPROG?' on':'')+'" onclick="switchProg(\''+p.id+'\')">'+p.nom+'</div>';
   });
-  html+='<div class="pc" onclick="addNewProg()" style="border-style:dashed">+ Programme</div>';
+  html+='<div class="pc" onclick="openCtor()" style="border-style:dashed">+ Programme</div>';
   var el=document.getElementById('prog-bar');if(el)el.innerHTML=html;
 }
 
@@ -2244,12 +2262,21 @@ var DOWFULL=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
 function renderProgTab(){
   renderProgBar();
   loadWP();
+  var wkEl=document.getElementById('progtab-week');if(wkEl)wkEl.textContent=WEEK;
+  var btn=document.getElementById('prog-edit-btn');
   var prog=PROGS.find(function(p){return p.id===ACTPROG;})||PROGS[0];
-  var pHtml='';
   if(!prog){
-    document.getElementById('prog-c').innerHTML='<div style="text-align:center;color:var(--txt3);padding:50px 0;font-size:12px">Aucun programme. Cree-en un via le bouton reglages sur l\'accueil.</div>';
+    if(btn)btn.style.display='none';
+    document.getElementById('prog-c').innerHTML='<div style="text-align:center;color:var(--txt3);padding:50px 0;font-size:12px">Aucun programme. Tape sur "+ Programme" ci-dessus pour en créer un.</div>';
+    document.getElementById('prog-sub').textContent='';
     return;
   }
+  if(btn){btn.style.display='';btn.textContent=PROG_EDIT_MODE?'Terminé':'Modifier';}
+  if(PROG_EDIT_MODE){
+    renderProgEditView(prog);
+    return;
+  }
+  var pHtml='';
   var ss=SEANCES.filter(function(s){return s.prog_id===prog.id;});
   WEEKPLAN.forEach(function(e,i){
     var label='Repos',badgeCls='var(--txt4)';
@@ -2268,6 +2295,39 @@ function renderProgTab(){
   });
   document.getElementById('prog-c').innerHTML=pHtml;
   document.getElementById('prog-sub').textContent='Tape sur le jour si tu veux changer de seance';
+}
+
+function renderProgEditView(prog){
+  document.getElementById('prog-sub').textContent='Modification de '+prog.nom;
+  var ss=SEANCES.filter(function(s){return s.prog_id===prog.id;});
+  var html='';
+  ss.forEach(function(s){
+    var idx=SEANCES.indexOf(s);
+    html+='<div style="border:1px solid var(--border);border-radius:0;padding:11px 13px;margin-bottom:8px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+      +'<div style="font-size:13px;font-weight:900;color:var(--txt)">'+s.nom+'</div>'
+      +'<button onclick="openAddEx('+idx+',false)" style="background:var(--card2);border:1px solid var(--border2);border-radius:0;padding:4px 10px;font-size:10px;font-weight:700;color:var(--txt2);cursor:pointer">+ Exo</button>'
+      +'</div>';
+    if(!(s.exercices||[]).length){
+      html+='<div style="font-size:11px;color:var(--txt4);padding:4px 0">Aucun exercice</div>';
+    }
+    (s.exercices||[]).forEach(function(e,ei){
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">'
+        +'<div><div style="font-size:11.5px;font-weight:700;color:var(--txt)">'+(e.exercice_nom||e.nom)+'</div>'
+        +'<div style="font-size:10px;color:var(--txt3)">'+exSetsRepsLabel(e)+' · '+(e.progression_type||'poids')+'</div></div>'
+        +'<div style="display:flex;gap:5px">'
+        +'<button onclick="editExModal(\''+e.id+'\','+idx+','+ei+')" style="background:none;border:none;color:var(--txt3);font-size:11px;cursor:pointer;padding:2px 5px">Edit</button>'
+        +'<button onclick="bsSet('+idx+','+ei+')" style="background:none;border:1.5px solid var(--accent);border-radius:0;color:var(--accent);font-size:10px;font-weight:700;cursor:pointer;padding:2px 7px">BS</button>'
+        +'<button onclick="delExS('+idx+','+ei+')" style="background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;padding:2px 5px">x</button>'
+        +'</div></div>';
+    });
+    html+='</div>';
+  });
+  html+='<div class="set-row" onclick="ctorOpenAddEx()"><div><div class="set-lbl">Mes exercices</div><div class="set-sub">Rechercher / consulter</div></div><span style="color:var(--txt4)">&#8250;</span></div>'
+    +'<div class="set-row" onclick="resetCyc(\''+prog.id+'\')"><div class="set-lbl" style="font-size:12px">Reinitialiser le cycle</div><span style="color:var(--txt3)">&#8250;</span></div>'
+    +'<div class="sdiv"></div>'
+    +'<button class="btn-ghost" style="border-color:rgba(193,84,63,.35);color:var(--red)" onclick="delProg(\''+prog.id+'\')">Supprimer ce programme</button>';
+  document.getElementById('prog-c').innerHTML=html;
 }
 
 function openDayPicker(dayIdx){
@@ -3391,12 +3451,7 @@ function renderProfilCard(){
       '<div class="csub" style="margin-bottom:10px">Profil non renseigné.</div>'
       +'<button class="btn-s btn-sm" onclick="openProfilFromSet()">Renseigner mon profil</button>'
     ))
-    +'</div></div><div class="sdiv"></div>'
-    +'<div class="set-s"><div class="set-t">Programmes · Exercices</div>'
-    +'<div class="set-row" onclick="openCtor()"><div><div class="set-lbl">Créer un programme</div><div class="set-sub">Constructeur par split</div></div><span style="color:var(--txt4)">&#8250;</span></div>'
-    +'<div class="set-row" onclick="document.getElementById(\'set-progs-anchor\').scrollIntoView({behavior:\'smooth\'})"><div><div class="set-lbl">Mes programmes</div><div class="set-sub">'+PROGS.length+' programme'+(PROGS.length>1?'s':'')+'</div></div><span style="color:var(--txt4)">&#8250;</span></div>'
-    +'<div class="set-row" onclick="ctorOpenAddEx()"><div><div class="set-lbl">Mes exercices</div><div class="set-sub">Rechercher / consulter</div></div><span style="color:var(--txt4)">&#8250;</span></div>'
-    +'</div><div class="sdiv"></div>';
+    +'</div></div>';
 }
 function initialsOf(name){
   if(!name)return '?';
@@ -3475,14 +3530,7 @@ function renderPotoAmis(){
 function renderSet(){
   var el=document.getElementById('set-c');
   var html=renderProfilCard();
-  html+='<div class="set-s"><div class="set-t">Programme</div>'
-    +'<div class="set-row"><div><div class="set-lbl">Semaine en cours</div><div class="set-sub">1 a 20</div></div>'
-    +'<div style="display:flex;align-items:center;gap:8px">'
-    +'<button onclick="adjWeekSet(-1)" style="background:var(--card2);border:1.5px solid var(--border2);width:28px;height:28px;font-size:15px;color:var(--txt2);cursor:pointer">-</button>'
-    +'<div style="font-family:var(--font-heading);font-weight:600;font-size:16px;min-width:24px;text-align:center" id="set-week">'+WEEK+'</div>'
-    +'<button onclick="adjWeekSet(1)" style="background:var(--card2);border:1.5px solid var(--border2);width:28px;height:28px;font-size:15px;color:var(--txt2);cursor:pointer">+</button>'
-    +'</div></div>'
-    +'</div><div class="sdiv"></div>'
+  html+='<div class="sdiv"></div>'
     +'<div class="set-s"><div class="set-t">Minuteur de repos</div>'
     +'<div class="set-row"><div><div class="set-lbl">Duree par defaut</div></div>'
     +'<div style="display:flex;align-items:center;gap:8px">'
@@ -3501,62 +3549,9 @@ function renderSet(){
     +(USER&&USER.email?'<div class="set-row" style="cursor:default"><div><div class="set-lbl">Connecte</div><div class="set-sub">'+USER.email+'</div></div></div>':'')
     +'<div class="set-row" onclick="doLogout()"><div><div class="set-lbl">Se deconnecter</div></div><span style="color:var(--txt3)">&#8250;</span></div>'
     +'<div class="set-row" onclick="doResetApp()"><div><div class="set-lbl">Effacer toutes les donnees</div><div class="set-sub">Programmes, seances, historique (irreversible)</div></div><span style="color:var(--txt3)">&#8250;</span></div>'
-    +'</div><div class="sdiv"></div>'
-    +'<div class="set-s" id="set-progs-anchor"><div class="set-t">Programmes</div>';
-  PROGS.forEach(function(p){
-    var ss=SEANCES.filter(function(s){return s.prog_id===p.id;});
-    html+='<div style="background:var(--card);border:1px solid var(--border2);border-radius:0;padding:13px;margin-bottom:8px">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
-      +'<div style="font-size:13px;font-weight:900;color:var(--green)">'+p.nom+'</div>'
-      +'<button onclick="delProg(\''+p.id+'\')" style="background:none;border:none;color:var(--txt3);font-size:11px;cursor:pointer">Supprimer</button>'
-      +'</div>';
-    ss.forEach(function(s,si){
-      var idx=SEANCES.indexOf(s);
-      html+='<div style="border:1px solid var(--border);border-radius:0;padding:9px 11px;margin-bottom:5px">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">'
-        +'<div style="font-size:12px;font-weight:700;color:var(--txt)">'+s.nom+'</div>'
-        +'<button onclick="openAddEx('+idx+',false)" style="background:var(--card2);border:1px solid var(--border2);border-radius:0;padding:3px 9px;font-size:10px;font-weight:700;color:var(--txt2);cursor:pointer">+ Exo</button>'
-        +'</div>';
-      (s.exercices||[]).forEach(function(e,ei){
-        html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">'
-          +'<div><div style="font-size:11px;font-weight:700;color:var(--txt)">'+(e.exercice_nom||e.nom)+'</div>'
-          +'<div style="font-size:10px;color:var(--txt3)">'+exSetsRepsLabel(e)+' · '+(e.progression_type||'poids')+'</div></div>'
-          +'<div style="display:flex;gap:5px">'
-          +'<button onclick="editExModal(\''+e.id+'\','+idx+','+ei+')" style="background:none;border:none;color:var(--txt3);font-size:11px;cursor:pointer;padding:2px 5px">Edit</button>'
-          +'<button onclick="bsSet('+idx+','+ei+')" style="background:none;border:1.5px solid var(--accent);border-radius:0;color:var(--accent);font-size:10px;font-weight:700;cursor:pointer;padding:2px 7px">BS</button>'
-          +'<button onclick="delExS('+idx+','+ei+')" style="background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;padding:2px 5px">x</button>'
-          +'</div></div>';
-      });
-      html+='</div>';
-    });
-    html+='<div class="set-row" style="margin-top:7px;margin-bottom:0" onclick="resetCyc(\''+p.id+'\')">'
-      +'<div class="set-lbl" style="font-size:12px">Reinitialiser le cycle</div><span style="color:var(--txt3)">&#8250;</span></div>'
-      +'</div>';
-  });
-  html+='<button class="btn btn-s" onclick="addNewProg()">+ Nouveau programme</button></div>';
-
-  // WOD perso section
-  var uWods=JSON.parse(kvGetItem('uw')||'[]');
-  if(uWods.length){
-    html+='<div class="sdiv"></div><div class="set-s"><div class="set-t">WODs personnalises</div>';
-    uWods.forEach(function(w,i){
-      html+='<div class="set-row">'
-        +'<div><div class="set-lbl">'+w.nom+'</div><div class="set-sub">'+w.type+' · '+w.dur+' min</div></div>'
-        +'<button onclick="delUserWod('+i+')" style="background:none;border:none;color:var(--red);font-size:12px;font-weight:700;cursor:pointer">Supprimer</button>'
-        +'</div>';
-    });
-    html+='</div>';
-  }
+    +'</div>';
 
   el.innerHTML=html;
-}
-
-function delUserWod(i){
-  if(!confirm('Supprimer ce WOD ?'))return;
-  var wods=JSON.parse(kvGetItem('uw')||'[]');
-  wods.splice(i,1);
-  kvSetItem('uw',JSON.stringify(wods));
-  renderSet();toast('WOD supprime');
 }
 
 function editExModal(exId,si,ei){
@@ -3600,7 +3595,7 @@ function saveExEdit(exId,si,ei){
   var pfreq=parseInt(document.getElementById('e-pf').value)||1;
   sbPt('seance_exercices',{sets:sets,reps:reps,max_reps:mr,reps_scheme:parsed,progression_type:ptype,progression_valeur:pval,progression_frequence:pfreq},'id=eq.'+exId).then(function(){
     if(SEANCES[si]&&SEANCES[si].exercices[ei])Object.assign(SEANCES[si].exercices[ei],{sets:sets,reps:reps,max_reps:mr,reps_scheme:parsed,progression_type:ptype,progression_valeur:pval,progression_frequence:pfreq});
-    closeModal();renderSet();toast('Mis a jour');
+    closeModal();renderProgTab();toast('Mis a jour');
   });
 }
 
@@ -3611,7 +3606,8 @@ function delProg(id){
     PROGS=PROGS.filter(function(p){return p.id!==id;});
     SEANCES=SEANCES.filter(function(s){return s.prog_id!==id;});
     if(ACTPROG===id)ACTPROG=PROGS.length?PROGS[0].id:null;
-    renderSet();renderProgBar();toast('Supprime');
+    PROG_EDIT_MODE=false;
+    renderProgTab();toast('Supprime');
   });
 }
 function resetCyc(pid){
@@ -3620,7 +3616,7 @@ function resetCyc(pid){
     s.exercices.forEach(function(e){kvRemoveItem('ex_'+e.id+'_'+WEEK);});
     kvRemoveItem('done_'+s.id+'_'+WEEK);
   });
-  toast('Cycle reinitialise');renderHome();
+  toast('Cycle reinitialise');renderHome();renderProgTab();
 }
 
 // ── TIMER (minuteur de repos) ───────────────────────────────────────────────
@@ -3852,10 +3848,15 @@ function autoStartRestTimer(){
   startT();
 }
 function adjWeekSet(d){
+  var prevWeek=WEEK;
   WEEK=Math.max(1,Math.min(20,WEEK+d));saveL();
-  var el=document.getElementById('set-week');if(el)el.textContent=WEEK;
+  var el=document.getElementById('progtab-week');if(el)el.textContent=WEEK;
   var el2=document.getElementById('wkn');if(el2)el2.textContent=WEEK;
+  if(d>0&&checkProgCompletion(prevWeek,WEEK))return;
+  if(document.getElementById('sc-prog').classList.contains('active'))renderProgTab();
 }
+var PROG_EDIT_MODE=false;
+function toggleProgEdit(){PROG_EDIT_MODE=!PROG_EDIT_MODE;renderProgTab();}
 function updT(){
   var m=Math.floor(TR/60),s=TR%60,str=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
   var el=document.getElementById('tc');if(el){el.textContent=str;el.className='tcount'+(TR<=10&&TR>0?' warn':'')+(TR<=0?' ok':'');}
