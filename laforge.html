@@ -1067,6 +1067,38 @@ var WODS=[],AWOD=null,WINT=null,WRUN=false,WREM=0,WRD=1,WPHASE='work',SWTYPE='EM
 function saveL(){try{kvSetItem('pgx',JSON.stringify({week:WEEK,act:ACTPROG}));}catch(e){}}
 function loadL(){try{var d=JSON.parse(kvGetItem('pgx'));if(d){WEEK=d.week||1;ACTPROG=d.act;}}catch(e){}}
 
+// ── SEMAINE : avance automatiquement le lundi (date reelle), independamment
+// de ce qui est fait/pas fait. Le bouton manuel +/- reste dispo en reglages
+// pour corriger a la main si besoin.
+function isoMonday(d){
+  var x=new Date(d);
+  var day=x.getDay();
+  var diff=(day===0?-6:1-day);
+  x.setDate(x.getDate()+diff);
+  x.setHours(0,0,0,0);
+  return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+}
+function checkWeekRollover(){
+  var curMonday=isoMonday(new Date());
+  var last=kvGetItem('week_anchor_monday');
+  if(!last){
+    kvSetItem('week_anchor_monday',curMonday);
+    return false;
+  }
+  if(last===curMonday)return false;
+  var lastD=new Date(last+'T00:00:00');
+  var curD=new Date(curMonday+'T00:00:00');
+  var weeksPassed=Math.round((curD-lastD)/(7*86400000));
+  kvSetItem('week_anchor_monday',curMonday);
+  if(weeksPassed>0){
+    var prevWeek=WEEK;
+    WEEK=Math.min(20,WEEK+weeksPassed);
+    saveL();
+    return checkProgCompletion(prevWeek,WEEK);
+  }
+  return false;
+}
+
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
 function prToast(nom,poids){
   var el=document.getElementById('pr-toast');
@@ -1556,20 +1588,6 @@ function seancePct(s){
   var dc=exos.filter(function(e){return kvGetItem('ex_'+e.id+'_'+WEEK)==='1';}).length;
   return Math.round(dc/exos.length*100);
 }
-function nextSeanceInfo(ti){
-  var DOWFULL2=['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
-  for(var off=1;off<=7;off++){
-    var idx=(ti+off)%7;
-    var e=WEEKPLAN[idx];
-    if(e&&e.type==='seance'){
-      var s=SEANCES.find(function(x){return x.id===e.seance_id;});
-      if(s)return {nom:s.nom,jour:DOWFULL2[idx]};
-    } else if(e&&e.type==='wod'){
-      return {nom:'WOD',jour:DOWFULL2[idx]};
-    }
-  }
-  return null;
-}
 function getTodayActivities(ti){
   var acts=[];
   var entry=WEEKPLAN[ti];
@@ -1591,46 +1609,56 @@ function getTodayActivities(ti){
   if(light)acts.push({type:'Activité',nom:light});
   return acts;
 }
+// Activités réellement faites AUJOURD'HUI (date calendaire réelle), peu importe
+// à quel jour de la semaine elles étaient planifiées à l'origine — contrairement
+// à getTodayActivities() ci-dessus qui reste lié au jour du planning (utilisé
+// par la modale "détail d'un jour" pour un jour quelconque de la semaine).
+function getTodayActivitiesReal(){
+  var acts=[];
+  var todayStr=new Date().toDateString();
+  loadSessionLog().forEach(function(e){
+    if(!e.date||new Date(e.date).toDateString()!==todayStr)return;
+    var type=e.type==='wod'?'WOD':e.type==='libre'?'Activité':'Muscu';
+    acts.push({type:type,nom:e.nom});
+  });
+  return acts;
+}
 function renderHome(){
   loadWP();
   document.getElementById('h-date').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('wkn').textContent=WEEK;
   var ti=todayIdx();
-  var entry=WEEKPLAN[ti];
   var elC=document.getElementById('h-cards');
-  if(!entry||entry.type==='repos'){
-    elC.innerHTML='<div class="card" style="padding:16px;text-align:center;color:var(--txt4)">Repos aujourd\'hui</div>';
-  } else if(entry.type==='wod'){
-    elC.innerHTML='<div class="card hl" style="padding:0"><div style="padding:16px"><span class="cbadge">AUJOURD\'HUI</span>'
-      +'<div class="ctitle" style="font-size:32px;margin:8px 0 14px">WOD</div>'
-      +'<button class="btn btn-p" style="margin:0" onclick="goNav(\'wod\')">Aller au chrono</button></div></div>';
+  // Le programme est une liste de séances à faire dans l'ordre, pas un planning
+  // verrouillé par jour de la semaine — tu peux les faire quand tu veux.
+  var prog=PROGS.find(function(p){return p.id===ACTPROG;});
+  var progSeances=prog?SEANCES.filter(function(x){return x.prog_id===prog.id;}):[];
+  var todo=progSeances.filter(function(x){return kvGetItem('done_'+x.id+'_'+WEEK)!=='1';});
+  if(!progSeances.length){
+    elC.innerHTML='<div class="card" style="padding:16px;text-align:center;color:var(--txt4)">Aucune séance dans ce programme.</div>';
+  } else if(!todo.length){
+    elC.innerHTML='<div class="card hl" style="padding:16px;text-align:center"><div class="ctitle" style="font-size:22px;margin-bottom:4px">Semaine bouclée</div><div style="font-size:12px;color:var(--txt4)">Toutes les séances de la semaine '+WEEK+' sont faites.</div></div>';
   } else {
-    var s=SEANCES.find(function(x){return x.id===entry.seance_id;});
-    if(!s){elC.innerHTML='';}
-    else{
+    var html='';
+    todo.forEach(function(s,i){
       var exos=s.exercices||[];
-      var muscles=Array.from(new Set(exos.map(function(e){return e.muscle;}).filter(Boolean))).slice(0,3).join(' \u00b7 ');
+      var muscles=Array.from(new Set(exos.map(function(e){return e.muscle;}).filter(Boolean))).slice(0,3).join(' · ');
       var pct=seancePct(s);
-      elC.innerHTML='<div class="card hl" style="padding:0"><div style="padding:16px">'
+      html+='<div class="card hl" style="padding:0;margin-bottom:10px"><div style="padding:16px">'
         +'<div style="display:flex;align-items:flex-start;justify-content:space-between">'
-        +'<span class="cbadge">AUJOURD\'HUI</span>'
+        +'<span class="cbadge">'+(i===0?'À FAIRE':'ENSUITE')+'</span>'
         +'<span style="font-family:var(--font-display);font-weight:800;font-size:16px;color:var(--accent)">'+pct+'%</span>'
         +'</div>'
-        +'<div class="ctitle" style="font-size:32px;margin:8px 0 4px">'+s.nom+'</div>'
+        +'<div class="ctitle" style="font-size:'+(i===0?'32px':'22px')+';margin:8px 0 4px">'+s.nom+'</div>'
         +(muscles?'<div style="font-size:12px;color:var(--txt4)">'+muscles+'</div>':'')
         +'</div>'
         +'<div class="cbar"><div class="cprog" style="width:'+pct+'%"></div></div>'
-        +'<div style="padding:14px 16px 16px"><button class="btn btn-p" style="margin:0" onclick="openWk(\''+s.id+'\')">'+(pct>0?'Continuer la séance':'Démarrer la séance')+'</button></div>'
+        +'<div style="padding:14px 16px 16px"><button class="btn '+(i===0?'btn-p':'btn-s')+'" style="margin:0" onclick="openWk(\''+s.id+'\')">'+(pct>0?'Continuer la séance':'Démarrer la séance')+'</button></div>'
         +'</div>';
-    }
+    });
+    elC.innerHTML=html;
   }
-  var next=nextSeanceInfo(ti);
-  if(next){
-    elC.innerHTML+='<div class="card" style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between">'
-      +'<div><div class="ctitle" style="font-size:20px">'+next.nom+'</div><div class="csub">Prochaine séance · '+next.jour+'</div></div>'
-      +'<span style="color:var(--txt4);font-size:16px">&#8250;</span></div>';
-  }
-  var todayActs=getTodayActivities(ti);
+  var todayActs=getTodayActivitiesReal();
   if(todayActs.length){
     elC.innerHTML+='<div class="sec" style="margin-top:16px">Fait aujourd\'hui</div>';
     todayActs.forEach(function(a){
@@ -2616,13 +2644,7 @@ function autoVal(){
   var idx=ss.findIndex(function(x){return x.id===s.id;});
   kvSetItem('li_'+ACTPROG,idx);
   toast(s.nom+' validee !');
-  setTimeout(function(){
-    var next=(idx+1)%ss.length;
-    var prevWeek=WEEK;
-    if(next===0){WEEK=Math.min(20,WEEK+1);saveL();}
-    if(checkProgCompletion(prevWeek,WEEK))return;
-    goHome();
-  },1200);
+  setTimeout(goHome,1200);
 }
 
 function valSess(){
@@ -2633,10 +2655,8 @@ function valSess(){
     var idx=ss.findIndex(function(x){return x.id===s.id;});
     var next=(idx+1)%ss.length;
     kvSetItem('li_'+ACTPROG,idx);
-    var prevWeek=WEEK;
-    if(next===0){WEEK=Math.min(20,WEEK+1);saveL();toast('Cycle complet ! Semaine '+WEEK);}
+    if(next===0)toast('Toutes les séances de la semaine '+WEEK+' sont faites !');
     else toast('Seance suivante : '+ss[next].nom);
-    if(checkProgCompletion(prevWeek,WEEK))return;
     openWk(ss[next].id);
     return;
   }
@@ -2860,7 +2880,6 @@ function renderProfilCard(){
   loadProfil();
   var has=hasProfil();
   var objL=(PROFIL.objectifs||[]).join(' · ')||'—';
-  var lieuxL=(PROFIL.lieux||[]).map(function(k){return k==='maison'?'Maison':k==='salle'?'Salle':'Travail';}).join(' · ')||'—';
   return '<div class="set-s"><div class="set-t">Mon profil</div>'
     +'<div class="card cross" style="position:relative;padding:16px">'
     +(has?(
@@ -2869,7 +2888,6 @@ function renderProfilCard(){
       +'<span class="tag" style="border:1px solid var(--accent-b);color:var(--accent);font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:1px;padding:4px 9px;text-transform:uppercase">'+niveauLabel(PROFIL.niveau)+'</span>'
       +'</div>'
       +'<div class="stat-row"><span class="stat-k">Objectifs</span><span class="stat-v" style="text-align:right;max-width:60%">'+objL+'</span></div>'
-      +'<div class="stat-row"><span class="stat-k">Lieux</span><span class="stat-v">'+lieuxL+'</span></div>'
       +'<button class="btn-s btn-sm" style="margin-top:10px" onclick="openProfilFromSet()">Modifier</button>'
     ):(
       '<div class="csub" style="margin-bottom:10px">Profil non renseigné.</div>'
@@ -3577,7 +3595,7 @@ function loadWodBank(){
 }
 
 // ── PROFIL ────────────────────────────────────────────────────────────────
-var PROFIL={age:null,niveau:null,objectifs:[],lieux:[]};
+var PROFIL={age:null,niveau:null,objectifs:[]};
 function loadProfil(){try{var d=JSON.parse(kvGetItem('profil_v1'));if(d)PROFIL=d;}catch(e){}}
 function saveProfilLS(){try{kvSetItem('profil_v1',JSON.stringify(PROFIL));}catch(e){}}
 function hasProfil(){try{return !!kvGetItem('profil_v1');}catch(e){return false;}}
@@ -3586,7 +3604,6 @@ function profilFieldsCount(){
   if(PROFIL.age)n++;
   if(PROFIL.niveau)n++;
   if(PROFIL.objectifs&&PROFIL.objectifs.length)n++;
-  if(PROFIL.lieux&&PROFIL.lieux.length)n++;
   return n;
 }
 
@@ -3600,7 +3617,7 @@ function renderAccroche(){
     +'</div>'
     +'<div style="text-align:left">'
     +'<div style="font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing:.5px;text-transform:uppercase;color:var(--txt);margin-bottom:8px;line-height:1">Ton profil</div>'
-    +'<div style="font-size:14px;color:var(--txt3);margin-bottom:22px;line-height:1.5">Quatre questions pour calibrer tes charges, tes fourchettes de reps et ton temps de repos.</div>'
+    +'<div style="font-size:14px;color:var(--txt3);margin-bottom:22px;line-height:1.5">Trois questions pour calibrer tes charges, tes fourchettes de reps et ton temps de repos.</div>'
     +'<button class="btn btn-p" style="margin-bottom:8px" onclick="startProfilOnb()">Commencer</button>'
     +'<button class="btn-ghost" onclick="skipProfil()">Plus tard — voir les réglages</button>'
     +'</div></div>';
@@ -3618,9 +3635,9 @@ function skipProfil(){
 
 function renderProfilScreen(){
   var n=profilFieldsCount();
-  document.getElementById('profil-sub').textContent=n===4?'Complet':(4-n)+' champs restants';
-  document.getElementById('profil-count').textContent=n+'/4';
-  var seg=''; for(var i=0;i<4;i++)seg+='<span class="'+(i<n?'on':'')+'"></span>';
+  document.getElementById('profil-sub').textContent=n===3?'Complet':(3-n)+' champs restants';
+  document.getElementById('profil-count').textContent=n+'/3';
+  var seg=''; for(var i=0;i<3;i++)seg+='<span class="'+(i<n?'on':'')+'"></span>';
   document.getElementById('profil-seg').innerHTML=seg;
   var age=PROFIL.age||28;
   var niveaux=[
@@ -3629,7 +3646,6 @@ function renderProfilScreen(){
     {k:'av',t:'Avancé',s:'3 ans et plus, charges lourdes'}
   ];
   var objs=['Perte de poids','Prise de muscle','Force','Endurance','Performance combat'];
-  var lieux=[{k:'maison',t:'Maison'},{k:'salle',t:'Salle'},{k:'travail',t:'Travail'}];
   var html='';
   html+='<div class="secnum">01 — ÂGE</div>'
     +'<div class="stepper" style="margin-bottom:18px">'
@@ -3650,20 +3666,11 @@ function renderProfilScreen(){
     +'<div class="chips" style="margin-bottom:18px">'
     +objs.map(function(o){return '<button class="chip'+(PROFIL.objectifs.indexOf(o)>=0?' on':'')+'" onclick="profilToggleObj(\''+o+'\')">'+o+'</button>';}).join('')
     +'</div>';
-  html+='<div class="secnum">04 — LIEUX D\'ENTRAÎNEMENT</div>'
-    +'<div class="gridcards" style="margin-bottom:16px">'
-    +lieux.map(function(l){
-      var on=PROFIL.lieux.indexOf(l.k)>=0;
-      return '<div class="choice'+(on?' on':'')+'" style="text-align:center;padding:16px 8px" onclick="profilToggleLieu(\''+l.k+'\')">'
-        +'<div style="width:9px;height:9px;margin:0 auto 8px;background:'+(on?'var(--accent)':'transparent')+';border:1px solid '+(on?'var(--accent)':'var(--border2)')+'"></div>'
-        +'<div style="font-family:var(--font-cond);font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase">'+l.t+'</div></div>';
-    }).join('')
-    +'</div>';
-  html+='<div class="proginfo"><b>i</b> — Ces réponses servent à adapter les suggestions d\'exercices et de charges. Tu pourras les modifier à tout moment depuis Réglages.</div>';
+  html+='<div class="proginfo"><b>i</b> — Ces réponses servent à calibrer tes charges, tes fourchettes de reps et ton temps de repos. Tu pourras les modifier à tout moment depuis Réglages.</div>';
   document.getElementById('profil-c').innerHTML=html;
   var btn=document.getElementById('profil-save');
-  if(n===4){btn.disabled=false;btn.textContent='Enregistrer';}
-  else{btn.disabled=true;btn.textContent='Complète les '+(4-n)+' champs';}
+  if(n===3){btn.disabled=false;btn.textContent='Enregistrer';}
+  else{btn.disabled=true;btn.textContent='Complète les '+(3-n)+' champs';}
 }
 function profilAdjAge(d){PROFIL.age=Math.max(14,Math.min(80,(PROFIL.age||28)+d));renderProfilScreen();}
 function profilSetNiveau(k){PROFIL.niveau=k;renderProfilScreen();}
@@ -3672,13 +3679,8 @@ function profilToggleObj(o){
   if(i>=0)PROFIL.objectifs.splice(i,1);else PROFIL.objectifs.push(o);
   renderProfilScreen();
 }
-function profilToggleLieu(k){
-  var i=PROFIL.lieux.indexOf(k);
-  if(i>=0)PROFIL.lieux.splice(i,1);else PROFIL.lieux.push(k);
-  renderProfilScreen();
-}
 function saveProfil(){
-  if(profilFieldsCount()<4)return;
+  if(profilFieldsCount()<3)return;
   saveProfilLS();
   toast('PROFIL ENREGISTRÉ');
   loadL();
@@ -5073,6 +5075,8 @@ function xminPick(ri){
 function initMain(){
   loadL();
   loadAll().then(function(){
+    var celebrating=checkWeekRollover();
+    if(celebrating)return;
     if(PROGS&&PROGS.length){
       showMain();
     } else {
