@@ -1054,8 +1054,17 @@ var WEEKPLAN=[{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:
 var DOW=['L','M','M','J','V','S','D'];
 var PINS={};
 function todayIdx(){var d=new Date().getDay();return d===0?6:d-1;}
-function loadWP(){try{var d=JSON.parse(kvGetItem('weekplan'));if(d&&d.length===7)WEEKPLAN=d;}catch(e){}}
-function saveWP2(){try{kvSetItem('weekplan',JSON.stringify(WEEKPLAN));}catch(e){}}
+function blankWeekplan(){return [{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'},{type:'repos'}];}
+// Planning propre a chaque semaine (WEEK) — forcer le changement de semaine
+// (bouton manuel) doit repartir vierge, pas garder les seances de la semaine
+// en cours.
+function loadWP(){
+  try{
+    var d=JSON.parse(kvGetItem('weekplan_'+WEEK));
+    WEEKPLAN=(d&&d.length===7)?d:blankWeekplan();
+  }catch(e){WEEKPLAN=blankWeekplan();}
+}
+function saveWP2(){try{kvSetItem('weekplan_'+WEEK,JSON.stringify(WEEKPLAN));}catch(e){}}
 function loadPins(){try{var d=JSON.parse(kvGetItem('pins'));if(d)PINS=d;}catch(e){}}
 function savePins(){try{kvSetItem('pins',JSON.stringify(PINS));}catch(e){}}
 function togPin(nom){PINS[nom]=!PINS[nom];savePins();renderStats();}
@@ -1838,7 +1847,7 @@ function renderWk(){
   document.getElementById('wk-pct').textContent=pct+'%';
   var isDone=kvGetItem('done_'+s.id+'_'+WEEK)==='1';
   var vb=document.getElementById('vbtn');
-  if(isDone){vb.textContent='Validee - Suivante \u2192';vb.style.background='var(--card2)';vb.style.color='var(--done)';vb.style.border='1.5px solid rgba(34,197,94,.3)';}
+  if(isDone){vb.textContent='Validee \u2713';vb.style.background='var(--card2)';vb.style.color='var(--done)';vb.style.border='1.5px solid rgba(34,197,94,.3)';}
   else{vb.textContent='Valider '+s.nom;vb.style.background='var(--green)';vb.style.color='#000';vb.style.border='none';}
   var html='';
   html+='<button class="btn-ghost" style="border-style:dashed;margin-bottom:12px" onclick="openWkAddMenu()">+ Ajouter (exercice, WOD, cardio, note)</button>';
@@ -2651,13 +2660,7 @@ function valSess(){
   var s=CURWK;if(!s)return;
   var isDone=kvGetItem('done_'+s.id+'_'+WEEK)==='1';
   if(isDone){
-    var ss=SEANCES.filter(function(x){return x.prog_id===ACTPROG;});
-    var idx=ss.findIndex(function(x){return x.id===s.id;});
-    var next=(idx+1)%ss.length;
-    kvSetItem('li_'+ACTPROG,idx);
-    if(next===0)toast('Toutes les séances de la semaine '+WEEK+' sont faites !');
-    else toast('Seance suivante : '+ss[next].nom);
-    openWk(ss[next].id);
+    goHome();
     return;
   }
   s.exercices.forEach(function(ex){
