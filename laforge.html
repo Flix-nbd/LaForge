@@ -1436,7 +1436,7 @@ function loadAll(){
       throw new Error('Auth error: '+(progs&&progs.message?progs.message:'401'));
     }
     PROGS=progs||[];
-    if(!ACTPROG&&PROGS.length)ACTPROG=PROGS[0].id;
+    if((!ACTPROG||!PROGS.some(function(p){return p.id===ACTPROG;}))&&PROGS.length)ACTPROG=PROGS[0].id;
     SEANCES=[];
     var p=Promise.resolve();
     PROGS.forEach(function(prog){
@@ -2036,7 +2036,7 @@ function renderProgTab(){
 }
 
 function openDayPicker(dayIdx){
-  var prog=PROGS.find(function(p){return p.id===ACTPROG;});
+  var prog=PROGS.find(function(p){return p.id===ACTPROG;})||PROGS[0];
   var ss=prog?SEANCES.filter(function(s){return s.prog_id===prog.id;}):[];
   var html='<div class="mtitle">'+DOWFULL[dayIdx]+'</div>'
     +'<div class="choice" onclick="setDayPlan('+dayIdx+',\'repos\')"><div class="ct">Repos</div></div>'
