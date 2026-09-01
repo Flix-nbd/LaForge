@@ -87,6 +87,22 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 .prog-bar::-webkit-scrollbar{display:none}
 .pc{flex-shrink:0;padding:6px 11px;border-radius:0;background:#131312;border:1px solid rgba(240,235,225,.16);color:var(--txt3);font-family:var(--font-cond);font-weight:700;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;white-space:nowrap;font-size:11px}
 .pc.on{background:var(--txt);border-color:var(--txt);color:var(--bg)}
+.ptab{flex:1;text-align:center;padding:10px 0 9px;background:none;border:none;border-bottom:2px solid transparent;color:var(--txt4);font-family:var(--font-cond);font-weight:700;letter-spacing:1px;text-transform:uppercase;font-size:11px;cursor:pointer;position:relative}
+.ptab.on{color:var(--txt);border-bottom-color:var(--accent)}
+.poto-av{width:36px;height:36px;border-radius:0;background:var(--card2);border:1px solid rgba(240,235,225,.22);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:13px;color:var(--txt2);flex-shrink:0}
+.poto-av.sm{width:32px;height:32px;font-size:11px}
+.poto-av.xs{width:34px;height:34px;font-size:12px}
+.poto-av.me{border-color:var(--accent-b);color:var(--accent)}
+.pr-callout{display:flex;align-items:center;gap:7px;border:1px solid var(--accent-b);background:var(--accent-bg);padding:7px 10px;margin:8px 0}
+.pr-callout .pcl{font-family:var(--font-cond);font-size:10.5px;font-weight:700;letter-spacing:.8px;color:var(--accent);text-transform:uppercase}
+.kudos-btn{flex:1;background:var(--card2);border:1px solid var(--border2);color:var(--txt2);font-family:var(--font-cond);font-weight:700;font-size:11px;letter-spacing:.8px;text-transform:uppercase;padding:9px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.kudos-btn.on{background:var(--txt);border-color:var(--txt);color:var(--bg)}
+.lb-row{display:flex;align-items:center;gap:11px;padding:11px 12px;border:1px solid var(--border2);margin-bottom:6px;background:var(--card)}
+.lb-row.me{background:var(--card-on);border-color:var(--accent-b)}
+.lb-rank{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--txt4);width:20px;text-align:center;flex-shrink:0}
+.lb-row.me .lb-rank{color:var(--accent)}
+.lb-val{font-family:var(--font-display);font-weight:800;font-size:24px;color:var(--txt)}
+.lb-val small{font-size:12px;font-weight:700;color:var(--txt4)}
 .card{background:transparent;border:1px solid var(--border2);border-radius:0;margin-bottom:7px;overflow:visible;cursor:pointer}
 .card:active{opacity:.85}
 .card.hl{border-color:var(--accent)}
@@ -472,13 +488,18 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 <!-- POTO (amis + fil d'activite) -->
 <div class="screen" id="sc-poto">
   <div class="hdr">
-    <div class="hdr-row"><div style="flex:1;text-align:center"><div class="htitle">Poto</div><div class="hsub">Amis, séances et PR</div></div></div>
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button class="fbtn hp-tab on" id="poto-tab-activite" onclick="setPotoTab('activite')" style="flex:1;flex-shrink:1;text-align:center">Activité</button>
-      <button class="fbtn hp-tab" id="poto-tab-amis" onclick="setPotoTab('amis')" style="flex:1;flex-shrink:1;text-align:center">Amis<span id="poto-req-badge"></span></button>
+    <div class="hdr-row">
+      <div style="flex:1"><div class="htitle">POTO</div><div class="hsub" id="poto-sub">Amis, séances et PR</div></div>
+      <button class="bk-btn" onclick="goNav('poto');setPotoTab('invitations')" style="font-size:19px;font-weight:700">+</button>
+    </div>
+    <div style="display:flex;margin-top:10px;border-bottom:1px solid var(--border)">
+      <button class="ptab on" id="poto-tab-fil" onclick="setPotoTab('fil')">Fil</button>
+      <button class="ptab" id="poto-tab-pr" onclick="setPotoTab('pr')">PR</button>
+      <button class="ptab" id="poto-tab-invitations" onclick="setPotoTab('invitations')">Invitations<span id="poto-req-badge"></span></button>
     </div>
   </div>
   <div class="scroll" id="poto-feed-c"></div>
+  <div class="scroll" id="poto-pr-c" style="display:none"></div>
   <div class="scroll" id="poto-amis-c" style="display:none"></div>
 </div>
 
@@ -853,6 +874,11 @@ function sbD(t,q){
     return fetch(SB_URL+'/rest/v1/'+t+(q?('?'+q):''),{method:'DELETE',headers:h});
   }).then(sbResp).then(function(){return true;});
 }
+function sbRpc(fn,args){
+  return sbHeaders().then(function(h){
+    return fetch(SB_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:h,body:JSON.stringify(args||{})});
+  }).then(sbResp);
+}
 
 // ── KV (table user_kv) ──────────────────────────────────────────────────────
 // Remplace tout ce qui etait stocke en localStorage brut (planning de semaine,
@@ -956,20 +982,27 @@ function searchFriend(){
     renderFriendSearchResults();
   }).catch(function(){});
 }
+var FRIEND_SEND_STATE={};
 function renderFriendSearchResults(){
   var el=document.getElementById('friend-search-results');if(!el)return;
-  if(!FRIEND_SEARCH_RESULTS.length){el.innerHTML='<div class="csub" style="padding:8px 0">Aucun resultat.</div>';return;}
+  if(!FRIEND_SEARCH_RESULTS.length){el.innerHTML='<div class="csub" style="padding:8px 0">Aucun résultat.</div>';return;}
   el.innerHTML=FRIEND_SEARCH_RESULTS.map(function(p){
     var uid=p.userId||p.user_id;
-    var already=FRIENDS.some(function(f){return f.otherId===uid;})||FRIEND_REQ_IN.some(function(f){return f.otherId===uid;})||FRIEND_REQ_OUT.some(function(f){return f.otherId===uid;});
-    return '<div class="set-row"><div><div class="set-lbl">'+escapeHtml(p.pseudo)+'</div></div>'
-      +(already?'<span style="color:var(--txt4);font-size:11px">Deja lie</span>':'<button class="btn-s btn-sm" onclick="sendFriendRequest(\''+uid+'\')">Ajouter</button>')
+    var already=FRIENDS.some(function(f){return f.otherId===uid;});
+    var pending=FRIEND_REQ_IN.some(function(f){return f.otherId===uid;})||FRIEND_REQ_OUT.some(function(f){return f.otherId===uid;})||FRIEND_SEND_STATE[uid]==='sent';
+    var stateBadge=already?'Poto ajouté':pending?'Invitation envoyée':null;
+    return '<div class="set-row" style="cursor:default"><div style="display:flex;align-items:center;gap:10px">'
+      +'<div class="poto-av xs">'+escapeHtml(initialsOf(p.pseudo))+'</div>'
+      +'<div class="set-lbl">'+escapeHtml(p.pseudo)+'</div></div>'
+      +(stateBadge?'<span class="cbadge">'+stateBadge+'</span>':'<button class="btn-s" style="width:auto;padding:0 14px" onclick="sendFriendRequest(\''+uid+'\')">Ajouter</button>')
       +'</div>';
   }).join('');
 }
 function sendFriendRequest(uid){
   sbP('friendships',{requester_id:USER.id,recipient_id:uid,status:'pending'}).then(function(){
-    toast('Demande envoyee');
+    FRIEND_SEND_STATE[uid]='sent';
+    toast('Invitation envoyée');
+    renderFriendSearchResults();
     return loadFriendData();
   }).then(function(){
     renderFriendSearchResults();
@@ -1012,10 +1045,62 @@ function fmtRelTime(iso){
   var j=Math.floor(h/24);if(j<7)return 'il y a '+j+'j';
   return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
 }
+var TROPHY_SVG='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"></path><path d="M12 17v4"></path><path d="M7 4h10v5a5 5 0 0 1-10 0z"></path><path d="M7 5H4a1 1 0 0 0-1 1 4 4 0 0 0 4 4"></path><path d="M17 5h3a1 1 0 0 1 1 1 4 4 0 0 1-4 4"></path></svg>';
+// Compteur de "Bravo" (kudos) par entree du fil — reutilise la table pr_likes
+// (id generique pr_id -> activity_feed.id) pour toute entree, pas seulement
+// les PR ; KUDOS[feedId] = {count, mine}.
+var KUDOS={};
+function loadKudos(ids){
+  if(!ids||!ids.length){KUDOS={};return Promise.resolve();}
+  return sbG('pr_likes','pr_id=in.('+ids.join(',')+')').then(function(rows){
+    KUDOS={};
+    (rows||[]).forEach(function(r){
+      var pid=r.prId||r.pr_id,uid=r.userId||r.user_id;
+      if(!KUDOS[pid])KUDOS[pid]={count:0,mine:false};
+      KUDOS[pid].count++;
+      if(uid===USER.id)KUDOS[pid].mine=true;
+    });
+  }).catch(function(){KUDOS={};});
+}
+function toggleKudos(feedId){
+  var k=KUDOS[feedId]||{count:0,mine:false};
+  var was=k.mine;
+  KUDOS[feedId]={count:Math.max(0,k.count+(was?-1:1)),mine:!was};
+  renderFeed();
+  var p=was?sbD('pr_likes','pr_id=eq.'+feedId+'&user_id=eq.'+USER.id):sbP('pr_likes',{pr_id:feedId,user_id:USER.id});
+  p.catch(function(){KUDOS[feedId]=k;renderFeed();toast('Erreur - reessaie');});
+}
+function feedTypeLabel(type){return type==='pr_wod'?'WOD':'Muscu';}
+function openFeedDetail(feedId){
+  var e=ACTIVITY_FEED.find(function(x){return x.id===feedId;});
+  if(!e)return;
+  var d=e.detail||{};
+  var rows=[];
+  if(e.type==='seance'){
+    if(d.dureeMin)rows.push(['Durée',d.dureeMin+' min']);
+    if(d.volume)rows.push(['Volume',Math.round(d.volume)+' kg']);
+    if(d.series)rows.push(['Séries',d.series]);
+  } else if(e.type==='pr_muscu'){
+    if(d.poids)rows.push(['Nouveau record',d.poids+' kg']);
+  } else if(e.type==='pr_wod'){
+    if(d.resultTxt)rows.push(['Résultat',d.resultTxt]);
+  }
+  var html='<div class="mtitle">'+escapeHtml(e.titre)+'</div>'
+    +'<div class="csub" style="margin-bottom:14px">'+escapeHtml(e.pseudo)+' · '+fmtRelTime(e.created_at)+'</div>';
+  if(rows.length){
+    rows.forEach(function(r){
+      html+='<div class="stat-row"><span class="stat-k">'+escapeHtml(r[0])+'</span><span class="stat-v">'+escapeHtml(String(r[1]))+'</span></div>';
+    });
+  } else {
+    html+='<div class="csub">Aucun détail supplémentaire pour cette entrée.</div>';
+  }
+  document.getElementById('modal-c').innerHTML=html;
+  openModal();
+}
 function renderFeed(){
   var el=document.getElementById('poto-feed-c');if(!el)return;
   if(!ACTIVITY_FEED.length){
-    el.innerHTML='<div style="text-align:center;color:var(--txt4);padding:50px 0;font-size:12px">Rien pour l\'instant. Ajoute des amis (Réglages) pour voir leurs séances et PR ici.</div>';
+    el.innerHTML='<div style="text-align:center;color:var(--txt4);padding:50px 0;font-size:12px">Rien pour l\'instant. Ajoute des potos (onglet Invitations) pour voir leurs séances et PR ici.</div>';
     return;
   }
   el.innerHTML=ACTIVITY_FEED.map(function(e){
@@ -1033,16 +1118,95 @@ function renderFeed(){
     } else if(e.type==='pr_wod'){
       sub=d.resultTxt||'';
     }
+    var prLine='';
+    if(e.type==='pr_muscu')prLine='PR '+e.titre.toUpperCase()+(d.poids?' '+d.poids+' KG':'');
+    else if(e.type==='pr_wod')prLine='PR '+e.titre.toUpperCase()+(d.resultTxt?' — '+d.resultTxt:'');
+    var k=KUDOS[e.id]||{count:0,mine:false};
+    var isSelf=(e.userId||e.user_id)===USER.id;
     return '<div class="card" style="padding:13px 14px;margin-bottom:8px'+(isPR?';border-color:var(--accent-b)':'')+'">'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
-      +'<div style="font-size:12px;font-weight:700;color:var(--txt3)">'+escapeHtml(e.pseudo)+'</div>'
-      +'<div style="font-size:10px;color:var(--txt4)">'+fmtRelTime(e.created_at)+'</div>'
-      +'</div>'
-      +(isPR?'<span class="cbadge" style="margin-bottom:5px;display:inline-block;border-color:var(--accent-b);color:var(--accent)">🔥 RECORD</span>':'')
-      +'<div class="ctitle" style="font-size:17px;margin-bottom:2px">'+escapeHtml(e.titre)+'</div>'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+      +'<div class="poto-av'+(isSelf?' me':'')+'">'+escapeHtml(initialsOf(e.pseudo))+'</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:14px;font-weight:600;color:var(--txt)">'+escapeHtml(e.pseudo)+'</div>'
+      +'<div style="font-family:var(--font-cond);font-size:10.5px;color:var(--txt5);letter-spacing:.3px">'+fmtRelTime(e.created_at)+' · '+feedTypeLabel(e.type)+'</div>'
+      +'</div></div>'
+      +'<div class="ctitle" style="font-size:21px;margin-bottom:2px">'+escapeHtml(e.titre)+'</div>'
       +(sub?'<div style="font-size:12px;color:var(--txt4)">'+sub+'</div>':'')
+      +(isPR?'<div class="pr-callout">'+TROPHY_SVG.replace('currentColor','var(--accent)')+'<span class="pcl">'+escapeHtml(prLine)+'</span></div>':'')
+      +'<div style="display:flex;gap:8px;margin-top:11px">'
+      +'<button class="kudos-btn'+(k.mine?' on':'')+'" onclick="toggleKudos(\''+e.id+'\')">'+TROPHY_SVG.replace(/width="15" height="15"/,'width="13" height="13"')+' Bravo'+(k.count?' · '+k.count:'')+'</button>'
+      +'<button class="kudos-btn" onclick="openFeedDetail(\''+e.id+'\')">Voir la séance</button>'
+      +'</div>'
       +'</div>';
   }).join('');
+}
+
+// ── PR (classement des potos, par exercice) ─────────────────────────────────
+// Fenetre plus large que le fil (limitee a 50, toutes activites confondues) :
+// on ne prend que les PR muscu, mais sur davantage d'historique, pour un
+// classement fiable.
+var ACTIVITY_FEED_PR=[];
+var PR_LB_EX=null;
+function loadPRFeed(){
+  return sbG('activity_feed','type=eq.pr_muscu&order=created_at.desc&limit=300').then(function(rows){
+    ACTIVITY_FEED_PR=rows||[];
+  }).catch(function(){ACTIVITY_FEED_PR=[];});
+}
+function prExercisePills(){
+  var seen={},pills=[];
+  ACTIVITY_FEED_PR.forEach(function(e){
+    var key=norm(e.titre||'');
+    if(!key)return;
+    if(!seen[key]){seen[key]={label:e.titre,count:0};pills.push(seen[key]);}
+    seen[key].count++;
+  });
+  pills.sort(function(a,b){return b.count-a.count;});
+  return pills.slice(0,6);
+}
+function potoPseudoOf(uid){
+  if(uid===USER.id)return MY_PSEUDO||'Toi';
+  var f=FRIENDS.find(function(x){return x.otherId===uid;});
+  return f?f.pseudo:'?';
+}
+function setPRExercise(name){PR_LB_EX=name;renderPotoPR();}
+function renderPotoPR(){
+  var el=document.getElementById('poto-pr-c');if(!el)return;
+  var pills=prExercisePills();
+  if(!pills.length){
+    el.innerHTML='<div style="text-align:center;color:var(--txt4);padding:50px 0;font-size:12px">Pas encore de record enregistré. Fais une séance pour voir tes PR ici.</div>';
+    return;
+  }
+  if(!PR_LB_EX||!pills.some(function(p){return norm(p.label)===norm(PR_LB_EX);}))PR_LB_EX=pills[0].label;
+  var html='<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px">'
+    +pills.map(function(p){
+      return '<button class="pc'+(norm(p.label)===norm(PR_LB_EX)?' on':'')+'" onclick="setPRExercise(\''+p.label.replace(/'/g,"\\'")+'\')">'+escapeHtml(p.label)+'</button>';
+    }).join('')
+    +'</div>';
+  var byUser={};
+  ACTIVITY_FEED_PR.forEach(function(e){
+    if(norm(e.titre||'')!==norm(PR_LB_EX))return;
+    var uid=e.userId||e.user_id;
+    var poids=parseFloat(e.detail&&e.detail.poids)||0;
+    if(!byUser[uid]||poids>byUser[uid])byUser[uid]=poids;
+  });
+  var rows=Object.keys(byUser).map(function(uid){return {uid:uid,val:byUser[uid]};}).sort(function(a,b){return b.val-a.val;});
+  html+='<div class="sec" style="margin-top:0">Classement des potos</div>';
+  if(!rows.length){
+    html+='<div class="csub" style="padding:8px 0">Pas encore de record sur cet exercice.</div>';
+  } else {
+    rows.forEach(function(r,i){
+      var isMe=r.uid===USER.id;
+      var pseudo=potoPseudoOf(r.uid);
+      html+='<div class="lb-row'+(isMe?' me':'')+'">'
+        +'<div class="lb-rank">'+(i+1)+'</div>'
+        +'<div class="poto-av sm'+(isMe?' me':'')+'">'+escapeHtml(initialsOf(isMe?'Toi':pseudo))+'</div>'
+        +'<div style="flex:1"><div style="font-size:13px;font-weight:700">'+(isMe?'Toi':escapeHtml(pseudo))+'</div><div class="csub" style="margin-top:1px">'+escapeHtml(PR_LB_EX)+'</div></div>'
+        +'<div class="lb-val">'+r.val+'<small> kg</small></div>'
+        +'</div>';
+    });
+  }
+  html+='<div class="csub" style="padding:12px 2px 4px;line-height:1.5">Les records affichés viennent des séances validées par tes potos, partagées automatiquement sur leur fil d\'activité.</div>';
+  el.innerHTML=html;
 }
 
 // Echappe le HTML pour tout texte affiche qui peut venir d'un autre utilisateur
@@ -1359,25 +1523,32 @@ function setHistPerfTab(t){
   if(t==='seances')renderHist();else renderStats();
 }
 
-var POTO_TAB='activite';
+var POTO_TAB='fil';
 function setPotoTab(t){
   POTO_TAB=t;
-  document.getElementById('poto-tab-activite').classList.toggle('on',t==='activite');
-  document.getElementById('poto-tab-amis').classList.toggle('on',t==='amis');
-  document.getElementById('poto-feed-c').style.display=t==='activite'?'':'none';
-  document.getElementById('poto-amis-c').style.display=t==='amis'?'':'none';
-  if(t==='activite'){
+  document.getElementById('poto-tab-fil').classList.toggle('on',t==='fil');
+  document.getElementById('poto-tab-pr').classList.toggle('on',t==='pr');
+  document.getElementById('poto-tab-invitations').classList.toggle('on',t==='invitations');
+  document.getElementById('poto-feed-c').style.display=t==='fil'?'':'none';
+  document.getElementById('poto-pr-c').style.display=t==='pr'?'':'none';
+  document.getElementById('poto-amis-c').style.display=t==='invitations'?'':'none';
+  if(t==='fil'){
     document.getElementById('poto-feed-c').innerHTML='<div style="text-align:center;color:var(--txt4);padding:40px 0;font-size:12px">Chargement...</div>';
-    loadActivityFeed().then(renderFeed);
+    loadActivityFeed().then(function(){return loadKudos(ACTIVITY_FEED.map(function(e){return e.id;}));}).then(renderFeed);
     loadFriendData().then(updatePotoBadge);
+  } else if(t==='pr'){
+    document.getElementById('poto-pr-c').innerHTML='<div style="text-align:center;color:var(--txt4);padding:40px 0;font-size:12px">Chargement...</div>';
+    Promise.all([loadFriendData(),loadPRFeed()]).then(function(){renderPotoPR();updatePotoBadge();});
   } else {
-    loadFriendData().then(function(){renderPotoAmis();updatePotoBadge();});
+    Promise.all([loadFriendData(),loadActivityFeed()]).then(function(){return loadMutualCounts();}).then(function(){renderPotoAmis();updatePotoBadge();});
   }
 }
 function updatePotoBadge(){
   var n=(FRIEND_REQ_IN||[]).length;
   var navB=document.getElementById('nb-poto-badge');if(navB)navB.style.display=n?'block':'none';
   var tabB=document.getElementById('poto-req-badge');if(tabB)tabB.textContent=n?' ('+n+')':'';
+  var subEl=document.getElementById('poto-sub');
+  if(subEl)subEl.textContent=(FRIENDS?FRIENDS.length:0)+' poto'+((FRIENDS&&FRIENDS.length!==1)?'s':'')+(n?' · '+n+' demande'+(n>1?'s':''):'');
 }
 
 function goHome(){document.getElementById('tfab').classList.remove('show');goNav('home');}
@@ -3233,48 +3404,79 @@ function renderProfilCard(){
     +'<div class="set-row" onclick="ctorOpenAddEx()"><div><div class="set-lbl">Mes exercices</div><div class="set-sub">Rechercher / consulter</div></div><span style="color:var(--txt4)">&#8250;</span></div>'
     +'</div><div class="sdiv"></div>';
 }
+function initialsOf(name){
+  if(!name)return '?';
+  var clean=String(name).replace(/[^a-zA-Z0-9]/g,' ').trim();
+  if(!clean)return '?';
+  var parts=clean.split(/\s+/);
+  if(parts.length>=2)return (parts[0][0]+parts[1][0]).toUpperCase();
+  return clean.slice(0,2).toUpperCase();
+}
+var MUTUAL_COUNT={};
+function loadMutualCounts(){
+  var ids=FRIEND_REQ_IN.map(function(f){return f.otherId;});
+  if(!ids.length)return Promise.resolve();
+  return Promise.all(ids.map(function(uid){
+    return sbRpc('mutual_friends_count',{other_user:uid}).then(function(n){MUTUAL_COUNT[uid]=n;}).catch(function(){MUTUAL_COUNT[uid]=0;});
+  }));
+}
+function monthlySessionCount(otherId){
+  var now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  return ACTIVITY_FEED.filter(function(e){
+    var uid=e.userId||e.user_id;
+    if(uid!==otherId||e.type!=='seance')return false;
+    var d=new Date(e.created_at);
+    return d.getFullYear()===y&&d.getMonth()===m;
+  }).length;
+}
+function removeFriendConfirm(id){removeFriend(id);}
 function renderPotoAmis(){
   var el=document.getElementById('poto-amis-c');if(!el)return;
-  el.innerHTML=renderAmisCard();
-}
-function renderAmisCard(){
-  var html='<div class="set-s"><div class="set-t">Amis</div>'
-    +(MY_PSEUDO?'<div class="csub" style="margin-bottom:10px">Ton pseudo : <b>'+escapeHtml(MY_PSEUDO)+'</b></div>':'')
-    +'<div style="display:flex;gap:8px;margin-bottom:6px;margin-top:10px">'
-    +'<input class="inp" id="friend-search" placeholder="Chercher un pseudo..." style="flex:1;margin-bottom:0" onkeydown="if(event.key===\'Enter\'){event.preventDefault();searchFriend();}">'
-    +'<button class="btn-s btn-sm" onclick="searchFriend()">Chercher</button>'
+  var html=(MY_PSEUDO?'<div class="csub" style="margin-bottom:12px">Ton pseudo : <b>'+escapeHtml(MY_PSEUDO)+'</b></div>':'')
+    +'<div style="display:flex;margin-bottom:6px">'
+    +'<input class="inp" id="friend-search" placeholder="Pseudo ou code poto" style="flex:1;margin-bottom:0" onkeydown="if(event.key===\'Enter\'){event.preventDefault();searchFriend();}">'
+    +'<button class="btn-s" onclick="searchFriend()" style="width:auto;padding:0 16px;margin-left:-1px;border-left:1px solid var(--card2)">Inviter</button>'
     +'</div>'
-    +'<div id="friend-search-results" style="margin-bottom:4px"></div>';
+    +'<div id="friend-search-results" style="margin-bottom:8px"></div>';
   if(FRIEND_REQ_IN.length){
-    html+='<div class="csub" style="margin:10px 0 4px">Demandes reçues</div>';
+    html+='<div class="sec" style="margin-top:8px">Demandes reçues</div>';
     FRIEND_REQ_IN.forEach(function(f){
-      html+='<div class="set-row"><div><div class="set-lbl">'+escapeHtml(f.pseudo)+'</div></div>'
-        +'<div style="display:flex;gap:6px">'
-        +'<button class="btn-s btn-sm" onclick="respondFriendRequest(\''+f.id+'\',true)">Accepter</button>'
-        +'<button style="background:none;border:none;color:var(--txt4);font-size:11px;cursor:pointer" onclick="respondFriendRequest(\''+f.id+'\',false)">Refuser</button>'
+      var mc=MUTUAL_COUNT[f.otherId];
+      var sub=(mc&&mc>0)?(mc+' poto'+(mc>1?'s':'')+' en commun'):'';
+      html+='<div class="set-row" style="cursor:default" id="freq-'+f.id+'"><div style="display:flex;align-items:center;gap:10px">'
+        +'<div class="poto-av xs">'+escapeHtml(initialsOf(f.pseudo))+'</div>'
+        +'<div><div class="set-lbl">'+escapeHtml(f.pseudo)+'</div>'+(sub?'<div class="set-sub">'+sub+'</div>':'')+'</div>'
+        +'</div><div style="display:flex;gap:6px;flex-shrink:0">'
+        +'<button class="bk-btn" style="width:38px;height:38px;color:var(--txt4)" onclick="respondFriendRequest(\''+f.id+'\',false)">&#10005;</button>'
+        +'<button class="btn-s" style="width:auto;padding:0 14px" onclick="respondFriendRequest(\''+f.id+'\',true)">Accepter</button>'
         +'</div></div>';
     });
   }
   if(FRIEND_REQ_OUT.length){
-    html+='<div class="csub" style="margin:10px 0 4px">Demandes envoyées</div>';
+    html+='<div class="sec">Demandes envoyées</div>';
     FRIEND_REQ_OUT.forEach(function(f){
-      html+='<div class="set-row"><div><div class="set-lbl">'+escapeHtml(f.pseudo)+'</div><div class="set-sub">En attente</div></div>'
+      html+='<div class="set-row" style="cursor:default"><div style="display:flex;align-items:center;gap:10px">'
+        +'<div class="poto-av xs">'+escapeHtml(initialsOf(f.pseudo))+'</div>'
+        +'<div class="set-lbl">'+escapeHtml(f.pseudo)+'</div></div>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<span class="cbadge">Invitation envoyée</span>'
         +'<button style="background:none;border:none;color:var(--txt4);font-size:11px;cursor:pointer" onclick="cancelFriendRequest(\''+f.id+'\')">Annuler</button>'
-        +'</div>';
+        +'</div></div>';
     });
   }
-  html+='<div class="csub" style="margin:10px 0 4px">Mes amis'+(FRIENDS.length?' ('+FRIENDS.length+')':'')+'</div>';
+  html+='<div class="sec">Mes potos'+(FRIENDS.length?' ('+FRIENDS.length+')':'')+'</div>';
   if(FRIENDS.length){
     FRIENDS.forEach(function(f){
-      html+='<div class="set-row"><div><div class="set-lbl">'+escapeHtml(f.pseudo)+'</div></div>'
-        +'<button style="background:none;border:none;color:var(--txt4);font-size:11px;cursor:pointer" onclick="removeFriend(\''+f.id+'\')">Retirer</button>'
-        +'</div>';
+      var n=monthlySessionCount(f.otherId);
+      html+='<div class="set-row" onclick="removeFriendConfirm(\''+f.id+'\')"><div style="display:flex;align-items:center;gap:10px">'
+        +'<div class="poto-av xs">'+escapeHtml(initialsOf(f.pseudo))+'</div>'
+        +'<div><div class="set-lbl">'+escapeHtml(f.pseudo)+'</div><div class="set-sub">'+n+' séance'+(n>1?'s':'')+' ce mois</div></div>'
+        +'</div><span style="color:var(--txt4)">&#8250;</span></div>';
     });
   } else {
-    html+='<div class="csub" style="padding:2px 0 4px">Aucun ami pour l\'instant — cherche un pseudo ci-dessus.</div>';
+    html+='<div class="csub" style="padding:2px 0 4px">Aucun poto pour l\'instant — cherche un pseudo ci-dessus.</div>';
   }
-  html+='</div><div class="sdiv"></div>';
-  return html;
+  el.innerHTML=html;
 }
 function renderSet(){
   var el=document.getElementById('set-c');
