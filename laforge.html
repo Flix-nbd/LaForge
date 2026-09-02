@@ -2390,22 +2390,27 @@ function renderProgEditView(prog){
   var html='';
   ss.forEach(function(s){
     var idx=SEANCES.indexOf(s);
-    html+='<div style="border:1px solid var(--border);border-radius:0;padding:11px 13px;margin-bottom:8px">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-      +'<div style="font-size:14.5px;font-weight:900;color:var(--txt)">'+s.nom+'</div>'
-      +'<button onclick="openAddEx('+idx+',false)" style="background:var(--card2);border:1px solid var(--border2);border-radius:0;padding:4px 10px;font-size:11.5px;font-weight:700;color:var(--txt2);cursor:pointer">+ Exo</button>'
+    html+='<div style="border:1px solid var(--border);border-radius:0;padding:14px 15px;margin-bottom:10px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+      +'<div style="font-size:16.5px;font-weight:900;color:var(--txt)">'+s.nom+'</div>'
+      +'<button onclick="openAddEx('+idx+',false)" style="background:var(--card2);border:1px solid var(--border2);border-radius:0;padding:6px 12px;font-size:13px;font-weight:700;color:var(--txt2);cursor:pointer">+ Exo</button>'
       +'</div>';
     if(!(s.exercices||[]).length){
-      html+='<div style="font-size:12.5px;color:var(--txt4);padding:4px 0">Aucun exercice</div>';
+      html+='<div style="font-size:14px;color:var(--txt4);padding:6px 0">Aucun exercice</div>';
     }
     (s.exercices||[]).forEach(function(e,ei){
-      html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">'
-        +'<div><div style="font-size:13px;font-weight:700;color:var(--txt)">'+(e.exercice_nom||e.nom)+'</div>'
-        +'<div style="font-size:11.5px;color:var(--txt3)">'+exSetsRepsLabel(e)+' · '+(e.progression_type||'poids')+'</div></div>'
-        +'<div style="display:flex;gap:5px">'
-        +'<button onclick="editExModal(\''+e.id+'\','+idx+','+ei+')" style="background:none;border:none;color:var(--txt3);font-size:12.5px;cursor:pointer;padding:2px 5px">Edit</button>'
-        +'<button onclick="bsSet('+idx+','+ei+')" style="background:none;border:1.5px solid var(--accent);border-radius:0;color:var(--accent);font-size:11.5px;font-weight:700;cursor:pointer;padding:2px 7px">BS</button>'
-        +'<button onclick="delExS('+idx+','+ei+')" style="background:none;border:none;color:var(--red);font-size:12.5px;cursor:pointer;padding:2px 5px">x</button>'
+      var bsLabel=e.biset_group?'<div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px">Biset</div>':'';
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)">'
+        +'<div style="display:flex;flex-direction:column;flex-shrink:0">'
+        +'<button onclick="progExMove('+idx+','+ei+',-1)" '+(ei===0?'disabled style="opacity:.25;background:none;border:none;padding:0;height:15px;cursor:default"':'style="background:none;border:none;padding:0;height:15px;cursor:pointer;color:var(--txt4)"')+'><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg></button>'
+        +'<button onclick="progExMove('+idx+','+ei+',1)" '+(ei===s.exercices.length-1?'disabled style="opacity:.25;background:none;border:none;padding:0;height:15px;cursor:default"':'style="background:none;border:none;padding:0;height:15px;cursor:pointer;color:var(--txt4)"')+'><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>'
+        +'</div>'
+        +'<div style="min-width:0;flex:1">'+bsLabel+'<div style="font-size:15px;font-weight:700;color:var(--txt)">'+(e.exercice_nom||e.nom)+'</div>'
+        +'<div style="font-size:12.5px;color:var(--txt3)">'+exSetsRepsLabel(e)+' · '+(e.progression_type||'poids')+'</div></div>'
+        +'<div style="display:flex;gap:6px;flex-shrink:0">'
+        +'<button onclick="editExModal(\''+e.id+'\','+idx+','+ei+')" style="background:none;border:1.5px solid var(--border2);border-radius:0;color:var(--txt3);font-size:13px;font-weight:700;cursor:pointer;padding:6px 10px">Edit</button>'
+        +'<button onclick="bsSet('+idx+','+ei+')" style="background:'+(e.biset_group?'var(--gdim)':'none')+';border:1.5px solid '+(e.biset_group?'var(--green)':'var(--accent)')+';border-radius:0;color:'+(e.biset_group?'var(--green)':'var(--accent)')+';font-size:12.5px;font-weight:700;cursor:pointer;padding:6px 10px">Biset</button>'
+        +'<button onclick="delExS('+idx+','+ei+')" style="background:none;border:none;color:var(--red);font-size:15px;cursor:pointer;padding:6px 5px">x</button>'
         +'</div></div>';
     });
     html+='</div>';
@@ -2415,6 +2420,21 @@ function renderProgEditView(prog){
     +'<div class="sdiv"></div>'
     +'<button class="btn-ghost" style="border-color:rgba(193,84,63,.35);color:var(--red)" onclick="delProg(\''+prog.id+'\')">Supprimer ce programme</button>';
   document.getElementById('prog-c').innerHTML=html;
+}
+function progExMove(si,ei,dir){
+  var s=SEANCES[si];if(!s)return;
+  var exos=s.exercices;
+  var ej=ei+dir;if(ej<0||ej>=exos.length)return;
+  var a=exos[ei],b=exos[ej];
+  if(a.ordre==null||b.ordre==null||a.ordre===b.ordre){
+    exos.forEach(function(e,idx2){e.ordre=idx2;});
+  }
+  var oa=a.ordre,ob=b.ordre;
+  a.ordre=ob;b.ordre=oa;
+  exos[ei]=b;exos[ej]=a;
+  sbPt('seance_exercices',{ordre:a.ordre},'id=eq.'+a.id).catch(function(){});
+  sbPt('seance_exercices',{ordre:b.ordre},'id=eq.'+b.id).catch(function(){});
+  renderProgTab();
 }
 
 function openDayPicker(dayIdx){
@@ -2508,6 +2528,7 @@ function exSetsRepsLabel(ex){
   if(ex&&ex.reps_scheme&&ex.reps_scheme.length)lbl=ex.reps_scheme.join('-')+' reps';
   else{var reps=ex.max_reps?'Max':ex.reps+' reps';lbl=(ex.sets||3)+'x'+reps;}
   if(ex&&ex.progression_type==='pct1rm')lbl+=' · '+(parseFloat(ex.progression_valeur)||75)+'% 1RM';
+  if(ex&&ex.progression_type==='reps')lbl+=' · +kg à '+(ex.reps_cible||15)+' reps';
   return lbl;
 }
 
@@ -3720,9 +3741,14 @@ function editExModal(exId,si,ei){
     +'<div class="chips" style="margin-bottom:9px">'
     +['poids','reps','neant','pct1rm'].map(function(t){return '<button class="chip'+(ex.progression_type===t?' on':'')+' pt-c" onclick="setProgType(this,\''+t+'\')" data-t="'+t+'">'+(t==='poids'?'+kg/seance':t==='reps'?'+reps+kg':t==='neant'?'Neant':'% 1RM')+'</button>';}).join('')
     +'</div>'
-    +'<div id="e-pw-classic" style="display:'+(ex.progression_type==='pct1rm'?'none':'block')+'">'
+    +'<div id="e-pw-poids" style="display:'+(ex.progression_type==='reps'||ex.progression_type==='pct1rm'?'none':'block')+'">'
     +'<div class="lbl">Increment kg</div><input class="inp" type="number" id="e-pv" value="'+ex.progression_valeur+'" step="0.5" inputmode="decimal" style="margin-bottom:8px">'
     +'<div class="lbl">Frequence (N seances)</div><input class="inp" type="number" id="e-pf" value="'+(ex.progression_frequence||1)+'" inputmode="numeric" style="margin-bottom:14px">'
+    +'</div>'
+    +'<div id="e-pw-reps" style="display:'+(ex.progression_type==='reps'?'block':'none')+'">'
+    +'<div class="lbl">Reps cible avant d\'augmenter le poids</div><input class="inp" type="number" id="e-cib" value="'+(ex.reps_cible||15)+'" inputmode="numeric" style="margin-bottom:8px">'
+    +'<div class="lbl">Increment kg</div><input class="inp" type="number" id="e-pvr" value="'+(ex.progression_valeur||2.5)+'" step="0.5" inputmode="decimal" style="margin-bottom:6px">'
+    +'<div style="font-size:12.5px;color:var(--txt4);margin-bottom:14px">Dès que tu atteins ce nombre de répétitions sur ta dernière série, le poids augmente automatiquement de l\'incrément ci-dessus à la prochaine séance.</div>'
     +'</div>'
     +'<div id="e-pw-pct" style="display:'+(ex.progression_type==='pct1rm'?'block':'none')+'">'
     +'<div class="lbl">Pourcentage du 1RM estimé</div><input class="inp" type="number" id="e-pct" value="'+(ex.progression_type==='pct1rm'?ex.progression_valeur:75)+'" step="1" inputmode="numeric" style="margin-bottom:6px">'
@@ -3736,10 +3762,10 @@ function editExModal(exId,si,ei){
 function setProgType(btn,t){
   document.querySelectorAll('.pt-c').forEach(function(c){c.classList.remove('on');});
   btn.classList.add('on');
-  var isPct=t==='pct1rm';
-  var wc=document.getElementById('e-pw-classic'),wp=document.getElementById('e-pw-pct');
-  if(wc)wc.style.display=isPct?'none':'block';
-  if(wp)wp.style.display=isPct?'block':'none';
+  var wPoids=document.getElementById('e-pw-poids'),wReps=document.getElementById('e-pw-reps'),wPct=document.getElementById('e-pw-pct');
+  if(wPoids)wPoids.style.display=t==='poids'?'block':'none';
+  if(wReps)wReps.style.display=t==='reps'?'block':'none';
+  if(wPct)wPct.style.display=t==='pct1rm'?'block':'none';
 }
 
 function saveExEdit(exId,si,ei){
@@ -3754,16 +3780,21 @@ function saveExEdit(exId,si,ei){
     mr=document.getElementById('e-mr').classList.contains('on');
   }
   var pt=document.querySelector('.pt-c.on');var ptype=pt?pt.getAttribute('data-t'):'poids';
-  var pval,pfreq;
+  var pval,pfreq,cib;
   if(ptype==='pct1rm'){
     pval=Math.min(100,Math.max(1,parseInt(document.getElementById('e-pct').value)||75));
+    pfreq=1;cib=null;
+  } else if(ptype==='reps'){
+    pval=parseFloat(document.getElementById('e-pvr').value)||2.5;
     pfreq=1;
+    cib=parseInt(document.getElementById('e-cib').value)||15;
   } else {
     pval=parseFloat(document.getElementById('e-pv').value)||2.5;
     pfreq=parseInt(document.getElementById('e-pf').value)||1;
+    cib=null;
   }
-  sbPt('seance_exercices',{sets:sets,reps:reps,max_reps:mr,reps_scheme:parsed,progression_type:ptype,progression_valeur:pval,progression_frequence:pfreq},'id=eq.'+exId).then(function(){
-    if(SEANCES[si]&&SEANCES[si].exercices[ei])Object.assign(SEANCES[si].exercices[ei],{sets:sets,reps:reps,max_reps:mr,reps_scheme:parsed,progression_type:ptype,progression_valeur:pval,progression_frequence:pfreq});
+  sbPt('seance_exercices',{sets:sets,reps:reps,max_reps:mr,reps_scheme:parsed,progression_type:ptype,progression_valeur:pval,progression_frequence:pfreq,reps_cible:cib},'id=eq.'+exId).then(function(){
+    if(SEANCES[si]&&SEANCES[si].exercices[ei])Object.assign(SEANCES[si].exercices[ei],{sets:sets,reps:reps,max_reps:mr,reps_scheme:parsed,progression_type:ptype,progression_valeur:pval,progression_frequence:pfreq,reps_cible:cib});
     closeModal();renderProgTab();toast('Mis a jour');
   });
 }
@@ -4734,7 +4765,7 @@ function ctorFinish(){
           var p2=Promise.resolve();
           s.exercices.forEach(function(e,ei){
             p2=p2.then(function(){
-              return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,exercice_nom:e.nom,muscle:e.muscle||'',sets:e.sets||3,reps:e.reps||10,max_reps:e.max_reps||false,reps_scheme:e.reps_scheme||null,progression_type:e.progression_type||'poids',progression_valeur:e.progression_valeur!=null?e.progression_valeur:2.5,progression_frequence:e.progression_frequence||1,ordre:ei});
+              return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,exercice_nom:e.nom,muscle:e.muscle||'',sets:e.sets||3,reps:e.reps||10,max_reps:e.max_reps||false,reps_scheme:e.reps_scheme||null,progression_type:e.progression_type||'poids',progression_valeur:e.progression_valeur!=null?e.progression_valeur:2.5,progression_frequence:e.progression_frequence||1,reps_cible:e.reps_cible||null,biset_group:e.biset_group||null,ordre:ei});
             });
           });
           return p2;
@@ -4788,26 +4819,47 @@ function renderCtorExl(){
       : '<input class="exb-inp" type="number" value="'+(e.sets||3)+'" inputmode="numeric" style="width:58px" oninput="ctorSetExField('+i+',\'sets\',this.value)">'
         +'<span style="color:var(--txt4);font-size:13.5px">&times;</span>'
         +'<input class="exb-inp" type="number" value="'+(e.reps||10)+'" inputmode="numeric" style="width:58px" oninput="ctorSetExField('+i+',\'reps\',this.value)">';
-    html+='<div class="exc" style="padding:15px 16px">'
+    var bsLabel=e.biset_group?'<div style="font-size:10px;font-weight:700;color:var(--green);letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px">Biset</div>':'';
+    var bsBorder=e.biset_group?'border-left:3px solid var(--green);':'';
+    html+='<div class="exc" style="padding:15px 16px;'+bsBorder+'">'
       +'<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:11px">'
       +'<div style="display:flex;flex-direction:column;flex-shrink:0">'
       +'<button onclick="ctorMoveEx('+i+',-1)" '+(i===0?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg></button>'
       +'<button onclick="ctorMoveEx('+i+',1)" '+(i===s.exercices.length-1?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>'
       +'</div>'
-      +'<div style="min-width:0;flex:1"><div class="emuscle">'+(e.muscle||'')+'</div><div class="en">'+e.nom+'</div>'
+      +'<div style="min-width:0;flex:1">'+bsLabel+'<div class="emuscle">'+(e.muscle||'')+'</div><div class="en">'+e.nom+'</div>'
       +(ctorAdvancedBadge(e))+'</div>'
       +'<button class="exb-del" onclick="ctorDelEx('+i+')" style="flex-shrink:0">&#10005;</button></div>'
       +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
       +srHtml
       +'<button onclick="ctorSchmToggle('+i+')" style="background:'+(hasSch?'var(--gdim)':'none')+';border:1.5px solid '+(hasSch?'var(--green)':'var(--border2)')+';border-radius:0;color:'+(hasSch?'var(--green)':'var(--txt3)')+';font-size:10.5px;font-weight:700;cursor:pointer;padding:8px 10px" title="Séries personnalisées (ex. 5-3-1)">P</button>'
+      +'<button onclick="toggleBisetCtor('+i+')" style="background:'+(e.biset_group?'var(--gdim)':'none')+';border:1.5px solid '+(e.biset_group?'var(--green)':'var(--border2)')+';border-radius:0;color:'+(e.biset_group?'var(--green)':'var(--txt3)')+';font-size:10.5px;font-weight:700;cursor:pointer;padding:8px 10px" title="Coupler avec l\'exercice suivant/précédent (biset)">Biset</button>'
       +'<button onclick="ctorExAdvanced('+i+')" style="background:none;border:1.5px solid var(--border2);border-radius:0;color:var(--txt3);font-size:15px;cursor:pointer;padding:8px 10px;line-height:1" title="Max reps / Progression / % 1RM">&#9881;</button>'
       +'</div></div>';
   });
   el.innerHTML=html;
 }
+function toggleBisetCtor(i){
+  var s=CTOR_STATE.seances[CTORCFG_IDX];if(!s)return;
+  var exos=s.exercices;
+  var ex=exos[i];if(!ex)return;
+  if(ex.biset_group){
+    var g=ex.biset_group;
+    exos.forEach(function(e){if(e.biset_group===g)e.biset_group=null;});
+  } else {
+    var partner=exos[i+1]||exos[i-1];
+    if(!partner){toast('Ajoute un 2e exercice pour faire un biset');return;}
+    var grp='BS_'+Date.now();
+    ex.biset_group=grp;
+    if(exos[i+1]&&!exos[i+1].biset_group)exos[i+1].biset_group=grp;
+    else if(exos[i-1]&&!exos[i-1].biset_group)exos[i-1].biset_group=grp;
+  }
+  renderCtorExl();
+}
 function ctorAdvancedBadge(e){
   if(e.max_reps)return '<div class="emeta" style="color:var(--accent)">Max reps</div>';
   if(e.progression_type==='pct1rm')return '<div class="emeta" style="color:var(--accent)">'+(e.progression_valeur||75)+'% 1RM</div>';
+  if(e.progression_type==='reps')return '<div class="emeta" style="color:var(--accent)">+kg à '+(e.reps_cible||15)+' reps</div>';
   return '';
 }
 function ctorExAdvanced(i){
@@ -4820,9 +4872,14 @@ function ctorExAdvanced(i){
     +'<div class="chips" style="margin-bottom:9px">'
     +['poids','reps','neant','pct1rm'].map(function(t){return '<button class="chip'+(pt===t?' on':'')+' pt-c" onclick="setProgType(this,\''+t+'\')" data-t="'+t+'">'+(t==='poids'?'+kg/seance':t==='reps'?'+reps+kg':t==='neant'?'Neant':'% 1RM')+'</button>';}).join('')
     +'</div>'
-    +'<div id="e-pw-classic" style="display:'+(pt==='pct1rm'?'none':'block')+'">'
+    +'<div id="e-pw-poids" style="display:'+(pt==='reps'||pt==='pct1rm'?'none':'block')+'">'
     +'<div class="lbl">Increment kg</div><input class="inp" type="number" id="e-pv" value="'+(e.progression_valeur||2.5)+'" step="0.5" inputmode="decimal" style="margin-bottom:8px">'
     +'<div class="lbl">Fréquence (N séances)</div><input class="inp" type="number" id="e-pf" value="'+(e.progression_frequence||1)+'" inputmode="numeric" style="margin-bottom:14px">'
+    +'</div>'
+    +'<div id="e-pw-reps" style="display:'+(pt==='reps'?'block':'none')+'">'
+    +'<div class="lbl">Reps cible avant d\'augmenter le poids</div><input class="inp" type="number" id="e-cib" value="'+(e.reps_cible||15)+'" inputmode="numeric" style="margin-bottom:8px">'
+    +'<div class="lbl">Increment kg</div><input class="inp" type="number" id="e-pvr" value="'+(e.progression_valeur||2.5)+'" step="0.5" inputmode="decimal" style="margin-bottom:6px">'
+    +'<div style="font-size:12.5px;color:var(--txt4);margin-bottom:14px">Dès que tu atteins ce nombre de répétitions sur ta dernière série, le poids augmente automatiquement de l\'incrément ci-dessus à la prochaine séance.</div>'
     +'</div>'
     +'<div id="e-pw-pct" style="display:'+(pt==='pct1rm'?'block':'none')+'">'
     +'<div class="lbl">Pourcentage du 1RM estimé</div><input class="inp" type="number" id="e-pct" value="'+(pt==='pct1rm'?(e.progression_valeur||75):75)+'" step="1" inputmode="numeric" style="margin-bottom:6px">'
@@ -4840,9 +4897,15 @@ function ctorExAdvancedSave(i){
   if(ptype==='pct1rm'){
     e.progression_valeur=Math.min(100,Math.max(1,parseInt(document.getElementById('e-pct').value)||75));
     e.progression_frequence=1;
+    e.reps_cible=null;
+  } else if(ptype==='reps'){
+    e.progression_valeur=parseFloat(document.getElementById('e-pvr').value)||2.5;
+    e.progression_frequence=1;
+    e.reps_cible=parseInt(document.getElementById('e-cib').value)||15;
   } else {
     e.progression_valeur=parseFloat(document.getElementById('e-pv').value)||2.5;
     e.progression_frequence=parseInt(document.getElementById('e-pf').value)||1;
+    e.reps_cible=null;
   }
   closeModal();renderCtorExl();toast('Mis à jour');
 }
