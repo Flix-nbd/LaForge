@@ -212,6 +212,11 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 .mov.show{opacity:1;pointer-events:all}
 .modal{background:var(--card);border-top:2px solid var(--accent);border-radius:0;padding:18px;padding-bottom:calc(18px + var(--sb));width:100%;max-width:500px;max-height:88vh;overflow-y:auto}
 .mdrag{width:30px;height:3px;background:var(--border2);margin:0 auto 13px}
+.modal-x{display:none}
+.modal.full{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;border-top:none;border-radius:0;padding-top:64px;padding-bottom:calc(18px + var(--sb));z-index:5}
+.modal.full .mdrag{display:none}
+.modal.full .modal-x{display:flex;position:fixed;top:14px;right:14px;width:36px;height:36px;align-items:center;justify-content:center;background:var(--card2);border:1.5px solid var(--border2);border-radius:0;color:var(--txt2);font-size:17px;line-height:1;cursor:pointer;z-index:6}
+.modal.full .modal-x:active{background:var(--border2)}
 .mtitle{font-family:var(--font-display);font-size:20.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:13px}
 .srch-w{position:relative;margin-bottom:7px}
 .srch-i{width:100%;background:var(--card);border:1px solid var(--border2);border-radius:0;padding:10px 13px 10px 36px;font-size:17.5px;color:var(--txt);outline:none;font-family:var(--font-body)}
@@ -744,8 +749,9 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 
 <!-- MODAL -->
 <div class="mov" id="mov" onclick="if(event.target===this)closeModal()">
-  <div class="modal" onclick="event.stopPropagation()">
+  <div class="modal" id="modal-box" onclick="event.stopPropagation()">
     <div class="mdrag"></div>
+    <button class="modal-x" onclick="closeModal()" aria-label="Fermer">&#10005;</button>
     <div id="modal-c"></div>
   </div>
 </div>
@@ -1528,7 +1534,8 @@ function prToast(nom,poids){
 }
 var PR_TOAST_TO=null;
 function showSc(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});document.getElementById('sc-'+id).classList.add('active');}
-function openModal(){document.getElementById('mov').classList.add('show');}
+function openModal(){var b=document.getElementById('modal-box');if(b)b.classList.remove('full');document.getElementById('mov').classList.add('show');}
+function openModalFull(){var b=document.getElementById('modal-box');if(b)b.classList.add('full');document.getElementById('mov').classList.add('show');}
 function closeModal(){document.getElementById('mov').classList.remove('show');}
 function openTimer(){document.getElementById('tov').classList.add('show');updT();}
 function closeTimer(){document.getElementById('tov').classList.remove('show');}
@@ -2035,7 +2042,7 @@ function openExPicker(title,onSelectFn,extraHtmlBefore,extraHtmlAfter,extraFilte
   document.getElementById('modal-c').innerHTML='<div class="mtitle">'+title+'</div>'
     +(extraHtmlBefore||'')+'<div id="exp-body"></div>'+(extraHtmlAfter||'');
   expRenderBody();
-  openModal();
+  openModalFull();
 }
 
 function openAddEx(si,inB){
@@ -2616,7 +2623,8 @@ function openExMenu(i){
     if(ex._nom_orig){
       html+='<div class="choice" onclick="closeModal();revertSwapEx('+i+')"><div class="ct">Annuler le remplacement</div><div class="cs">Revenir à '+ex._nom_orig+'</div></div>';
     }
-    html+='<div class="choice" onclick="closeModal();toggleBlocMode('+i+')"><div class="ct">'+(ex.blocMode?'Désactiver le mode blocs':'Mode blocs (PDC)')+'</div><div class="cs">'+(ex.blocMode?'Revenir aux séries classiques':'Pyramide, séries libres, plusieurs formats à la suite')+'</div></div>';
+    html+='<div class="choice" onclick="closeModal();'+(ex.blocMode?'toggleBlocMode('+i+')':'openBlocModeEditor('+i+')')+'"><div class="ct">'+(ex.blocMode?'Désactiver le mode blocs':'Mode blocs (PDC)')+'</div><div class="cs">'+(ex.blocMode?'Revenir aux séries classiques':'Pyramide, séries libres, plusieurs formats à la suite')+'</div></div>'
+      +(ex.blocMode?'<div class="choice" onclick="closeModal();openBlocModeEditor('+i+')"><div class="ct">Modifier les blocs</div><div class="cs">Pyramide, échelle, AMRAP, EMOM, plusieurs phases</div></div>':'');
   }
   html+='<div class="choice" style="border-color:rgba(193,84,63,.35)" onclick="closeModal();skipExInSession('+i+')"><div class="ct" style="color:var(--red)">Retirer de cette séance</div><div class="cs">Pas de matos, pas le temps... revient la prochaine fois</div></div>';
   document.getElementById('modal-c').innerHTML=html;
@@ -2771,6 +2779,11 @@ function openBlocProgramEdit(i){
   var s=CURWK;if(!s||!s.exercices[i])return;
   var ex=s.exercices[i];
   openBlocPlanEditor({kind:'live-program',exId:ex.id,idx:i},ex.blocPlan);
+}
+function openBlocModeEditor(i){
+  var s=CURWK;if(!s||!s.exercices[i])return;
+  var ex=s.exercices[i];
+  openBlocPlanEditor({kind:'blocmode-live',mode:'session',idx:i,exId:ex.id},{phases:blocsToPhases((WKP[ex.id]||{}).blocs)});
 }
 function wodItemDetail(i){
   var s=CURWK;if(!s||!s.exercices[i])return;
@@ -3179,10 +3192,11 @@ function blocValiderSerie(i,exId){
   autoStartRestTimer();
 }
 function blocNouveau(exId){
-  document.getElementById('modal-c').innerHTML='<div class="mtitle">Nouveau bloc</div>'
-    +'<div class="choice" onclick="blocNouveauSeries(\''+exId+'\')"><div class="ct">Séries libres</div><div class="cs">Pyramide, séries classiques, format libre</div></div>'
-    +'<div class="choice" onclick="blocNouveauEmomPrompt(\''+exId+'\')"><div class="ct">EMOM</div><div class="cs">Saisie minute par minute, total automatique</div></div>';
-  openModal();
+  var s=CURWK;if(!s)return;
+  var i=-1;
+  for(var k=0;k<s.exercices.length;k++){if(s.exercices[k].id===exId){i=k;break;}}
+  if(i<0)return;
+  openBlocModeEditor(i);
 }
 function blocNouveauSeries(exId){
   closeModal();
@@ -3333,7 +3347,7 @@ function openBlocPlanEditor(ctx,existingPlan){
     ctx:ctx
   };
   renderBlocEditor();
-  openModal();
+  openModalFull();
 }
 function blocSetMouvement(nom){BLOC_ED_STATE.mouvement=nom;BLOC_ED_STATE.mouvementCustomOn=false;renderBlocEditor();}
 function blocToggleCustomMvt(){BLOC_ED_STATE.mouvementCustomOn=!BLOC_ED_STATE.mouvementCustomOn;renderBlocEditor();}
@@ -3492,6 +3506,14 @@ function applyBlocPlan(ctx,plan){
   } else if(ctx.kind==='live-session'){
     applySessionBlocOverride(ctx.exId,plan.phases);
     closeModal();refreshExpand(ctx.exId);toast('Modifié pour cette séance');
+  } else if(ctx.kind==='blocmode-live'){
+    var exBM=CURWK&&CURWK.exercices[ctx.idx];
+    if(exBM&&!exBM.blocMode){
+      exBM.blocMode=true;
+      sbPt('seance_exercices',{blocMode:true},'id=eq.'+ctx.exId).catch(function(){});
+    }
+    applySessionBlocOverride(ctx.exId,plan.phases);
+    closeModal();renderWk();toast('Mode blocs activé');
   }
 }
 
