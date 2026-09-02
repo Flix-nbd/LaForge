@@ -830,7 +830,7 @@ function bootAuth(){
 // d = objet a inserer/mettre a jour) pour ne toucher a aucun site d'appel.
 // Conversion camelCase (JS) <-> snake_case (colonnes SQL) pour les quelques
 // champs qui divergent ; tout le reste passe tel quel.
-var SB_FIELD_OUT={finBloc:'fin_bloc',wodBloc:'wod_bloc',emomConfig:'emom_config',emomLog:'emom_log',blocMode:'bloc_mode',wodResult:'wod_result'};
+var SB_FIELD_OUT={finBloc:'fin_bloc',wodBloc:'wod_bloc',emomConfig:'emom_config',emomLog:'emom_log',blocMode:'bloc_mode',wodResult:'wod_result',blocPlan:'bloc_plan'};
 var SB_FIELD_IN={};
 for(var _skf in SB_FIELD_OUT)SB_FIELD_IN[SB_FIELD_OUT[_skf]]=_skf;
 
@@ -2393,12 +2393,28 @@ function renderProgEditView(prog){
     html+='<div style="border:1px solid var(--border);border-radius:0;padding:14px 15px;margin-bottom:10px">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
       +'<div style="font-size:16.5px;font-weight:900;color:var(--txt)">'+s.nom+'</div>'
+      +'<div style="display:flex;gap:6px">'
       +'<button onclick="openAddEx('+idx+',false)" style="background:var(--card2);border:1px solid var(--border2);border-radius:0;padding:6px 12px;font-size:13px;font-weight:700;color:var(--txt2);cursor:pointer">+ Exo</button>'
-      +'</div>';
+      +'<button onclick="openBlocPlanEditor({kind:\'prog-new\',si:'+idx+'},null)" style="background:var(--card2);border:1px solid var(--border2);border-radius:0;padding:6px 12px;font-size:13px;font-weight:700;color:var(--accent);cursor:pointer">+ Bloc</button>'
+      +'</div></div>';
     if(!(s.exercices||[]).length){
       html+='<div style="font-size:14px;color:var(--txt4);padding:6px 0">Aucun exercice</div>';
     }
     (s.exercices||[]).forEach(function(e,ei){
+      if(e.type==='bloc'){
+        html+='<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)">'
+          +'<div style="display:flex;flex-direction:column;flex-shrink:0">'
+          +'<button onclick="progExMove('+idx+','+ei+',-1)" '+(ei===0?'disabled style="opacity:.25;background:none;border:none;padding:0;height:15px;cursor:default"':'style="background:none;border:none;padding:0;height:15px;cursor:pointer;color:var(--txt4)"')+'><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg></button>'
+          +'<button onclick="progExMove('+idx+','+ei+',1)" '+(ei===s.exercices.length-1?'disabled style="opacity:.25;background:none;border:none;padding:0;height:15px;cursor:default"':'style="background:none;border:none;padding:0;height:15px;cursor:pointer;color:var(--txt4)"')+'><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>'
+          +'</div>'
+          +'<div style="min-width:0;flex:1"><div style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px">🔥 Bloc</div><div style="font-size:15px;font-weight:700;color:var(--txt)">'+(e.exercice_nom||e.nom)+'</div>'
+          +'<div style="font-size:12.5px;color:var(--txt3)">'+blocPlanSummary(e.blocPlan)+'</div></div>'
+          +'<div style="display:flex;gap:6px;flex-shrink:0">'
+          +'<button onclick="openBlocPlanEditor({kind:\'prog-edit\',si:'+idx+',ei:'+ei+',exId:\''+e.id+'\'},SEANCES['+idx+'].exercices['+ei+'].blocPlan)" style="background:none;border:1.5px solid var(--border2);border-radius:0;color:var(--txt3);font-size:13px;font-weight:700;cursor:pointer;padding:6px 10px">Modifier</button>'
+          +'<button onclick="delExS('+idx+','+ei+')" style="background:none;border:none;color:var(--red);font-size:15px;cursor:pointer;padding:6px 5px">x</button>'
+          +'</div></div>';
+        return;
+      }
       var bsLabel=e.biset_group?'<div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px">Biset</div>':'';
       html+='<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)">'
         +'<div style="display:flex;flex-direction:column;flex-shrink:0">'
@@ -2592,6 +2608,9 @@ function openExMenu(i){
   } else if(ex.type==='emom'){
     var doneEmom=kvGetItem('ex_'+ex.id+'_'+WEEK)==='1';
     if(doneEmom)html+='<div class="choice" onclick="closeModal();unmarkDone(\''+ex.id+'\')"><div class="ct">Reprendre la saisie</div><div class="cs">Revenir sur les minutes déjà validées</div></div>';
+  } else if(ex.type==='bloc'){
+    html+='<div class="choice" onclick="closeModal();openBlocSessionEdit('+i+')"><div class="ct">Modifier pour cette séance</div><div class="cs">Change les cibles juste pour aujourd\'hui — le programme ne bouge pas</div></div>'
+      +'<div class="choice" onclick="closeModal();openBlocProgramEdit('+i+')"><div class="ct">Modifier le programme</div><div class="cs">Change la configuration à partir de la prochaine séance</div></div>';
   } else {
     html+='<div class="choice" onclick="closeModal();openSwapEx('+i+')"><div class="ct">Remplacer l\'exercice</div><div class="cs">Uniquement pour cette séance</div></div>';
     if(ex._nom_orig){
@@ -2673,6 +2692,23 @@ function renderWk(){
         +'<div class="exc-expand"><div id="ed-'+i+'">'+renderEmomItemBody(i,ex)+'</div></div></div>';
       return;
     }
+    if(ex.type==='bloc'){
+      html+='<div class="exc'+(done?' done':'')+'" id="ex-'+i+'" data-exid="'+ex.id+'" style="border-left:3px solid var(--accent)">'
+        +'<div class="exc-row" onclick="togEx('+i+')">'
+        +'<div class="exc-chk" onclick="event.stopPropagation();chkEx('+i+',\''+ex.id+'\')">'+(done?'&#10003;':'')+'</div>'
+        +'<div class="exc-body">'
+        +'<div class="emuscle" style="color:var(--accent)">🔥 BLOC</div>'
+        +'<div class="en">'+(ex.exercice_nom||ex.nom)+'</div>'
+        +'<div class="emeta">'+blocPlanSummary(ex.blocPlan)+'</div>'
+        +'</div>'
+        +'<button class="btn-icon-swap" onclick="event.stopPropagation();openExMenu('+i+')" aria-label="Modifier">'
+        +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>'
+        +'</button>'
+        +dragHandle
+        +'</div>'
+        +'<div class="exc-expand"><div id="ed-'+i+'">'+renderExpandBody(i,ex,WKP[ex.id]||{})+'</div></div></div>';
+      return;
+    }
     var wt=calcWt(ex);
     var wp=WKP[ex.id]||{};
     var wtHtml=wt!==null?('<div class="ewt-v">'+wt+'</div><div class="ewt-l">kg</div>'):'<div style="font-size:11.5px;color:var(--green);font-weight:700">1ere</div>';
@@ -2725,6 +2761,16 @@ function renderWodItemBody(i,ex){
 function openWodItemConfig(i){
   var s=CURWK;if(!s||!s.exercices[i])return;
   openFinBlocFor({kind:'live-item',seance:s,idx:i});
+}
+function openBlocSessionEdit(i){
+  var s=CURWK;if(!s||!s.exercices[i])return;
+  var ex=s.exercices[i];
+  openBlocPlanEditor({kind:'live-session',mode:'session',exId:ex.id},{phases:blocsToPhases((WKP[ex.id]||{}).blocs)});
+}
+function openBlocProgramEdit(i){
+  var s=CURWK;if(!s||!s.exercices[i])return;
+  var ex=s.exercices[i];
+  openBlocPlanEditor({kind:'live-program',exId:ex.id,idx:i},ex.blocPlan);
 }
 function wodItemDetail(i){
   var s=CURWK;if(!s||!s.exercices[i])return;
@@ -2983,6 +3029,7 @@ function renderExpandBody(i,ex,wp){
   var exId=ex.id;
   if(!WKP[exId])WKP[exId]={};
   wp=WKP[exId];
+  if(ex.type==='bloc'){if(!wp.blocs)wp.blocs=seedBlocsFromPlan(ex.blocPlan);return renderBlocBody(i,ex,wp);}
   if(ex.blocMode)return renderBlocBody(i,ex,wp);
   var rows=wp.detail||[];
   if(!wp._cur)wp._cur={poids:'',reps:'',rpe:null};
@@ -3060,6 +3107,12 @@ function renderBlocBody(i,ex,wp){
   wp.blocs.forEach(function(bloc,bi){
     html+='<div style="border-left:2px solid var(--accent-b);padding-left:10px;margin-bottom:12px">'
       +'<div style="font-family:var(--font-cond);font-size:11.5px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">'+bloc.label+'</div>';
+    if(bloc.target&&bloc.kind!=='emom'){
+      var tgtTxt=bloc.target.duree_min
+        ? ('Cible : '+bloc.target.duree_min+' min'+(bloc.target.charge?' · +'+bloc.target.charge+'kg':''))
+        : (bloc.target.reps_scheme&&bloc.target.reps_scheme.length?('Cible : '+bloc.target.reps_scheme.join('-')+' reps'+(bloc.target.charge?' · +'+bloc.target.charge+'kg':' · PDC')):'');
+      if(tgtTxt)html+='<div style="font-size:12px;color:var(--txt4);margin-bottom:5px">'+tgtTxt+'</div>';
+    }
     if(bloc.kind==='emom'){
       var ed=bloc.emomData||{duree:10,objectif:5,log:{},validated:false};
       if(ed.validated){
@@ -3089,9 +3142,16 @@ function renderBlocBody(i,ex,wp){
   var lastBloc=wp.blocs.length?wp.blocs[wp.blocs.length-1]:null;
   var showSeriesInput=lastBloc&&(lastBloc.kind!=='emom'||(lastBloc.emomData&&lastBloc.emomData.validated));
   if(showSeriesInput){
+    var repsPh='Reps';
+    if(lastBloc.target&&lastBloc.target.reps_scheme&&lastBloc.target.reps_scheme.length){
+      var nextTgt=lastBloc.target.reps_scheme[lastBloc.series.length];
+      if(nextTgt!=null)repsPh=nextTgt+' reps (cible)';
+    } else if(lastBloc.target&&lastBloc.target.duree_min&&!lastBloc.series.length){
+      repsPh='Reps totales';
+    }
     html+='<div class="prow" style="margin-top:8px">'
       +'<input class="pi" type="number" placeholder="Poids kg (vide si PDC)" value="'+(cur.poids||'')+'" oninput="wkCur(\''+exId+'\',\'poids\',this.value)" inputmode="decimal" step="0.5">'
-      +'<input class="pi" type="number" placeholder="Reps" value="'+(cur.reps||'')+'" oninput="wkCur(\''+exId+'\',\'reps\',this.value)" inputmode="numeric" style="max-width:80px">'
+      +'<input class="pi" type="number" placeholder="'+repsPh+'" value="'+(cur.reps||'')+'" oninput="wkCur(\''+exId+'\',\'reps\',this.value)" inputmode="numeric" style="max-width:80px">'
       +'</div>'
       +rpeRowCur(exId,cur.rpe)
       +'<button class="btn btn-p" style="margin-top:8px" onclick="event.stopPropagation();blocValiderSerie('+i+',\''+exId+'\')">Valider la série</button>';
@@ -3189,6 +3249,250 @@ function blocTerminer(i,exId){
   });
   wp.detailOn=true;
   finalizeExercise(i,exId);
+}
+
+// ── BLOC PROGRAMMABLE (poids du corps / lesté — planifiable dans le programme) ──
+// Un element de type 'bloc' est un item de seance a part entiere (comme un WOD/EMOM),
+// avec un plan pre-programme (seance_exercices.bloc_plan : {mouvement, phases:[...], repos}).
+// La saisie en seance reutilise TEL QUEL le moteur du "Mode blocs" existant (renderBlocBody /
+// blocValiderSerie / blocNouveau / blocTerminer / savePerf) : on se contente de pre-remplir
+// wp.blocs a partir du plan (avec une cible affichee) au lieu de partir d'une liste vide.
+var BLOC_MOUVEMENTS=['Tractions','Tractions lestées','Dips','Dips lestés','Pompes','Squats au poids du corps','Fentes au poids du corps','Gainage','Abdominaux'];
+var BLOC_FORMATS=[{k:'classique',t:'Classique'},{k:'perso',t:'Perso'},{k:'pyramide',t:'Pyramide'},{k:'echelle',t:'Échelle'},{k:'amrap',t:'AMRAP'},{k:'emom',t:'EMOM'}];
+function defaultBlocPhase(format){return {format:format||'classique',sets:4,reps:8,charge:0,reps_scheme:null,duree_min:10,objectif:5};}
+function blocPhaseLabel(ph){
+  if(ph.format==='pyramide')return 'Pyramide';
+  if(ph.format==='echelle')return 'Échelle';
+  if(ph.format==='perso')return 'Séries personnalisées';
+  if(ph.format==='amrap')return 'AMRAP';
+  if(ph.format==='emom')return 'EMOM';
+  return 'Séries classiques';
+}
+function blocPhaseTargetSummary(ph){
+  if(ph.format==='amrap')return 'AMRAP '+(ph.duree_min||10)+' min'+(ph.charge?' @ +'+ph.charge+'kg':'');
+  if(ph.format==='emom')return 'EMOM '+(ph.duree_min||10)+' min';
+  if(ph.format==='classique')return (ph.sets||4)+'×'+(ph.reps||8)+(ph.charge?' @ +'+ph.charge+'kg':' @ PDC');
+  var sch=(ph.reps_scheme&&ph.reps_scheme.length)?ph.reps_scheme.join('-'):'';
+  return (sch||'?')+(ph.charge?' @ +'+ph.charge+'kg':' @ PDC');
+}
+function blocPlanSummary(plan){
+  if(!plan||!plan.phases||!plan.phases.length)return '';
+  return plan.phases.map(blocPhaseTargetSummary).join(' → ');
+}
+// Convertit un plan (phases programmees) en tableau "wp.blocs" pret pour renderBlocBody —
+// chaque phase devient un bloc avec sa cible affichee (bloc.target), sans aucune serie
+// deja saisie (series:[] / emomData vierge). Reutilise integralement le moteur existant.
+function seedBlocsFromPlan(plan){
+  if(!plan||!plan.phases)return [];
+  return plan.phases.map(function(ph){
+    if(ph.format==='emom'){
+      var log={};for(var m=1;m<=(ph.duree_min||10);m++)log[m]=ph.objectif||5;
+      return {kind:'emom',label:'EMOM '+(ph.duree_min||10)+' min',emomData:{duree:ph.duree_min||10,objectif:ph.objectif||5,log:log,validated:false}};
+    }
+    if(ph.format==='amrap'){
+      return {kind:'series',format:'amrap',label:'AMRAP '+(ph.duree_min||10)+' min',series:[],target:{duree_min:ph.duree_min||10,charge:ph.charge||0}};
+    }
+    if(ph.format==='classique'){
+      return {kind:'series',format:'classique',label:'Séries classiques',series:[],target:{reps_scheme:Array(ph.sets||4).fill(ph.reps||8),charge:ph.charge||0}};
+    }
+    return {kind:'series',format:ph.format,label:blocPhaseLabel(ph),series:[],target:{reps_scheme:(ph.reps_scheme&&ph.reps_scheme.length)?ph.reps_scheme:[8,8,8],charge:ph.charge||0}};
+  });
+}
+// Reconstruit des "phases" (format editeur) a partir de l'etat live wp.blocs actuel —
+// utilise pour pre-remplir "Modifier pour cette seance" avec ce qui est deja en cours.
+function blocsToPhases(blocs){
+  return (blocs||[]).map(function(b){
+    if(b.kind==='emom')return {format:'emom',duree_min:(b.emomData&&b.emomData.duree)||10,objectif:(b.emomData&&b.emomData.objectif)||5};
+    var t=b.target||{};
+    if(b.format==='amrap')return {format:'amrap',duree_min:t.duree_min||10,charge:t.charge||0};
+    if(b.format==='classique')return {format:'classique',sets:(t.reps_scheme||[]).length||4,reps:(t.reps_scheme&&t.reps_scheme[0])||8,charge:t.charge||0};
+    return {format:b.format||'perso',reps_scheme:(t.reps_scheme&&t.reps_scheme.length)?t.reps_scheme:[8,8,8],charge:t.charge||0};
+  });
+}
+// Ecrase (ou complete si des series sont deja loguees) les cibles de la seance en cours,
+// SANS toucher au programme permanent (rien n'est persiste en base ici).
+function applySessionBlocOverride(exId,phases){
+  var wp=WKP[exId];if(!wp)wp=WKP[exId]={};
+  var fresh=seedBlocsFromPlan({phases:phases});
+  var hasData=(wp.blocs||[]).some(function(b){
+    if(b.kind==='emom')return b.emomData&&b.emomData.validated;
+    return (b.series||[]).length>0;
+  });
+  wp.blocs=hasData?(wp.blocs||[]).concat(fresh):fresh;
+}
+
+var BLOC_ED_STATE=null;
+function openBlocPlanEditor(ctx,existingPlan){
+  BLOC_ED_STATE={
+    mouvement:existingPlan?existingPlan.mouvement:'',
+    mouvementCustom:(existingPlan&&BLOC_MOUVEMENTS.indexOf(existingPlan.mouvement)<0)?existingPlan.mouvement:'',
+    mouvementCustomOn:!!(existingPlan&&BLOC_MOUVEMENTS.indexOf(existingPlan.mouvement)<0),
+    phases:(existingPlan&&existingPlan.phases&&existingPlan.phases.length)?JSON.parse(JSON.stringify(existingPlan.phases)):[defaultBlocPhase('classique')],
+    repos:(existingPlan&&existingPlan.repos!=null)?existingPlan.repos:90,
+    isEdit:!!existingPlan,
+    ctx:ctx
+  };
+  renderBlocEditor();
+  openModal();
+}
+function blocSetMouvement(nom){BLOC_ED_STATE.mouvement=nom;BLOC_ED_STATE.mouvementCustomOn=false;renderBlocEditor();}
+function blocToggleCustomMvt(){BLOC_ED_STATE.mouvementCustomOn=!BLOC_ED_STATE.mouvementCustomOn;renderBlocEditor();}
+function blocAddPhase(){BLOC_ED_STATE.phases.push(defaultBlocPhase('classique'));renderBlocEditor();}
+function blocDelPhase(pi){if(BLOC_ED_STATE.phases.length<=1){toast('Il faut au moins une phase');return;}BLOC_ED_STATE.phases.splice(pi,1);renderBlocEditor();}
+function blocMovePhase(pi,dir){
+  var j=pi+dir;if(j<0||j>=BLOC_ED_STATE.phases.length)return;
+  var tmp=BLOC_ED_STATE.phases[pi];BLOC_ED_STATE.phases[pi]=BLOC_ED_STATE.phases[j];BLOC_ED_STATE.phases[j]=tmp;
+  renderBlocEditor();
+}
+function blocSetPhaseFormat(pi,f){BLOC_ED_STATE.phases[pi].format=f;renderBlocEditor();}
+function blocGenScheme(pi,kind){
+  var phase=BLOC_ED_STATE.phases[pi];if(!phase)return;
+  if(kind==='pyramide'){
+    var a=phase._pStart||10,b=phase._pEnd||2;
+    var arr=[];if(a<=b){for(var v=a;v<=b;v++)arr.push(v);}else{for(var v2=a;v2>=b;v2--)arr.push(v2);}
+    phase.reps_scheme=arr;
+  } else if(kind==='echelle'){
+    var st=phase._eStart||5,pal=phase._ePaliers||3;
+    var arr2=[];for(var k=0;k<pal;k++){arr2.push(st+k);arr2.push(st+k);}
+    phase.reps_scheme=arr2;
+  }
+  renderBlocEditor();
+}
+function blocPhaseFieldsHtml(phase,pi){
+  var f=phase.format;
+  var chargeField='<div class="lbl">Charge (kg, 0 = poids du corps)</div><input class="inp" type="number" step="0.5" value="'+(phase.charge||0)+'" inputmode="decimal" oninput="BLOC_ED_STATE.phases['+pi+'].charge=parseFloat(this.value)||0" style="margin-bottom:4px">';
+  if(f==='classique'){
+    return '<div class="lbl" style="margin-top:0">Séries</div><input class="inp" type="number" value="'+(phase.sets||4)+'" inputmode="numeric" oninput="BLOC_ED_STATE.phases['+pi+'].sets=parseInt(this.value)||1" style="margin-bottom:8px">'
+      +'<div class="lbl">Répétitions</div><input class="inp" type="number" value="'+(phase.reps||8)+'" inputmode="numeric" oninput="BLOC_ED_STATE.phases['+pi+'].reps=parseInt(this.value)||1" style="margin-bottom:4px">'
+      +chargeField;
+  }
+  if(f==='perso'||f==='pyramide'||f==='echelle'){
+    var gen='';
+    if(f==='pyramide'){
+      gen='<div class="lbl" style="margin-top:0">Générer une pyramide</div>'
+        +'<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">'
+        +'<input class="exb-inp" type="number" placeholder="Départ" value="'+(phase._pStart||10)+'" style="width:64px" oninput="BLOC_ED_STATE.phases['+pi+']._pStart=parseInt(this.value)||1">'
+        +'<span style="color:var(--txt4)">&#8594;</span>'
+        +'<input class="exb-inp" type="number" placeholder="Fin" value="'+(phase._pEnd||2)+'" style="width:64px" oninput="BLOC_ED_STATE.phases['+pi+']._pEnd=parseInt(this.value)||1">'
+        +'<button class="btn-s btn-sm" onclick="blocGenScheme('+pi+',\'pyramide\')">Générer</button>'
+        +'</div>';
+    } else if(f==='echelle'){
+      gen='<div class="lbl" style="margin-top:0">Générer une échelle</div>'
+        +'<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">'
+        +'<input class="exb-inp" type="number" placeholder="Départ" value="'+(phase._eStart||5)+'" style="width:64px" oninput="BLOC_ED_STATE.phases['+pi+']._eStart=parseInt(this.value)||1">'
+        +'<span style="color:var(--txt4)">·</span>'
+        +'<input class="exb-inp" type="number" placeholder="Paliers" value="'+(phase._ePaliers||3)+'" style="width:64px" oninput="BLOC_ED_STATE.phases['+pi+']._ePaliers=parseInt(this.value)||1">'
+        +'<button class="btn-s btn-sm" onclick="blocGenScheme('+pi+',\'echelle\')">Générer</button>'
+        +'</div>';
+    }
+    return gen+'<div class="lbl" style="margin-top:0">Répétitions par série</div>'
+      +'<input class="inp" type="text" placeholder="ex. 10,8,6,4,2" value="'+((phase.reps_scheme||[]).join(','))+'" oninput="BLOC_ED_STATE.phases['+pi+'].reps_scheme=parseRepsScheme(this.value)" style="margin-bottom:8px">'
+      +chargeField;
+  }
+  if(f==='amrap'){
+    return '<div class="lbl" style="margin-top:0">Durée (minutes)</div><input class="inp" type="number" value="'+(phase.duree_min||10)+'" inputmode="numeric" oninput="BLOC_ED_STATE.phases['+pi+'].duree_min=parseInt(this.value)||1" style="margin-bottom:8px">'
+      +chargeField;
+  }
+  if(f==='emom'){
+    return '<div class="lbl" style="margin-top:0">Durée (minutes)</div><input class="inp" type="number" value="'+(phase.duree_min||10)+'" inputmode="numeric" oninput="BLOC_ED_STATE.phases['+pi+'].duree_min=parseInt(this.value)||1" style="margin-bottom:8px">'
+      +'<div class="lbl">Objectif reps / minute</div><input class="inp" type="number" value="'+(phase.objectif||5)+'" inputmode="numeric" oninput="BLOC_ED_STATE.phases['+pi+'].objectif=parseInt(this.value)||1" style="margin-bottom:4px">';
+  }
+  return '';
+}
+function renderBlocEditor(){
+  var st=BLOC_ED_STATE;if(!st)return;
+  var isSession=st.ctx.mode==='session';
+  var html='<div class="mtitle">'+(isSession?'Modifier pour cette séance':(st.isEdit?'Modifier le bloc':'Nouveau bloc'))+'</div>';
+  if(isSession)html+='<div style="font-size:12.5px;color:var(--txt3);margin-bottom:10px">Uniquement pour aujourd\'hui — le programme ne change pas.</div>';
+  if(!isSession){
+    html+='<div class="lbl" style="margin-top:0">Mouvement</div>'
+      +'<div class="chips" style="margin-bottom:8px">'
+      +BLOC_MOUVEMENTS.map(function(m){return '<button class="chip'+(!st.mouvementCustomOn&&st.mouvement===m?' on':'')+'" onclick="blocSetMouvement(\''+m+'\')">'+m+'</button>';}).join('')
+      +'<button class="chip'+(st.mouvementCustomOn?' on':'')+'" onclick="blocToggleCustomMvt()">Autre</button>'
+      +'</div>';
+    if(st.mouvementCustomOn){
+      html+='<input class="inp" type="text" placeholder="Nom du mouvement" value="'+(st.mouvementCustom||'')+'" oninput="BLOC_ED_STATE.mouvementCustom=this.value" style="margin-bottom:14px">';
+    } else {
+      html+='<div style="margin-bottom:14px"></div>';
+    }
+  }
+  st.phases.forEach(function(phase,pi){
+    html+='<div class="card" style="padding:12px 13px;margin-bottom:10px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+      +'<div style="font-family:var(--font-cond);font-size:11.5px;font-weight:700;color:var(--txt4);letter-spacing:1px">PHASE '+(pi+1)+'</div>'
+      +'<div style="display:flex;align-items:center;gap:4px">'
+      +'<button onclick="blocMovePhase('+pi+',-1)" '+(pi===0?'disabled style="opacity:.25;background:none;border:none;padding:2px;cursor:default"':'style="background:none;border:none;padding:2px;cursor:pointer;color:var(--txt4)"')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg></button>'
+      +'<button onclick="blocMovePhase('+pi+',1)" '+(pi===st.phases.length-1?'disabled style="opacity:.25;background:none;border:none;padding:2px;cursor:default"':'style="background:none;border:none;padding:2px;cursor:pointer;color:var(--txt4)"')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>'
+      +(st.phases.length>1?'<button onclick="blocDelPhase('+pi+')" style="background:none;border:none;color:var(--red);font-size:15px;cursor:pointer;padding:2px 4px">&#10005;</button>':'')
+      +'</div></div>'
+      +'<div class="chips" style="margin-bottom:9px">'
+      +BLOC_FORMATS.map(function(fmt){return '<button class="chip'+(phase.format===fmt.k?' on':'')+'" onclick="blocSetPhaseFormat('+pi+',\''+fmt.k+'\')">'+fmt.t+'</button>';}).join('')
+      +'</div>'
+      +blocPhaseFieldsHtml(phase,pi)
+      +'</div>';
+  });
+  html+='<button class="btn-ghost" style="border-style:dashed;margin-bottom:16px" onclick="blocAddPhase()">+ Ajouter une phase</button>';
+  if(!isSession){
+    html+='<div class="lbl">Repos entre les blocs (secondes)</div><input class="inp" type="number" value="'+(st.repos||90)+'" inputmode="numeric" oninput="BLOC_ED_STATE.repos=parseInt(this.value)||0" style="margin-bottom:16px">';
+  }
+  html+='<button class="btn btn-p" onclick="blocEditorSave()">'+(isSession?'Appliquer pour cette séance':(st.isEdit?'Enregistrer':'Ajouter le bloc'))+'</button>';
+  document.getElementById('modal-c').innerHTML=html;
+}
+function blocEditorSave(){
+  var st=BLOC_ED_STATE;if(!st)return;
+  var isSession=st.ctx.mode==='session';
+  var phases=st.phases.map(function(p){
+    var out={format:p.format};
+    if(p.format==='classique'){out.sets=p.sets||4;out.reps=p.reps||8;out.charge=p.charge||0;}
+    else if(p.format==='perso'||p.format==='pyramide'||p.format==='echelle'){out.reps_scheme=(p.reps_scheme&&p.reps_scheme.length)?p.reps_scheme:[8,8,8];out.charge=p.charge||0;}
+    else if(p.format==='amrap'){out.duree_min=p.duree_min||10;out.charge=p.charge||0;}
+    else if(p.format==='emom'){out.duree_min=p.duree_min||10;out.objectif=p.objectif||5;}
+    return out;
+  });
+  if(isSession){applyBlocPlan(st.ctx,{phases:phases});return;}
+  var mvt=(st.mouvementCustomOn&&st.mouvementCustom)?st.mouvementCustom.trim():st.mouvement;
+  if(!mvt){toast('Choisis un mouvement');return;}
+  applyBlocPlan(st.ctx,{mouvement:mvt,phases:phases,repos:st.repos||90});
+}
+function applyBlocPlan(ctx,plan){
+  if(ctx.kind==='ctor'){
+    var s=CTOR_STATE.seances[CTORCFG_IDX];
+    if(ctx.idx!=null&&s.exercices[ctx.idx]){
+      Object.assign(s.exercices[ctx.idx],{nom:plan.mouvement,muscle:'Poids du corps',type:'bloc',blocPlan:plan});
+    } else {
+      s.exercices.push({nom:plan.mouvement,muscle:'Poids du corps',type:'bloc',blocPlan:plan});
+    }
+    closeModal();renderCtorExl();toast('Bloc enregistré');
+  } else if(ctx.kind==='adhoc'){
+    if(ctx.idx!=null&&ADHOC_STATE.exercices[ctx.idx]){
+      Object.assign(ADHOC_STATE.exercices[ctx.idx],{nom:plan.mouvement,muscle:'Poids du corps',type:'bloc',blocPlan:plan});
+    } else {
+      ADHOC_STATE.exercices.push({nom:plan.mouvement,muscle:'Poids du corps',type:'bloc',blocPlan:plan});
+    }
+    closeModal();renderAdhocExl();toast('Bloc enregistré');
+  } else if(ctx.kind==='prog-new'){
+    var s2=SEANCES[ctx.si];
+    sbP('seance_exercices',{seance_id:s2.id,user_id:USER.id,type:'bloc',exercice_nom:plan.mouvement,muscle:'Poids du corps',blocPlan:plan,ordre:s2.exercices.length}).then(function(arr){
+      s2.exercices.push(arr[0]);closeModal();renderProgTab();toast('Bloc ajouté');
+    }).catch(function(){toast('Erreur - réessaie');});
+  } else if(ctx.kind==='prog-edit'){
+    sbPt('seance_exercices',{exercice_nom:plan.mouvement,muscle:'Poids du corps',blocPlan:plan},'id=eq.'+ctx.exId).then(function(){
+      var s3=SEANCES[ctx.si];if(s3&&s3.exercices[ctx.ei])Object.assign(s3.exercices[ctx.ei],{exercice_nom:plan.mouvement,muscle:'Poids du corps',blocPlan:plan});
+      closeModal();renderProgTab();toast('Bloc mis à jour');
+    }).catch(function(){toast('Erreur - réessaie');});
+  } else if(ctx.kind==='live-new'){
+    sbP('seance_exercices',{seance_id:CURWK.id,user_id:USER.id,type:'bloc',exercice_nom:plan.mouvement,muscle:'Poids du corps',blocPlan:plan,ordre:CURWK.exercices.length}).then(function(arr){
+      CURWK.exercices.push(arr[0]);closeModal();renderWk();toast('Bloc ajouté');
+    }).catch(function(){toast('Erreur - réessaie');});
+  } else if(ctx.kind==='live-program'){
+    sbPt('seance_exercices',{exercice_nom:plan.mouvement,muscle:'Poids du corps',blocPlan:plan},'id=eq.'+ctx.exId).then(function(){
+      if(CURWK&&CURWK.exercices[ctx.idx])Object.assign(CURWK.exercices[ctx.idx],{exercice_nom:plan.mouvement,muscle:'Poids du corps',blocPlan:plan});
+      closeModal();renderWk();toast('Programme mis à jour — dès la prochaine séance');
+    }).catch(function(){toast('Erreur - réessaie');});
+  } else if(ctx.kind==='live-session'){
+    applySessionBlocOverride(ctx.exId,plan.phases);
+    closeModal();refreshExpand(ctx.exId);toast('Modifié pour cette séance');
+  }
 }
 
 function togEx(i){var el=document.getElementById('ex-'+i);if(el)el.classList.toggle('open');}
@@ -3460,7 +3764,7 @@ function renderStats(){
   var pdcNames={};
   SEANCES.forEach(function(s){(s.exercices||[]).forEach(function(e){
     if(e.type==='wod'||e.type==='emom')return;
-    if(e.blocMode)pdcNames[e.exercice_nom||e.nom]=true;
+    if(e.blocMode||e.type==='bloc')pdcNames[e.exercice_nom||e.nom]=true;
     if(!allEx.find(function(x){return (x.exercice_nom||x.nom)===(e.exercice_nom||e.nom);}))allEx.push(e);
   });});
   if(!allEx.length){el.innerHTML='<div style="text-align:center;color:var(--txt4);padding:50px 0;font-size:13.5px">Fais des seances pour voir tes perfs</div>';return;}
@@ -4765,6 +5069,9 @@ function ctorFinish(){
           var p2=Promise.resolve();
           s.exercices.forEach(function(e,ei){
             p2=p2.then(function(){
+              if(e.type==='bloc'){
+                return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,type:'bloc',exercice_nom:e.nom,muscle:e.muscle||'Poids du corps',blocPlan:e.blocPlan||null,ordre:ei});
+              }
               return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,exercice_nom:e.nom,muscle:e.muscle||'',sets:e.sets||3,reps:e.reps||10,max_reps:e.max_reps||false,reps_scheme:e.reps_scheme||null,progression_type:e.progression_type||'poids',progression_valeur:e.progression_valeur!=null?e.progression_valeur:2.5,progression_frequence:e.progression_frequence||1,reps_cible:e.reps_cible||null,biset_group:e.biset_group||null,ordre:ei});
             });
           });
@@ -4794,7 +5101,8 @@ function renderCtorCfg(){
     +zones.map(function(z){return '<button class="chip'+(s.zone===z.k?' on':'')+'" onclick="ctorSetZone(\''+z.k+'\')">'+z.t+'</button>';}).join('')
     +'</div>'
     +'<div class="lbl">Exercices</div><div id="ctorcfg-exl"></div>'
-    +'<button class="btn-ghost" style="border-style:dashed;margin-bottom:16px" onclick="ctorOpenAddEx()">+ Chercher un exercice</button>'
+    +'<button class="btn-ghost" style="border-style:dashed;margin-bottom:9px" onclick="ctorOpenAddEx()">+ Chercher un exercice</button>'
+    +'<button class="btn-ghost" style="border-style:dashed;margin-bottom:16px" onclick="openBlocPlanEditor({kind:\'ctor\'},null)">+ Bloc (poids du corps)</button>'
     +'<div class="lbl">WOD en fin de séance</div>'
     +'<div class="card" style="padding:13px;'+(s.finBloc?'border-color:var(--accent)':'')+'">'
     +'<div class="mr-row" style="margin-bottom:'+(s.finBloc?'8px':'0')+'">'
@@ -4813,6 +5121,21 @@ function renderCtorExl(){
   if(!s.exercices.length){el.innerHTML='<div style="color:var(--txt4);font-size:13.5px;padding:6px 0 10px">Aucun exercice</div>';return;}
   var html='';
   s.exercices.forEach(function(e,i){
+    if(e.type==='bloc'){
+      html+='<div class="exc" style="padding:15px 16px;border-left:3px solid var(--accent)">'
+        +'<div style="display:flex;align-items:flex-start;gap:10px">'
+        +'<div style="display:flex;flex-direction:column;flex-shrink:0">'
+        +'<button onclick="ctorMoveEx('+i+',-1)" '+(i===0?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg></button>'
+        +'<button onclick="ctorMoveEx('+i+',1)" '+(i===s.exercices.length-1?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>'
+        +'</div>'
+        +'<div style="min-width:0;flex:1"><div class="emuscle" style="color:var(--accent)">🔥 BLOC</div><div class="en">'+e.nom+'</div>'
+        +'<div class="emeta">'+blocPlanSummary(e.blocPlan)+'</div></div>'
+        +'<button class="exb-del" onclick="ctorDelEx('+i+')" style="flex-shrink:0">&#10005;</button>'
+        +'</div>'
+        +'<button class="btn-s btn-sm" style="width:100%;margin-top:9px" onclick="openBlocPlanEditor({kind:\'ctor\',idx:'+i+'},CTOR_STATE.seances['+CTORCFG_IDX+'].exercices['+i+'].blocPlan)">Modifier le bloc</button>'
+        +'</div>';
+      return;
+    }
     var hasSch=e.reps_scheme&&e.reps_scheme.length;
     var srHtml=hasSch
       ? '<input class="exb-inp" type="text" value="'+e.reps_scheme.join(',')+'" placeholder="5,3,1" style="width:98px" oninput="ctorSchmSet('+i+',this.value)">'
@@ -5194,7 +5517,8 @@ function renderAdhoc(){
     +zones.map(function(z){return '<button class="chip'+(s.zone===z.k?' on':'')+'" onclick="adhocSetZone(\''+z.k+'\')">'+z.t+'</button>';}).join('')
     +'</div>'
     +'<div class="lbl">Exercices</div><div id="adhoc-exl"></div>'
-    +'<button class="btn-ghost" style="border-style:dashed;margin-bottom:16px" onclick="adhocOpenAddEx()">+ Chercher un exercice</button>'
+    +'<button class="btn-ghost" style="border-style:dashed;margin-bottom:9px" onclick="adhocOpenAddEx()">+ Chercher un exercice</button>'
+    +'<button class="btn-ghost" style="border-style:dashed;margin-bottom:16px" onclick="openBlocPlanEditor({kind:\'adhoc\'},null)">+ Bloc (poids du corps)</button>'
     +'<div class="lbl">WOD / Ergo en fin de séance</div>'
     +'<div class="card" style="padding:13px;'+(s.finBloc?'border-color:var(--accent)':'')+'">'
     +'<div class="mr-row" style="margin-bottom:'+(s.finBloc?'8px':'0')+'">'
@@ -5213,6 +5537,21 @@ function renderAdhocExl(){
   if(!s.exercices.length){el.innerHTML='<div style="color:var(--txt4);font-size:13.5px;padding:6px 0 10px">Aucun exercice</div>';return;}
   var html='';
   s.exercices.forEach(function(e,i){
+    if(e.type==='bloc'){
+      html+='<div class="exc" style="padding:15px 16px;border-left:3px solid var(--accent)">'
+        +'<div style="display:flex;align-items:flex-start;gap:10px">'
+        +'<div style="display:flex;flex-direction:column;flex-shrink:0">'
+        +'<button onclick="adhocMoveEx('+i+',-1)" '+(i===0?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg></button>'
+        +'<button onclick="adhocMoveEx('+i+',1)" '+(i===s.exercices.length-1?'disabled style="opacity:.25;background:none;border:none;padding:0;height:16px;cursor:default"':'style="background:none;border:none;padding:0;height:16px;cursor:pointer;color:var(--txt4)"')+'><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>'
+        +'</div>'
+        +'<div style="min-width:0;flex:1"><div class="emuscle" style="color:var(--accent)">🔥 BLOC</div><div class="en">'+e.nom+'</div>'
+        +'<div class="emeta">'+blocPlanSummary(e.blocPlan)+'</div></div>'
+        +'<button class="exb-del" onclick="adhocDelEx('+i+')" style="flex-shrink:0">&#10005;</button>'
+        +'</div>'
+        +'<button class="btn-s btn-sm" style="width:100%;margin-top:9px" onclick="openBlocPlanEditor({kind:\'adhoc\',idx:'+i+'},ADHOC_STATE.exercices['+i+'].blocPlan)">Modifier le bloc</button>'
+        +'</div>';
+      return;
+    }
     var hasSch=e.reps_scheme&&e.reps_scheme.length;
     var srHtml=hasSch
       ? '<input class="exb-inp" type="text" value="'+e.reps_scheme.join(',')+'" placeholder="5,3,1" style="width:98px" oninput="adhocSchmSet('+i+',this.value)">'
@@ -5279,6 +5618,9 @@ function adhocSave(){
       var p2=Promise.resolve();
       s.exercices.forEach(function(e,ei){
         p2=p2.then(function(){
+          if(e.type==='bloc'){
+            return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,type:'bloc',exercice_nom:e.nom,muscle:e.muscle||'Poids du corps',blocPlan:e.blocPlan||null,ordre:ei});
+          }
           return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,exercice_nom:e.nom,muscle:e.muscle||'',sets:e.sets||3,reps:e.reps||10,max_reps:false,reps_scheme:e.reps_scheme||null,progression_type:'poids',progression_valeur:2.5,progression_frequence:1,ordre:ei});
         });
       });
@@ -5468,7 +5810,7 @@ function buildSeanceLogEntry(s,weekOverride){
     var last=(PERF[ex.id]||[])[0];
     if(!last)return;
     var detail=(last.detail&&last.detail.length)?last.detail:[{poids:last.poids,reps:last.reps}];
-    exercices.push({nom:ex.exercice_nom||ex.nom,muscle:ex.muscle||'',detail:detail,blocs:last.blocs||null,rpe:last.rpe||null,sets:ex.sets||3,reps:ex.reps||10,max_reps:ex.max_reps||false,reps_scheme:ex.reps_scheme||null,blocMode:ex.blocMode||false});
+    exercices.push({nom:ex.exercice_nom||ex.nom,muscle:ex.muscle||'',detail:detail,blocs:last.blocs||null,rpe:last.rpe||null,sets:ex.sets||3,reps:ex.reps||10,max_reps:ex.max_reps||false,reps_scheme:ex.reps_scheme||null,blocMode:ex.blocMode||false,type:ex.type||null,blocPlan:ex.blocPlan||null});
     detail.forEach(function(r){volume+=(parseFloat(r.poids)||0)*(parseFloat(r.reps)||0);series++;});
   });
   var prog=PROGS.find(function(p){return p.id===s.prog_id;});
@@ -5482,7 +5824,10 @@ function refaireExercice(exi){
   var log=loadSessionLog();var e=log[HIST_CUR];if(!e||!e.exercices||!e.exercices[exi])return;
   var src=e.exercices[exi];
   var s=CURWK;
-  sbP('seance_exercices',{seance_id:s.id,user_id:USER.id,exercice_nom:src.nom,muscle:src.muscle||'',sets:src.sets||3,reps:src.reps||10,max_reps:src.max_reps||false,reps_scheme:src.reps_scheme||null,blocMode:src.blocMode||false,progression_type:'poids',progression_valeur:2.5,progression_frequence:1,ordre:s.exercices.length}).then(function(arr){
+  var payload=src.type==='bloc'
+    ? {seance_id:s.id,user_id:USER.id,type:'bloc',exercice_nom:src.nom,muscle:src.muscle||'Poids du corps',blocPlan:src.blocPlan||null,ordre:s.exercices.length}
+    : {seance_id:s.id,user_id:USER.id,exercice_nom:src.nom,muscle:src.muscle||'',sets:src.sets||3,reps:src.reps||10,max_reps:src.max_reps||false,reps_scheme:src.reps_scheme||null,blocMode:src.blocMode||false,progression_type:'poids',progression_valeur:2.5,progression_frequence:1,ordre:s.exercices.length};
+  sbP('seance_exercices',payload).then(function(arr){
     s.exercices.push(arr[0]);
     toast(src.nom+' ajouté à la séance');
     document.getElementById('main-nav').style.display='none';
@@ -5574,7 +5919,7 @@ function openHistDetail(idx){
     e.exercices.forEach(function(ex,exi){
       html+='<div class="exc" style="padding:15px 16px;margin-bottom:9px">'
         +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
-        +'<div style="min-width:0">'+(ex.muscle?'<div class="emuscle">'+ex.muscle+'</div>':'')+'<div class="en">'+ex.nom+'</div></div>'
+        +'<div style="min-width:0">'+(ex.type==='bloc'?'<div class="emuscle" style="color:var(--accent)">🔥 BLOC</div>':(ex.muscle?'<div class="emuscle">'+ex.muscle+'</div>':''))+'<div class="en">'+ex.nom+'</div></div>'
         +'<button class="btn-s btn-sm" style="flex-shrink:0" onclick="event.stopPropagation();refaireExercice('+exi+')">&#8635; Refaire</button>'
         +'</div>';
       if(ex.blocs&&ex.blocs.length){
@@ -5650,6 +5995,7 @@ function openWkAddMenu(){
   var s=CURWK;if(!s)return;
   document.getElementById('modal-c').innerHTML='<div class="mtitle">Ajouter à la séance</div>'
     +'<div class="choice" onclick="closeModal();wkOpenAddEx()"><div class="ct">Exercice</div><div class="cs">Chercher dans la base — active le mode blocs (PDC) pour un EMOM</div></div>'
+    +'<div class="choice" onclick="closeModal();openBlocPlanEditor({kind:\'live-new\'},null)"><div class="ct">Bloc</div><div class="cs">Tractions, dips, pompes... pyramide, échelle, AMRAP, EMOM, plusieurs phases</div></div>'
     +'<div class="choice" onclick="closeModal();openFinBlocForSeance(\'A\')"><div class="ct">WOD</div><div class="cs">Depuis la banque, ou crée le tien</div></div>'
     +'<div class="choice" onclick="closeModal();openFinBlocForSeance(\'B\')"><div class="ct">Cardio</div><div class="cs">Rameur, vélo, ski — durée et intensité</div></div>'
     +'<div class="choice" onclick="closeModal();openWkNote()"><div class="ct">Note</div><div class="cs">'+(s.notes?'Modifier la note':'Ajouter une note libre')+'</div></div>';
