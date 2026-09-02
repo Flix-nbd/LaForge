@@ -219,6 +219,10 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 .srch-item{padding:9px 13px;border-bottom:1px solid var(--border);cursor:pointer}
 .srch-item:last-child{border-bottom:none}
 .srch-item:active{background:var(--card2)}
+.musc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:7px}
+.musc-btn{background:var(--card);border:1.5px solid var(--border2);border-radius:0;padding:20px 10px;font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--txt);text-transform:uppercase;letter-spacing:.3px;cursor:pointer;text-align:center;line-height:1.25}
+.musc-btn:active{background:var(--card2);border-color:var(--accent)}
+.musc-back{display:flex;align-items:center;gap:6px;margin-bottom:10px;cursor:pointer;color:var(--txt3);font-family:var(--font-cond);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
 .snom{font-size:12px;font-weight:700;color:var(--txt)}
 .smus{font-family:var(--font-cond);font-size:10.5px;color:var(--txt5);margin-top:1px;text-transform:uppercase;letter-spacing:.5px}
 .exb{background:var(--card);border:1px solid var(--border2);border-radius:0;padding:11px 13px;margin-bottom:6px}
@@ -1952,29 +1956,88 @@ function delExS(si,i){
   });
 }
 
+// ── Sélecteur d'exercice partagé : recherche par nom OU parcours par muscle ──
+// Utilisé par tous les écrans qui font chercher un exercice dans la base
+// (création onboarding/constructeur/ad-hoc, ajout en séance du jour,
+// remplacement d'exercice, consultation "Mes exercices"). Un seul endroit à
+// maintenir : `openExPicker` construit la fenêtre, `onSelectFn` (une fonction,
+// pas un nom) est appelée avec (nom, muscle) quand l'utilisateur choisit une
+// ligne — chaque appelant garde sa propre logique d'ajout via une closure.
+var EXP_ONSELECT=null, EXP_EXTRAFILTER=null, EXP_MODE='search', EXP_MUSCLE=null;
+
+function exMuscleList(){
+  var src=EX_FULL||EX;
+  var counts={};
+  src.forEach(function(e){if(e.m)counts[e.m]=(counts[e.m]||0)+1;});
+  return Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];});
+}
+function exBaseList(){
+  var src=EX_FULL||EX;
+  return EXP_EXTRAFILTER?src.filter(EXP_EXTRAFILTER):src;
+}
+function exResultsHtml(list){
+  if(!list.length)return '<div style="padding:16px 13px;text-align:center;color:var(--txt4);font-size:11.5px">Aucun exercice trouvé.</div>';
+  return list.map(function(e){
+    var nn=e.n.replace(/'/g,"\\'");var mm=(e.m||'').replace(/'/g,"\\'");
+    return '<div class="srch-item" onclick="expSelect(\''+nn+'\',\''+mm+'\')">'
+      +'<div class="snom">'+e.n+'</div><div class="smus">'+(e.m||'')+(e.eq&&e.eq.length?' · '+e.eq.join(', '):'')+'</div></div>';
+  }).join('');
+}
+function expSelect(nom,muscle){
+  if(EXP_ONSELECT)EXP_ONSELECT(nom,muscle);
+}
+function expRenderBody(){
+  var body=document.getElementById('exp-body');if(!body)return;
+  if(EXP_MODE==='muscle-grid'){
+    body.innerHTML='<div class="musc-back" onclick="expBackToSearch()">&#8592; Retour à la recherche</div>'
+      +'<div class="musc-grid">'+exMuscleList().map(function(m){
+        var mm=m.replace(/'/g,"\\'");
+        return '<button class="musc-btn" onclick="expShowMuscle(\''+mm+'\')">'+m+'</button>';
+      }).join('')+'</div>';
+  } else if(EXP_MODE==='muscle-list'){
+    var list=exBaseList().filter(function(e){return e.m===EXP_MUSCLE;}).sort(function(a,b){return a.n.localeCompare(b.n,'fr');});
+    body.innerHTML='<div class="musc-back" onclick="expShowMuscleGrid()">&#8592; Tous les muscles</div>'
+      +'<div class="lbl" style="margin-top:0">'+EXP_MUSCLE+'</div>'
+      +'<div class="srch-res" style="max-height:290px">'+exResultsHtml(list)+'</div>';
+  } else {
+    body.innerHTML='<div class="srch-w"><span class="srch-ic">&#128269;</span>'
+      +'<input class="srch-i" id="exp-inp" placeholder="Rechercher un nom..." oninput="expFilterSearch(this.value)"></div>'
+      +'<button class="btn-s btn-sm" style="width:100%;margin-bottom:9px" onclick="expShowMuscleGrid()">Chercher par muscle</button>'
+      +'<div class="srch-res" id="srch-res"></div>';
+    expFilterSearch('');
+  }
+}
+function expFilterSearch(val){
+  var n=norm(val);
+  var res=exBaseList().filter(function(e){return norm(e.n).indexOf(n)>=0;}).slice(0,25);
+  var el=document.getElementById('srch-res');
+  if(el)el.innerHTML=exResultsHtml(res);
+}
+function expShowMuscleGrid(){EXP_MODE='muscle-grid';EXP_MUSCLE=null;expRenderBody();}
+function expShowMuscle(m){EXP_MODE='muscle-list';EXP_MUSCLE=m;expRenderBody();}
+function expBackToSearch(){EXP_MODE='search';EXP_MUSCLE=null;expRenderBody();}
+function expRefresh(){
+  if(EXP_MODE==='search'){var inp=document.getElementById('exp-inp');expFilterSearch(inp?inp.value:'');}
+  else if(EXP_MODE==='muscle-list')expShowMuscle(EXP_MUSCLE);
+}
+// title: texte du modal. onSelectFn: closure (nom,muscle)=>void. extraHtmlBefore/
+// extraHtmlAfter: chrome supplémentaire propre à l'appelant (chips de filtre,
+// création d'exercice perso...). extraFilterFn (optionnel) : prédicat appliqué
+// en plus du texte/muscle (utilisé par le remplacement d'exercice).
+function openExPicker(title,onSelectFn,extraHtmlBefore,extraHtmlAfter,extraFilterFn){
+  EXP_ONSELECT=onSelectFn;EXP_EXTRAFILTER=extraFilterFn||null;EXP_MODE='search';EXP_MUSCLE=null;
+  document.getElementById('modal-c').innerHTML='<div class="mtitle">'+title+'</div>'
+    +(extraHtmlBefore||'')+'<div id="exp-body"></div>'+(extraHtmlAfter||'');
+  expRenderBody();
+  openModal();
+}
+
 function openAddEx(si,inB){
-  document.getElementById('modal-c').innerHTML='<div class="mtitle">Ajouter un exercice</div>'
-    +'<div class="srch-w"><span class="srch-ic">&#128269;</span>'
-    +'<input class="srch-i" id="srch" placeholder="Rechercher..." oninput="filterEx(this.value,'+si+','+inB+')"></div>'
-    +'<div class="srch-res" id="srch-res"></div>'
-    +'<div style="font-size:11px;color:var(--txt3);margin-bottom:7px">Non trouve ?</div>'
+  var extra='<div style="font-size:11px;color:var(--txt3);margin:9px 0 7px">Non trouvé ?</div>'
     +'<input class="inp" id="cex-n" placeholder="Nom..." style="margin-bottom:6px">'
     +'<input class="inp" id="cex-m" placeholder="Muscle..." style="margin-bottom:9px">'
     +'<button class="btn btn-s" onclick="addCustomEx('+si+','+inB+')">+ Creer cet exercice</button>';
-  filterEx('',si,inB);openModal();
-}
-
-function filterEx(val,si,inB){
-  var src=EX_FULL||EX;
-  var n=norm(val);
-  var res=src.filter(function(e){return norm(e.n).indexOf(n)>=0||norm(e.m).indexOf(n)>=0;}).slice(0,20);
-  var html='';
-  res.forEach(function(e){
-    var nn=e.n.replace(/'/g,"\\'");var mm=(e.m||'').replace(/'/g,"\\'");
-    html+='<div class="srch-item" onclick="addExFn('+si+',\''+nn+'\',\''+mm+'\','+inB+')">'
-      +'<div class="snom">'+e.n+'</div><div class="smus">'+(e.m||'')+'</div></div>';
-  });
-  document.getElementById('srch-res').innerHTML=html;
+  openExPicker('Ajouter un exercice',function(nom,muscle){addExFn(si,nom,muscle,inB);},'',extra);
 }
 
 function addExFn(si,nom,muscle,inB){
@@ -2341,7 +2404,7 @@ function renderProgEditView(prog){
     });
     html+='</div>';
   });
-  html+='<div class="set-row" onclick="ctorOpenAddEx()"><div><div class="set-lbl">Mes exercices</div><div class="set-sub">Rechercher / consulter</div></div><span style="color:var(--txt4)">&#8250;</span></div>'
+  html+='<div class="set-row" onclick="browseExercices()"><div><div class="set-lbl">Mes exercices</div><div class="set-sub">Rechercher / consulter</div></div><span style="color:var(--txt4)">&#8250;</span></div>'
     +'<div class="set-row" onclick="resetCyc(\''+prog.id+'\')"><div class="set-lbl" style="font-size:12px">Reinitialiser le cycle</div><span style="color:var(--txt3)">&#8250;</span></div>'
     +'<div class="sdiv"></div>'
     +'<button class="btn-ghost" style="border-color:rgba(193,84,63,.35);color:var(--red)" onclick="delProg(\''+prog.id+'\')">Supprimer ce programme</button>';
@@ -3045,57 +3108,37 @@ function openSwapEx(i){
   SWAP_SAMEMUSC=true;SWAP_EQ=[];
   var curMuscle=s.exercices[i].muscle||'';
   var eqList=['Poids de corps / sans matériel','Haltères','Barre','Machine','Poulie','Élastique','Kettlebell'];
-  document.getElementById('modal-c').innerHTML='<div class="mtitle">Remplacer l\'exercice</div>'
-    +'<div style="font-size:11px;color:var(--txt3);margin-bottom:9px">Uniquement pour cette seance \u2014 ton programme ne change pas.</div>'
-    +(curMuscle?('<div class="chips" style="margin-bottom:8px" id="swap-musc-chips">'
-      +'<button class="chip on" id="swap-musc-same" onclick="swapToggleMuscle(true,'+i+')">'+curMuscle+' uniquement</button>'
-      +'<button class="chip" id="swap-musc-all" onclick="swapToggleMuscle(false,'+i+')">Tous les muscles</button>'
+  var extra=(curMuscle?('<div class="chips" style="margin-bottom:8px" id="swap-musc-chips">'
+      +'<button class="chip on" id="swap-musc-same" onclick="swapToggleMuscle(true)">'+curMuscle+' uniquement</button>'
+      +'<button class="chip" id="swap-musc-all" onclick="swapToggleMuscle(false)">Tous les muscles</button>'
       +'</div>'):'')
     +(EX_FULL?('<div class="lbl" style="margin-top:0">Matériel disponible <span style="color:var(--txt4);text-transform:none;font-weight:600">· optionnel</span></div>'
       +'<div class="chips" style="margin-bottom:10px" id="swap-eq-chips">'
-      +eqList.map(function(eq){return '<button class="chip" data-eq="'+eq.replace(/"/g,'&quot;')+'" onclick="swapToggleEq(this,\''+i+'\')">'+eq+'</button>';}).join('')
-      +'</div>'):'')
-    +'<div class="srch-w"><span class="srch-ic">&#128269;</span>'
-    +'<input class="srch-i" id="srch" placeholder="Rechercher un exercice..." oninput="filterSwapEx(this.value,'+i+')"></div>'
-    +'<div class="srch-res" id="srch-res"></div>';
-  filterSwapEx('',i);openModal();
-}
-function swapToggleMuscle(same,i){
-  SWAP_SAMEMUSC=same;
-  var b1=document.getElementById('swap-musc-same'),b2=document.getElementById('swap-musc-all');
-  if(b1)b1.classList.toggle('on',same);
-  if(b2)b2.classList.toggle('on',!same);
-  filterSwapEx(document.getElementById('srch').value,i);
-}
-function swapToggleEq(btn,i){
-  var eq=btn.getAttribute('data-eq');
-  var idx=SWAP_EQ.indexOf(eq);
-  if(idx>=0){SWAP_EQ.splice(idx,1);btn.classList.remove('on');}
-  else{SWAP_EQ.push(eq);btn.classList.add('on');}
-  filterSwapEx(document.getElementById('srch').value,i);
-}
-function filterSwapEx(val,i){
-  var src=EX_FULL||EX;
-  var s=CURWK;
-  var curMuscle=(s&&s.exercices[i]&&s.exercices[i].muscle)||'';
-  var n=norm(val);
-  var res=src.filter(function(e){
-    if(n&&norm(e.n).indexOf(n)<0&&norm(e.m).indexOf(n)<0)return false;
+      +eqList.map(function(eq){return '<button class="chip" data-eq="'+eq.replace(/"/g,'&quot;')+'" onclick="swapToggleEq(this)">'+eq+'</button>';}).join('')
+      +'</div>'):'');
+  var extraBefore='<div style="font-size:11px;color:var(--txt3);margin-bottom:9px">Uniquement pour cette seance \u2014 ton programme ne change pas.</div>'+extra;
+  openExPicker('Remplacer l\'exercice',function(nom,muscle){swapExFn(i,nom,muscle);},extraBefore,'',function(e){
     if(SWAP_SAMEMUSC&&curMuscle&&e.m!==curMuscle)return false;
     if(SWAP_EQ.length&&EX_FULL){
       var eq=e.eq||[];
       if(!SWAP_EQ.some(function(x){return eq.indexOf(x)>=0;}))return false;
     }
     return true;
-  }).slice(0,25);
-  var html='';
-  if(!res.length)html='<div style="text-align:center;color:var(--txt4);font-size:12px;padding:16px 0">Aucun résultat \u2014 élargis le muscle ou le matériel.</div>';
-  res.forEach(function(e){
-    var nn=e.n.replace(/'/g,"\\'");var mm=(e.m||'').replace(/'/g,"\\'");
-    html+='<div class="srch-item" onclick="swapExFn('+i+',\''+nn+'\',\''+mm+'\')">'
-      +'<div class="snom">'+e.n+'</div><div class="smus">'+(e.m||'')+(e.eq&&e.eq.length?' · '+e.eq.join(', '):'')+'</div></div>';
   });
-  document.getElementById('srch-res').innerHTML=html;
+}
+function swapToggleMuscle(same){
+  SWAP_SAMEMUSC=same;
+  var b1=document.getElementById('swap-musc-same'),b2=document.getElementById('swap-musc-all');
+  if(b1)b1.classList.toggle('on',same);
+  if(b2)b2.classList.toggle('on',!same);
+  expRefresh();
+}
+function swapToggleEq(btn){
+  var eq=btn.getAttribute('data-eq');
+  var idx=SWAP_EQ.indexOf(eq);
+  if(idx>=0){SWAP_EQ.splice(idx,1);btn.classList.remove('on');}
+  else{SWAP_EQ.push(eq);btn.classList.add('on');}
+  expRefresh();
 }
 
 function swapExFn(i,nom,muscle){
@@ -4674,23 +4717,12 @@ function ctorSchmSet(i,val){
 }
 function ctorDelEx(i){CTOR_STATE.seances[CTORCFG_IDX].exercices.splice(i,1);renderCtorExl();}
 function ctorOpenAddEx(){
-  document.getElementById('modal-c').innerHTML='<div class="mtitle">Chercher un exercice</div>'
-    +'<div class="srch-w"><span class="srch-ic">&#128269;</span>'
-    +'<input class="srch-i" placeholder="Rechercher..." oninput="ctorFilterEx(this.value)"></div>'
-    +'<div class="srch-res" id="srch-res"></div>';
-  ctorFilterEx('');openModal();
+  openExPicker('Chercher un exercice',function(nom,muscle){ctorAddExFn(nom,muscle);});
 }
-function ctorFilterEx(val){
-  var src=EX_FULL||EX;
-  var n=norm(val);
-  var res=src.filter(function(e){return norm(e.n).indexOf(n)>=0||norm(e.m).indexOf(n)>=0;}).slice(0,25);
-  var html='';
-  res.forEach(function(e){
-    var nn=e.n.replace(/'/g,"\\'");var mm=(e.m||'').replace(/'/g,"\\'");
-    html+='<div class="srch-item" onclick="ctorAddExFn(\''+nn+'\',\''+mm+'\')">'
-      +'<div class="snom">'+e.n+'</div><div class="smus">'+(e.m||'')+'</div></div>';
-  });
-  document.getElementById('srch-res').innerHTML=html;
+// Consultation pure de la base d'exercices (bouton "Mes exercices" dans
+// l'édition de programme) — ne modifie rien, sert juste à parcourir/vérifier.
+function browseExercices(){
+  openExPicker('Mes exercices',function(nom,muscle){closeModal();});
 }
 function ctorAddExFn(nom,muscle){
   CTOR_STATE.seances[CTORCFG_IDX].exercices.push({nom:nom,muscle:muscle,sets:4,reps:8});
@@ -5008,23 +5040,7 @@ function adhocSchmSet(i,val){
 }
 function adhocDelEx(i){ADHOC_STATE.exercices.splice(i,1);renderAdhocExl();}
 function adhocOpenAddEx(){
-  document.getElementById('modal-c').innerHTML='<div class="mtitle">Chercher un exercice</div>'
-    +'<div class="srch-w"><span class="srch-ic">&#128269;</span>'
-    +'<input class="srch-i" placeholder="Rechercher..." oninput="adhocFilterEx(this.value)"></div>'
-    +'<div class="srch-res" id="srch-res"></div>';
-  adhocFilterEx('');openModal();
-}
-function adhocFilterEx(val){
-  var src=EX_FULL||EX;
-  var n=norm(val);
-  var res=src.filter(function(e){return norm(e.n).indexOf(n)>=0||norm(e.m).indexOf(n)>=0;}).slice(0,25);
-  var html='';
-  res.forEach(function(e){
-    var nn=e.n.replace(/'/g,"\\'");var mm=(e.m||'').replace(/'/g,"\\'");
-    html+='<div class="srch-item" onclick="adhocAddExFn(\''+nn+'\',\''+mm+'\')">'
-      +'<div class="snom">'+e.n+'</div><div class="smus">'+(e.m||'')+'</div></div>';
-  });
-  document.getElementById('srch-res').innerHTML=html;
+  openExPicker('Chercher un exercice',function(nom,muscle){adhocAddExFn(nom,muscle);});
 }
 function adhocAddExFn(nom,muscle){
   ADHOC_STATE.exercices.push({nom:nom,muscle:muscle,sets:4,reps:8});
@@ -5424,23 +5440,7 @@ function openWkAddMenu(){
   openModal();
 }
 function wkOpenAddEx(){
-  document.getElementById('modal-c').innerHTML='<div class="mtitle">Chercher un exercice</div>'
-    +'<div class="srch-w"><span class="srch-ic">&#128269;</span>'
-    +'<input class="srch-i" placeholder="Rechercher..." oninput="wkFilterEx(this.value)"></div>'
-    +'<div class="srch-res" id="srch-res"></div>';
-  wkFilterEx('');openModal();
-}
-function wkFilterEx(val){
-  var src=EX_FULL||EX;
-  var n=norm(val);
-  var res=src.filter(function(e){return norm(e.n).indexOf(n)>=0||norm(e.m).indexOf(n)>=0;}).slice(0,25);
-  var html='';
-  res.forEach(function(e){
-    var nn=e.n.replace(/'/g,"\\'");var mm=(e.m||'').replace(/'/g,"\\'");
-    html+='<div class="srch-item" onclick="wkAddExFn(\''+nn+'\',\''+mm+'\')">'
-      +'<div class="snom">'+e.n+'</div><div class="smus">'+(e.m||'')+'</div></div>';
-  });
-  document.getElementById('srch-res').innerHTML=html;
+  openExPicker('Chercher un exercice',function(nom,muscle){wkAddExFn(nom,muscle);});
 }
 function wkAddExFn(nom,muscle){
   var s=CURWK;if(!s)return;
