@@ -1481,6 +1481,10 @@ function loadPins(){try{var d=JSON.parse(kvGetItem('pins'));if(d)PINS=d;}catch(e
 function savePins(){try{kvSetItem('pins',JSON.stringify(PINS));}catch(e){}}
 function togPin(nom){PINS[nom]=!PINS[nom];savePins();renderStats();}
 var ACTPROG=null,CURWK=null,CHARTEX=null,SESSION_START=null,WOD_START=null;
+// Le chrono de duree de seance ne demarre qu'a la toute premiere serie validee
+// (quel que soit l'exercice), pas a l'ouverture de la seance — pour ne pas
+// compter le temps passe a juste regarder/preparer la seance.
+function ensureSessionStarted(){if(!SESSION_START)SESSION_START=Date.now();}
 var ONB_STEP=1,CHOICE=null,NEW_PROG={nom:'',seances:[]},BUILD_IDX=0;
 var TI=null,TR=120,TT=120,TRUN=false;
 
@@ -2373,18 +2377,20 @@ function renderProgTab(){
   var pHtml='';
   var ss=SEANCES.filter(function(s){return s.prog_id===prog.id;});
   WEEKPLAN.forEach(function(e,i){
-    var label='Repos',badgeCls='var(--txt4)';
+    var label='Repos',badgeCls='var(--txt4)',tag='Repos';
     var wodDone=kvGetItem('wod_done_'+WEEK+'_'+i);
-    if(e.type==='wod'){label='WOD Day';badgeCls='var(--accent)';}
+    var lightDone=kvGetItem('extra_light_'+WEEK+'_'+i);
+    if(e.type==='wod'){label='WOD Day';tag='WOD Day';badgeCls='var(--accent)';}
     else if(e.type==='seance'){
       var s=SEANCES.find(function(x){return x.id===e.seance_id;});
-      if(s){label=s.nom;badgeCls='var(--accent)';}
-    } else if(wodDone){label='Repos';badgeCls='var(--txt4)';}
+      if(s){label=s.nom;tag=s.nom;badgeCls='var(--accent)';}
+    } else if(lightDone){label=lightDone;tag='Fait';badgeCls='var(--accent)';}
+    else if(wodDone){label='Repos';tag='Repos';badgeCls='var(--txt4)';}
     var extra=wodDone&&e.type!=='wod'?' <span style="color:var(--accent);font-size:10.5px;font-weight:700">+WOD</span>':'';
     pHtml+='<div style="display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid var(--border);cursor:pointer" onclick="openDayPicker('+i+')">'
       +'<div style="width:20px;font-size:12.5px;font-weight:700;color:var(--txt4);text-align:center">'+DOW[i]+'</div>'
       +'<div style="flex:1;font-family:var(--font-display);font-weight:700;font-size:16.5px">'+label+extra+'</div>'
-      +'<span class="tag" style="border:1px solid '+badgeCls+';color:'+badgeCls+';font-size:11.5px;padding:3px 9px">'+label+'</span>'
+      +'<span class="tag" style="border:1px solid '+badgeCls+';color:'+badgeCls+';font-size:11.5px;padding:3px 9px">'+tag+'</span>'
       +'</div>';
   });
   document.getElementById('prog-c').innerHTML=pHtml;
@@ -2469,6 +2475,8 @@ function openDayPicker(dayIdx){
   ss.forEach(function(s){
     html+='<div class="choice" onclick="setDayPlan('+dayIdx+',\'seance\',\''+s.id+'\')"><div class="ct">'+s.nom+'</div><div class="cs">'+(s.exercices||[]).length+' exercices</div></div>';
   });
+  html+='<div class="sdiv"></div>'
+    +'<div class="choice" onclick="closeModal();openAddType('+dayIdx+')"><div class="ct">Ajouter une activité ponctuelle</div><div class="cs">Course à pied, natation, sport co, ergo... — même pour un jour déjà passé</div></div>';
   document.getElementById('modal-c').innerHTML=html;
   openModal();
 }
@@ -2492,7 +2500,7 @@ function openWk(el){
   // doit retrouver ce qui etait deja saisi.
   if(!resuming){
     WKP={};
-    SESSION_START=Date.now();
+    SESSION_START=null;
   }
   showSc('wk');
   document.getElementById('main-nav').style.display='none';
@@ -2806,6 +2814,7 @@ function markWodItemDone(i){
   var ex=s.exercices[i];
   var format=wodItemFormat(ex);
   openWodResultPrompt(ex.exercice_nom,format,function(result){
+    ensureSessionStarted();
     kvSetItem('ex_'+ex.id+'_'+WEEK,'1');
     ex.wodResult=result;
     sbPt('seance_exercices',{wodResult:result},'id=eq.'+ex.id).catch(function(){});
@@ -2960,6 +2969,7 @@ function emomSetMin(i,m,val){
 function emomValidate(i){
   var s=CURWK;if(!s||!s.exercices[i])return;
   var ex=s.exercices[i];
+  ensureSessionStarted();
   var log=ex.emomLog||{};
   var total=0;for(var k in log)total+=(parseInt(log[k])||0);
   sbPt('seance_exercices',{emomLog:log},'id=eq.'+ex.id).catch(function(){});
@@ -3014,6 +3024,7 @@ function validerSerie(i,exId){
   if(!WKP[exId])WKP[exId]={};
   var cur=WKP[exId]._cur||{};
   if(!cur.poids||!cur.reps){toast('Renseigne poids et reps');return;}
+  ensureSessionStarted();
   if(!WKP[exId].detail)WKP[exId].detail=[];
   WKP[exId].detailOn=true;
   WKP[exId].detail.push({poids:cur.poids,reps:cur.reps,rpe:cur.rpe});
@@ -3021,7 +3032,7 @@ function validerSerie(i,exId){
   var target=exTargetSetsToday(ex,WKP[exId]);
   if(WKP[exId].detail.length>=target)finalizeExercise(i,exId);
   else refreshExpand(exId);
-  autoStartRestTimer();
+  if(bisetTimerReady(ex))autoStartRestTimer();
 }
 function delValidatedSerie(exId,ri){
   if(!WKP[exId]||!WKP[exId].detail)return;
@@ -3186,6 +3197,7 @@ function blocValiderSerie(i,exId){
   }
   var cur=wp._cur||{};
   if(cur.reps===''||cur.reps===undefined){toast('Renseigne au moins les reps');return;}
+  ensureSessionStarted();
   lastBloc.series.push({poids:cur.poids||0,reps:cur.reps,rpe:cur.rpe});
   wp._cur={poids:cur.poids,reps:'',rpe:cur.rpe};
   refreshExpand(exId);
@@ -3235,6 +3247,7 @@ function blocEmomSetMin(exId,bi,m,val){
 }
 function blocEmomValidateBloc(exId,bi){
   var wp=WKP[exId];if(!wp||!wp.blocs||!wp.blocs[bi])return;
+  ensureSessionStarted();
   wp.blocs[bi].emomData.validated=true;
   refreshExpand(exId);
 }
@@ -4372,6 +4385,29 @@ function autoStartRestTimer(){
   TR=TT;
   openTimer();
   startT();
+}
+// Nombre de series deja validees pour un exercice, quel que soit son type
+// (serie classique via WKP[id].detail, ou blocs poids-du-corps via WKP[id].blocs).
+function seriesCountFor(exId){
+  var wp=WKP[exId];if(!wp)return 0;
+  if(wp.detail)return wp.detail.length;
+  if(wp.blocs){var n=0;wp.blocs.forEach(function(b){if(b.kind!=='emom')n+=(b.series||[]).length;});return n;}
+  return 0;
+}
+// En biset, le repos ne doit demarrer qu'une fois que les DEUX exercices ont
+// valide leur serie pour ce tour — jamais juste apres le premier des deux.
+// Des qu'un partenaire est entierement termine, on ne l'attend plus.
+function bisetTimerReady(ex){
+  if(!ex||!ex.biset_group)return true;
+  var s=CURWK;if(!s)return true;
+  var partner=null;
+  for(var k=0;k<s.exercices.length;k++){
+    var e=s.exercices[k];
+    if(e.id!==ex.id&&e.biset_group===ex.biset_group){partner=e;break;}
+  }
+  if(!partner)return true;
+  if(kvGetItem('ex_'+partner.id+'_'+WEEK)==='1')return true;
+  return seriesCountFor(ex.id)<=seriesCountFor(partner.id);
 }
 function adjWeekSet(d){
   var prevWeek=WEEK;
