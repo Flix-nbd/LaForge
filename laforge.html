@@ -87,6 +87,10 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font-body);min
 .prog-bar::-webkit-scrollbar{display:none}
 .pc{flex-shrink:0;padding:6px 11px;border-radius:0;background:#131312;border:1px solid rgba(240,235,225,.16);color:var(--txt3);font-family:var(--font-cond);font-weight:700;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;white-space:nowrap;font-size:12.5px}
 .pc.on{background:var(--txt);border-color:var(--txt);color:var(--bg)}
+.pinrow{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin-bottom:14px;scroll-snap-type:x proximity;padding-bottom:2px}
+.pinrow::-webkit-scrollbar{display:none}
+.pincard{flex:0 0 auto;width:148px;background:var(--card);border:1px solid var(--border2);border-radius:0;padding:12px 13px;cursor:pointer;scroll-snap-align:start}
+.pincard:active{border-color:var(--accent-b)}
 .ptab{flex:1;text-align:center;padding:10px 0 9px;background:none;border:none;border-bottom:2px solid transparent;color:var(--txt4);font-family:var(--font-cond);font-weight:700;letter-spacing:1px;text-transform:uppercase;font-size:12.5px;cursor:pointer;position:relative}
 .ptab.on{color:var(--txt);border-bottom-color:var(--accent)}
 .poto-av{width:36px;height:36px;border-radius:0;background:var(--card2);border:1px solid rgba(240,235,225,.22);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14.5px;color:var(--txt2);flex-shrink:0}
@@ -2239,6 +2243,38 @@ function findPinnedHighlightHome(){
   candidates.sort(function(a,b){return new Date(b.perf.created_at||0)-new Date(a.perf.created_at||0);});
   return candidates[0];
 }
+// Toutes les perfs épinglées (dédupliquées par nom, même liste que l'onglet
+// Perf), triées de la plus récemment performée à la plus ancienne — pour le
+// carrousel de l'Accueil.
+function pinnedExercicesHome(){
+  loadPins();
+  var built=buildStatsExList();
+  var list=built.allEx.filter(function(e){return !!PINS[e.exercice_nom||e.nom];});
+  list.forEach(function(e){
+    var perfs=PERF[e.id]||[];
+    e._lastPerf=perfs.length?perfs[0]:null;
+    e._recentTs=e._lastPerf?new Date(e._lastPerf.created_at||0).getTime():0;
+    var maxPoids=0,maxReps=0;
+    perfs.forEach(function(p){
+      maxPoids=Math.max(maxPoids,parseFloat(p.poids)||0);
+      if(p.detail&&p.detail.length)p.detail.forEach(function(r){maxReps=Math.max(maxReps,parseInt(r.reps)||0);});
+      else maxReps=Math.max(maxReps,parseInt(p.reps)||0);
+    });
+    if(maxPoids>0){e._recordDisplay=maxPoids+'kg';e._recordLbl='Record';}
+    else if(maxReps>0){e._recordDisplay=maxReps;e._recordLbl='Max reps';}
+    else{e._recordDisplay='—';e._recordLbl='Record';}
+    e._isPdc=!!built.pdcNames[e.exercice_nom||e.nom];
+  });
+  list.sort(function(a,b){return b._recentTs-a._recentTs;});
+  return list;
+}
+// Ouvre directement le detail d'une perf epinglee depuis l'Accueil : bascule
+// sur l'onglet Historique > Perf et affiche le graphe de CET exercice.
+function openPinnedPerf(exId){
+  CHARTEX=exId;
+  goNav('hist');
+  setHistPerfTab('perf');
+}
 function renderHome(){
   loadWP();
   document.getElementById('h-date').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
@@ -2288,14 +2324,7 @@ function renderHome(){
         +'<div><div class="ctitle" style="font-size:22px">'+nextS.nom+'</div><div class="csub">Prochaine séance · '+nextS.jour+'</div></div>'
         +'<span style="color:var(--txt4);font-size:17.5px">&#8250;</span></div>';
     } else {
-      var pin=findPinnedHighlightHome();
-      if(pin){
-        var pv=(pin.perf.detail&&pin.perf.detail.length)?Math.max.apply(null,pin.perf.detail.map(function(r){return parseFloat(r.poids)||0;})):(parseFloat(pin.perf.poids)||0);
-        cardsHtml+='<div class="card" style="padding:14px 16px;cursor:pointer" onclick="goNav(\'stats\')">'
-          +'<div class="csub" style="margin-bottom:4px">Perf épinglée</div>'
-          +'<div class="ctitle" style="font-size:22px">'+pin.nom+'</div>'
-          +'<div style="font-size:13.5px;color:var(--txt4)">'+(pv?pv+'kg · ':'')+'dernière fois</div></div>';
-      } else if(getPRCount(WEEK)>0){
+      if(getPRCount(WEEK)>0){
         var prc=getPRCount(WEEK);
         cardsHtml+='<div class="card hl" style="padding:16px;text-align:center">'
           +'<div class="ctitle" style="font-size:22px">🔥 '+prc+' record'+(prc>1?'s':'')+' cette semaine</div>'
@@ -2318,6 +2347,18 @@ function renderHome(){
         +'<span class="tag" style="border:1px solid var(--border2);color:var(--txt4);font-family:var(--font-cond);font-size:10.5px;font-weight:700;letter-spacing:.5px;padding:3px 8px;text-transform:uppercase;flex-shrink:0">'+a.type+'</span>'
         +'</div>';
     });
+  }
+  var pinsHome=pinnedExercicesHome();
+  if(pinsHome.length){
+    elC.innerHTML+='<div class="sec" style="margin-top:16px">'+(pinsHome.length>1?'Perfs épinglées':'Perf épinglée')+'</div>';
+    elC.innerHTML+='<div class="pinrow">'+pinsHome.map(function(e){
+      return '<div class="pincard" onclick="openPinnedPerf(\''+e.id+'\')">'
+        +'<div class="csub" style="margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(e.muscle||'')+(e._isPdc?' · PDC':'')+'</div>'
+        +'<div class="ctitle" style="font-size:16.5px;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(e.exercice_nom||e.nom)+'</div>'
+        +'<div style="font-family:var(--font-display);font-weight:800;font-size:21px;color:var(--accent);line-height:1">'+e._recordDisplay+'</div>'
+        +'<div style="font-family:var(--font-cond);font-size:10px;font-weight:700;color:var(--txt4);letter-spacing:1px;margin-top:2px">'+e._recordLbl.toUpperCase()+'</div>'
+        +'</div>';
+    }).join('')+'</div>';
   }
   elC.innerHTML+='<button class="btn-ghost" style="border-style:dashed;margin-bottom:14px;margin-top:'+(todayActs.length?'10px':'0')+'" onclick="openAddType()">+ Ajouter une séance</button>';
   var wkHtml='';
@@ -3792,16 +3833,24 @@ function exVolumeSeries(last){
   var vol2=(parseFloat(last.poids)||0)*(parseInt(last.reps)||0)*(parseInt(last.sets)||1);
   return {vol:Math.round(vol2),series:last.sets||null};
 }
-function renderStats(){
-  loadPins();
-  var el=document.getElementById('stats-c');
-  var allEx=[];
-  var pdcNames={};
+// Liste dedupliquee (une entree par nom d'exercice) utilisee par l'onglet Perf
+// ET par le carrousel des perfs epinglees de l'Accueil — pour que l'id utilisé
+// pour ouvrir le detail (setChEx) soit toujours le meme des deux endroits.
+function buildStatsExList(){
+  var allEx=[],pdcNames={};
   SEANCES.forEach(function(s){(s.exercices||[]).forEach(function(e){
     if(e.type==='wod'||e.type==='emom')return;
     if(e.blocMode||e.type==='bloc')pdcNames[e.exercice_nom||e.nom]=true;
     if(!allEx.find(function(x){return (x.exercice_nom||x.nom)===(e.exercice_nom||e.nom);}))allEx.push(e);
   });});
+  return {allEx:allEx,pdcNames:pdcNames};
+}
+function renderStats(){
+  loadPins();
+  var el=document.getElementById('stats-c');
+  var built=buildStatsExList();
+  var allEx=built.allEx;
+  var pdcNames=built.pdcNames;
   if(!allEx.length){el.innerHTML='<div style="text-align:center;color:var(--txt4);padding:50px 0;font-size:13.5px">Fais des seances pour voir tes perfs</div>';return;}
 
   var detailHtml='';
