@@ -4,9 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="LaForge">
 <meta name="theme-color" content="#0C0C0B">
+<link rel="apple-touch-icon" href="logo-laforge-v2.png">
+<link rel="manifest" href="manifest.json">
 <title>LaForge</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3803,6 +3806,86 @@ var SPLITS={
   ul:{label:'Upper-Lower',desc:'Haut / bas en alternance — ajoute des séances pour aller plus loin',noms:['HAUT A','BAS A']},
   bro:{label:'Bro Split',desc:'Un groupe par séance',noms:['PECS','DOS','JAMBES','ÉPAULES','BRAS']}
 };
+var SPLIT_DEFAULT_EX={
+  fb:[
+    [{nom:'Squat barre',muscle:'Quadriceps',sets:4,reps:8,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:10},
+     {nom:'Developpe couche barre',muscle:'Pectoraux',sets:4,reps:8,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:10},
+     {nom:'Rowing barre',muscle:'Dos',sets:4,reps:8,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:10},
+     {nom:'Developpe militaire barre',muscle:'Epaules',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Curl barre EZ',muscle:'Biceps',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Dips triceps',muscle:'Triceps',sets:3,reps:8,max_reps:true,prog_type:'poids',prog_val:2.5,prog_freq:2,reps_cible:12}],
+    [{nom:'Souleve de terre classique',muscle:'Ischios / Fessiers',sets:4,reps:6,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:8},
+     {nom:'Developpe incline halteres',muscle:'Pectoraux',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Tractions pronation',muscle:'Dos',sets:4,reps:6,max_reps:true,prog_type:'poids',prog_val:2.5,prog_freq:2,reps_cible:10},
+     {nom:'Elevations laterales halteres',muscle:'Epaules',sets:3,reps:12,max_reps:false,prog_type:'poids',prog_val:0.5,prog_freq:1,reps_cible:15},
+     {nom:'Curl marteau',muscle:'Biceps',sets:3,reps:12,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:15},
+     {nom:'Skull crusher EZ',muscle:'Triceps',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12}],
+    [{nom:'Leg press',muscle:'Quadriceps',sets:4,reps:10,max_reps:false,prog_type:'poids',prog_val:5,prog_freq:1,reps_cible:15},
+     {nom:'Pompes lestees',muscle:'Pectoraux',sets:3,reps:10,max_reps:true,prog_type:'poids',prog_val:2.5,prog_freq:2,reps_cible:15},
+     {nom:'Rowing haltere',muscle:'Dos',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Arnold press',muscle:'Epaules',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Gainage planche',muscle:'Abdominaux',sets:3,reps:45,max_reps:false,prog_type:'neant',prog_val:0,prog_freq:1,reps_cible:60}]
+  ],
+  ppl:[
+    [{nom:'Developpe couche barre',muscle:'Pectoraux',sets:4,reps:8,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:12},
+     {nom:'Developpe incline halteres',muscle:'Pectoraux',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Ecarte halteres plat',muscle:'Pectoraux',sets:3,reps:12,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:15},
+     {nom:'Developpe militaire halteres',muscle:'Epaules',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Elevations laterales halteres',muscle:'Epaules',sets:4,reps:12,max_reps:false,prog_type:'poids',prog_val:0.5,prog_freq:1,reps_cible:15},
+     {nom:'Skull crusher EZ',muscle:'Triceps',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12}],
+    [{nom:'Tractions supination',muscle:'Dos',sets:4,reps:6,max_reps:true,prog_type:'poids',prog_val:2.5,prog_freq:2,reps_cible:10},
+     {nom:'Rowing barre',muscle:'Dos',sets:4,reps:8,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:12},
+     {nom:'Tirage poulie haute',muscle:'Dos',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:2,prog_freq:1,reps_cible:12},
+     {nom:'Face pull',muscle:'Epaules',sets:3,reps:15,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:20},
+     {nom:'Curl barre EZ',muscle:'Biceps',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Curl marteau',muscle:'Biceps',sets:3,reps:12,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:15}],
+    [{nom:'Squat barre',muscle:'Quadriceps',sets:4,reps:8,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:12},
+     {nom:'Fentes avant halteres',muscle:'Quadriceps',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'RDL barre',muscle:'Ischios / Fessiers',sets:4,reps:10,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:12},
+     {nom:'Fentes bulgares halteres',muscle:'Quadriceps',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Adducteur machine',muscle:'Adducteurs',sets:3,reps:15,max_reps:false,prog_type:'poids',prog_val:2,prog_freq:1,reps_cible:20},
+     {nom:'Mollets debout machine',muscle:'Mollets',sets:4,reps:15,max_reps:false,prog_type:'poids',prog_val:2,prog_freq:1,reps_cible:20}]
+  ],
+  ul:[
+    [{nom:'Developpe couche barre',muscle:'Pectoraux',sets:4,reps:8,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:10},
+     {nom:'Rowing barre',muscle:'Dos',sets:4,reps:8,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:10},
+     {nom:'Developpe militaire barre',muscle:'Epaules',sets:3,reps:8,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:10},
+     {nom:'Tirage poulie haute',muscle:'Dos',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:2,prog_freq:1,reps_cible:12},
+     {nom:'Elevations laterales halteres',muscle:'Epaules',sets:3,reps:12,max_reps:false,prog_type:'poids',prog_val:0.5,prog_freq:1,reps_cible:15},
+     {nom:'Curl barre EZ',muscle:'Biceps',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Skull crusher EZ',muscle:'Triceps',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12}],
+    [{nom:'Squat barre',muscle:'Quadriceps',sets:4,reps:8,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:10},
+     {nom:'Souleve de terre classique',muscle:'Ischios / Fessiers',sets:4,reps:6,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:8},
+     {nom:'Leg press',muscle:'Quadriceps',sets:3,reps:12,max_reps:false,prog_type:'poids',prog_val:5,prog_freq:1,reps_cible:15},
+     {nom:'Fentes avant halteres',muscle:'Quadriceps',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Hip thrust barre',muscle:'Fessiers',sets:3,reps:12,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:15},
+     {nom:'Mollets debout machine',muscle:'Mollets',sets:4,reps:15,max_reps:false,prog_type:'poids',prog_val:2,prog_freq:1,reps_cible:20}]
+  ],
+  bro:[
+    [{nom:'Developpe couche barre',muscle:'Pectoraux',sets:4,reps:8,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:10},
+     {nom:'Developpe incline halteres',muscle:'Pectoraux',sets:4,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Ecarte halteres plat',muscle:'Pectoraux',sets:3,reps:12,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:15},
+     {nom:'Dips triceps',muscle:'Triceps',sets:3,reps:8,max_reps:true,prog_type:'poids',prog_val:2.5,prog_freq:2,reps_cible:12}],
+    [{nom:'Tractions supination',muscle:'Dos',sets:4,reps:6,max_reps:true,prog_type:'poids',prog_val:2.5,prog_freq:2,reps_cible:10},
+     {nom:'Rowing barre',muscle:'Dos',sets:4,reps:8,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:12},
+     {nom:'Tirage poulie haute',muscle:'Dos',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:2,prog_freq:1,reps_cible:12},
+     {nom:'Souleve de terre classique',muscle:'Ischios / Fessiers',sets:3,reps:6,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:8}],
+    [{nom:'Squat barre',muscle:'Quadriceps',sets:4,reps:8,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:10},
+     {nom:'Leg press',muscle:'Quadriceps',sets:4,reps:10,max_reps:false,prog_type:'poids',prog_val:5,prog_freq:1,reps_cible:15},
+     {nom:'RDL barre',muscle:'Ischios / Fessiers',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:2.5,prog_freq:1,reps_cible:12},
+     {nom:'Fentes avant halteres',muscle:'Quadriceps',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Mollets debout machine',muscle:'Mollets',sets:4,reps:15,max_reps:false,prog_type:'poids',prog_val:2,prog_freq:1,reps_cible:20}],
+    [{nom:'Developpe militaire barre',muscle:'Epaules',sets:4,reps:8,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:10},
+     {nom:'Elevations laterales halteres',muscle:'Epaules',sets:4,reps:12,max_reps:false,prog_type:'poids',prog_val:0.5,prog_freq:1,reps_cible:15},
+     {nom:'Arnold press',muscle:'Epaules',sets:3,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Face pull',muscle:'Epaules',sets:3,reps:15,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:20}],
+    [{nom:'Curl barre EZ',muscle:'Biceps',sets:4,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Curl marteau',muscle:'Biceps',sets:3,reps:12,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:15},
+     {nom:'Skull crusher EZ',muscle:'Triceps',sets:4,reps:10,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:12},
+     {nom:'Extension triceps haltere',muscle:'Triceps',sets:3,reps:12,max_reps:false,prog_type:'poids',prog_val:1,prog_freq:1,reps_cible:15}]
+  ],
+  libre:[]
+};
 function openCtor(){
   CTOR_STATE={nom:'',semaines:8,split:null,seances:[]};
   document.getElementById('main-nav').style.display='none';
@@ -3840,7 +3923,11 @@ function ctorValidate1(){
 function ctorGoStep2(){
   if(!CTOR_STATE.nom.trim()||!CTOR_STATE.split)return;
   if(!CTOR_STATE.seances.length){
-    CTOR_STATE.seances=SPLITS[CTOR_STATE.split].noms.map(function(n){return {nom:n,zone:'hyper',exercices:[],finBloc:null};});
+    var defaults=SPLIT_DEFAULT_EX[CTOR_STATE.split]||[];
+    CTOR_STATE.seances=SPLITS[CTOR_STATE.split].noms.map(function(n,i){
+      var exos=defaults[i]?JSON.parse(JSON.stringify(defaults[i])):[];
+      return {nom:n,zone:'hyper',exercices:exos,finBloc:null};
+    });
   }
   showSc('ctor2');renderCtor2();
 }
@@ -3877,7 +3964,7 @@ function ctorFinish(){
           var p2=Promise.resolve();
           s.exercices.forEach(function(e,ei){
             p2=p2.then(function(){
-              return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,exercice_nom:e.nom,muscle:e.muscle||'',sets:e.sets||3,reps:e.reps||10,max_reps:false,progression_type:'poids',progression_valeur:2.5,progression_frequence:1,ordre:ei});
+              return sbP('seance_exercices',{seance_id:sean.id,user_id:USER.id,exercice_nom:e.nom,muscle:e.muscle||'',sets:e.sets||3,reps:e.reps||10,max_reps:e.max_reps||false,progression_type:e.prog_type||'poids',progression_valeur:e.prog_val||2.5,progression_frequence:e.prog_freq||1,reps_cible:e.reps_cible||null,ordre:ei});
             });
           });
           return p2;
