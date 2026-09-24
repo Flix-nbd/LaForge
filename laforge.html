@@ -1344,6 +1344,7 @@ function addExDB(si,nom,muscle){
 
 function finishOnb(){
   toast('Creation...');
+  var hadActiveProg=!!ACTPROG;
   sbP('programmes',{user_id:USER.id,nom:NEW_PROG.nom,couleur:'#22C55E',ordre:0}).then(function(parr){
     var prog=parr[0];
     var p=Promise.resolve();
@@ -1361,11 +1362,12 @@ function finishOnb(){
         });
       });
     });
-    return p.then(function(){ACTPROG=prog.id;});
+    return p.then(function(){if(!hadActiveProg)ACTPROG=prog.id;});
   }).then(function(){
     return loadAll();
   }).then(function(){
-    showMain();toast('Programme cree !');
+    showMain();
+    toast(hadActiveProg?'Programme cree — tape dessus dans l\'onglet Programme pour l\'activer':'Programme cree !');
   }).catch(function(e){console.error(e);toast('Erreur - reessaie');});
 }
 
@@ -3954,6 +3956,7 @@ function ctorAddSeance(){
 function ctorFinish(){
   if(!CTOR_STATE.seances.length){toast('Ajoute au moins une séance');return;}
   toast('Création...');
+  var hadActiveProg=!!ACTPROG;
   sbP('programmes',{user_id:USER.id,nom:CTOR_STATE.nom,couleur:'#DE8A54',ordre:PROGS.length,split:CTOR_STATE.split,semaines:CTOR_STATE.semaines}).then(function(parr){
     var prog=parr[0];
     var p=Promise.resolve();
@@ -3971,11 +3974,12 @@ function ctorFinish(){
         });
       });
     });
-    return p.then(function(){ACTPROG=prog.id;saveL();});
+    return p.then(function(){if(!hadActiveProg){ACTPROG=prog.id;saveL();}});
   }).then(loadAll).then(function(){
     CTOR_STATE={nom:'',semaines:8,split:null,seances:[]};
     document.getElementById('main-nav').style.display='flex';
-    showMain();toast('Programme créé !');
+    showMain();
+    toast(hadActiveProg?'Programme créé — tape dessus dans l\'onglet Programme pour l\'activer':'Programme créé !');
   }).catch(function(e){console.error(e);toast('Erreur - réessaie');});
 }
 
